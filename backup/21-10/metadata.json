@@ -1,7 +1,0 @@
-{
-  "name": "Nền tảng AI Chat",
-  "description": "Một nền tảng chat AI đa năng với trang quản trị mạnh mẽ.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
