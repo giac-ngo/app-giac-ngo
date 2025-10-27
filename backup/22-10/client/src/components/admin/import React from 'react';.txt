@@ -1,0 +1,30 @@
+import React from 'react';
+
+// CryptoIcon removed (unused)
+
+interface PricingCardProps {
+    onCryptoPurchase?: (plan: PricingPlan) => void; // optional
+    // ...
+}
+
+const PricingCard: React.FC<PricingCardProps> = ({ plan, user, onPurchase, onCryptoPurchase, isPurchasing }) => {
+    // use onCryptoPurchase only if provided
+    const handlePurchase = () => {
+        if (onCryptoPurchase) {
+            onCryptoPurchase(plan);
+        } else {
+            onPurchase(plan);
+        }
+    };
+
+    return (
+        <div>
+            {/* Pricing card content */}
+            <button onClick={handlePurchase} disabled={isPurchasing}>
+                {isPurchasing ? 'Purchasing...' : 'Purchase'}
+            </button>
+        </div>
+    );
+};
+
+export default PricingCard;

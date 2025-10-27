@@ -1,0 +1,145 @@
+/*
+  Applies the 'giacngo' theme colors to the admin panel for a consistent look,
+  with distinct colors for different functional areas, exactly matching the user's screenshot.
+*/
+.admin-page-container {
+    --color-primary: #991b1b;
+    --color-primary-hover: #7f1d1d;
+    --color-primary-light: #fde8e8;
+    --color-text-on-primary: #fefce8;
+    --color-accent-red: #b91c1c;
+    --color-accent-red-hover: #991b1b;
+    --color-text-main: #1f2937;
+    --color-text-light: #6b7280;
+
+    /* Color palette based on the screenshot */
+    --admin-bg-sidebar: #efe0bd;
+    --admin-bg-list: #efe0bd;
+    --admin-bg-content: #f5f1e6;
+    --admin-bg-chat: #efe0bd;
+    --admin-bg-input: #fefcf5;
+    --admin-bg-training-qa: #f5f1e6;
+    --admin-bg-active: #fad1d1;
+    --admin-border-color: #dcd5bc;
+    font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+/* --- Base Layout & Backgrounds --- */
+
+/* Main sidebar nav */
+.admin-page-container > aside {
+    background-color: var(--admin-bg-sidebar);
+    border-color: var(--admin-border-color);
+}
+.admin-page-container > aside .border-b {
+    border-color: var(--admin-border-color) !important;
+}
+
+
+/* Main content area "frame" */
+.admin-page-container > main {
+    background-color: var(--admin-bg-sidebar); /* This is the "frame" color */
+}
+
+/* All direct children panels inside main content area */
+.admin-page-container > main > div {
+    background-color: var(--admin-bg-content);
+}
+
+/* --- AI Management Page Specifics --- */
+.admin-page-container .flex.h-full {
+    background-color: var(--admin-bg-sidebar);
+}
+
+/* AI List panel */
+.admin-page-container .flex.h-full > .w-64 {
+    background-color: var(--admin-bg-list);
+    border-color: var(--admin-border-color);
+}
+.admin-page-container .flex.h-full > .w-64 .border-b,
+.admin-page-container .flex.h-full > .w-64 .border-r {
+    border-color: var(--admin-border-color) !important;
+}
+
+
+/* AI Configuration form panel */
+.admin-page-container .flex.h-full > .flex-1 > div:first-child {
+    background-color: var(--admin-bg-content);
+    border-color: var(--admin-border-color);
+}
+
+/* Test Chat panel */
+.admin-page-container .flex-col.bg-background-light {
+    background-color: var(--admin-bg-chat) !important;
+    border-left: 1px solid var(--admin-border-color);
+}
+.admin-page-container .flex.h-full > .flex-1 .border-b,
+.admin-page-container .flex.h-full > .flex-1 .border-t,
+.admin-page-container .flex.h-full > .flex-1 .border-r {
+     border-color: var(--admin-border-color) !important;
+}
+
+/* Test chat input area */
+.admin-page-container .flex-col.bg-background-light .bg-background-panel {
+    background-color: var(--admin-bg-content) !important;
+}
+
+/* --- Active/Selected Item Styling --- */
+.admin-page-container nav button.bg-primary-light,
+.admin-page-container .flex.h-full > .w-64 .bg-primary-light {
+    background-color: var(--admin-bg-active) !important;
+    color: var(--color-primary) !important;
+}
+
+.admin-page-container nav button.bg-primary-light svg {
+    color: var(--color-primary);
+}
+
+
+/* --- Element Specific Styling --- */
+
+/* Input Fields, Selects, Textareas */
+.admin-page-container input,
+.admin-page-container select,
+.admin-page-container textarea {
+    background-color: var(--admin-bg-input) !important;
+    border-color: var(--admin-border-color) !important;
+}
+
+.admin-page-container input:focus,
+.admin-page-container select:focus,
+.admin-page-container textarea:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 1px var(--color-primary) !important;
+    outline: none !important;
+}
+
+/* Additional Training Content (Q&A) Box */
+.admin-page-container .h-48.overflow-y-auto {
+    background-color: var(--admin-bg-training-qa) !important;
+}
+.admin-page-container .h-48.overflow-y-auto .bg-background-light {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+
+/* General Overrides */
+.admin-page-container .border-border-color {
+    border-color: var(--admin-border-color) !important;
+}
+
+.admin-page-container .hover\:bg-background-light:hover {
+    background-color: var(--admin-bg-content) !important;
+}
+
+.admin-page-container .bg-background-panel {
+    background-color: var(--admin-bg-content) !important;
+}
+
+.admin-page-container .bg-background-light {
+    background-color: var(--admin-bg-list) !important;
+}
+
+.admin-page-container aside .hover\:bg-background-light:hover {
+    background-color: #e8d6a4 !important;
+}

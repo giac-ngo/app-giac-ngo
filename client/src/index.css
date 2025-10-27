@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #root,
+  .App {
+    height: 100svh; /* Use small viewport height for the app container */
+    margin: 0;
+    padding: 0;
+  }
+  
+  html {
+    font-size: 14px;
+  }
+}

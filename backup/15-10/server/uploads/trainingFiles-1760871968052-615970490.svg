@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="50" viewBox="0 0 150 50">
+  <style>
+    .lotus-petal { fill: #991b1b; } /* red-800 */
+    .lotus-circle { fill: #facc15; } /* yellow-400 */
+    .gn-text {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      font-weight: 600;
+      font-size: 24px;
+      fill: #4b2c1a; /* Dark Brown */
+    }
+  </style>
+  
+  <g transform="translate(25, 25)">
+    <!-- Lotus Petals -->
+    <path class="lotus-petal" d="M0 -20 C 10 -10, 10 10, 0 20 C -10 10, -10 -10, 0 -20 Z" transform="scale(0.8)"/>
+    <path class="lotus-petal" d="M0 -15 C 8 -8, 8 8, 0 15 C -8 8, -8 -8, 0 -15 Z" transform="rotate(45) scale(0.7)"/>
+    <path class="lotus-petal" d="M0 -15 C 8 -8, 8 8, 0 15 C -8 8, -8 -8, 0 -15 Z" transform="rotate(-45) scale(0.7)"/>
+    <path class="lotus-petal" d="M0,20 C-15,10 -15,-5 0,-10 C15,-5 15,10 0,20 Z" transform="translate(0, 1) scale(1.2, 0.5)"/>
+
+    <!-- Circles -->
+    <circle class="lotus-circle" cx="0" cy="-15" r="5"/>
+    <circle class="lotus-circle" cx="-12" cy="-8" r="5"/>
+    <circle class="lotus-circle" cx="12" cy="-8" r="5"/>
+  </g>
+  
+  <text x="60" y="32" class="gn-text">giac.ngo</text>
+</svg>
