@@ -1,0 +1,128 @@
+
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "admin",
+      "password": "admin",
+      "name": "Admin",
+      "avatarUrl": "https://i.pravatar.cc/150?u=admin",
+      "isAdmin": true,
+      "coins": null,
+      "isActive": true,
+      "apiKeys": {
+        "gemini": "",
+        "gpt": "",
+        "grok": ""
+      }
+    },
+    {
+      "id": 2,
+      "email": "user@example.com",
+      "password": "1",
+      "name": "User",
+      "avatarUrl": "https://i.pravatar.cc/150?u=user",
+      "isAdmin": false,
+      "coins": 100,
+      "isActive": true,
+      "apiKeys": {
+        "gemini": "",
+        "gpt": "",
+        "grok": ""
+      }
+    },
+    {
+      "id": 3,
+      "email": "expired",
+      "password": "1",
+      "name": "Expired User",
+      "avatarUrl": "https://i.pravatar.cc/150?u=expired",
+      "isAdmin": false,
+      "coins": 0,
+      "isActive": true,
+      "apiKeys": {
+        "gemini": "",
+        "gpt": "",
+        "grok": ""
+      }
+    },
+    {
+      "id": 4,
+      "email": "disabled",
+      "password": "1",
+      "name": "Disabled User",
+      "avatarUrl": "https://i.pravatar.cc/150?u=disabled",
+      "isAdmin": false,
+      "coins": 50,
+      "isActive": false,
+      "apiKeys": {
+        "gemini": "",
+        "gpt": "",
+        "grok": ""
+      }
+    }
+  ],
+  "aiConfigs": [
+    {
+      "id": 1,
+      "name": "AI Trợ lý đa năng",
+      "modelType": "gemini",
+      "modelName": "gemini-2.5-flash",
+      "trainingContent": "Bạn là một trợ lý AI hữu ích, thân thiện và đa năng. Hãy trả lời các câu hỏi của người dùng một cách chính xác và ngắn gọn.",
+      "suggestedQuestions": [
+        "Thời tiết hôm nay thế nào?",
+        "Kể một câu chuyện cười",
+        "Viết một email xin nghỉ phép"
+      ],
+      "tags": [
+        "trợ lý",
+        "hữu ích"
+      ],
+      "isPublic": true,
+      "ownerId": 1,
+      "avatarUrl": "/uploads/default-avatar.png",
+      "trainingFileUrls": []
+    }
+  ],
+  "conversations": [],
+  "transactions": [
+    {
+      "id": 1,
+      "userId": 2,
+      "adminId": 1,
+      "coins": 100,
+      "timestamp": 1672531200000,
+      "type": "manual"
+    },
+    {
+      "id": 2,
+      "userId": 3,
+      "adminId": 1,
+      "coins": 0,
+      "timestamp": 1672531100000,
+      "type": "manual"
+    },
+    {
+      "id": 3,
+      "userId": 4,
+      "adminId": 1,
+      "coins": 50,
+      "timestamp": 1672531000000,
+      "type": "manual"
+    }
+  ],
+  "systemConfig": {
+    "guestMessageLimit": 10,
+    "systemKeys": {
+      "gemini": "",
+      "gpt": "",
+      "grok": ""
+    }
+  },
+  "nextIds": {
+    "user": 5,
+    "aiConfig": 2,
+    "conversation": 1,
+    "transaction": 4
+  }
+}

@@ -1,0 +1,11 @@
+<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+    <style>.skin{fill:#d3a17d;}.hair{fill:#333;}.clothes{fill:#8b4513;}.axe-handle{fill:#a0522d;}.axe-head{fill:#c0c0c0;stroke:#555;stroke-width:2;}</style>
+    <circle cx="75" cy="50" r="25" class="skin"/>
+    <path class="hair" d="M 50 50 Q 75 20, 100 50 Q 75 55, 50 50 Z"/>
+    <rect x="55" y="75" width="40" height="50" class="skin"/>
+    <path class="clothes" d="M 50 100 L 100 100 L 90 130 L 60 130 Z"/>
+    <path class="axe-head" d="M 110 40 L 130 30 L 140 50 L 120 60 Z"/>
+    <rect x="95" y="50" width="20" height="80" rx="5" class="axe-handle" transform="rotate(10, 105, 90)"/>
+    <circle cx="70" cy="50" r="2" fill="#333"/><circle cx="80" cy="50" r="2" fill="#333"/>
+    <path d="M 72 60 Q 75 58, 78 60" fill="none" stroke="#333" stroke-width="1.5"/>
+</svg>
