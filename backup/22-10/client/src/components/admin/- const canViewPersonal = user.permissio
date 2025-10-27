@@ -1,2 +1,0 @@
--    const canViewPersonal = user.permissions?.includes('settings');
-+    // removed unused canViewPersonal
