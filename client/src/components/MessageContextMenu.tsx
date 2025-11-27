@@ -21,7 +21,7 @@ const translations = {
     }
 };
 
-const MessageContextMenu: React.FC<ContextMenuProps> = (props) => {
+export const MessageContextMenu: React.FC<ContextMenuProps> = (props) => {
     const { message, position, onClose, onCopy, onDeleteForMe, language } = props;
     const t = translations[language];
     const menuRef = useRef<HTMLDivElement>(null);
@@ -97,5 +97,3 @@ const MessageContextMenu: React.FC<ContextMenuProps> = (props) => {
         </div>
     );
 };
-
-export default MessageContextMenu;

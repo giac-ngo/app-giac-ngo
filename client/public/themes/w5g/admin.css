@@ -1,23 +1,195 @@
 /*
-  A separate, more neutral theme for the admin panel to improve readability
-  for data-heavy interfaces. This is applied via a class on the body tag
-  in AdminPage.tsx.
+  Applies a more detailed, neutral theme for the W5G admin panel 
+  to improve readability for data-heavy interfaces.
 */
-.admin-page-container {
+html:not([data-theme="giacngo"]) .admin-page-container {
     --color-primary: #3b82f6; /* blue-500 */
     --color-primary-hover: #2563eb; /* blue-600 */
     --color-primary-light: #eff6ff; /* blue-50 */
-    --color-primary-text: #1e40af; /* blue-800 */
     --color-text-on-primary: #ffffff;
     --color-accent-red: #ef4444; /* red-500 */
     --color-accent-red-hover: #dc2626; /* red-600 */
     --color-text-main: #1f2937; /* gray-800 */
     --color-text-light: #6b7280; /* gray-500 */
-    --color-background-main: #f9fafb; /* gray-50 */
-    --color-background-light: #f3f4f6; /* gray-100 */
-    --color-background-panel: #ffffff; /* white */
-    --color-border-color: #e5e7eb; /* gray-200 */
-    --color-background-ai-bubble: #f3f4f6;
-    --color-text-on-ai-bubble: #1f2937;
+
+    /* Custom admin panel color palette for W5G */
+    --admin-bg-sidebar: #f9fafb;     /* gray-50 */
+    --admin-bg-list: #f3f4f6;       /* gray-100 */
+    --admin-bg-content: #ffffff;     /* white */
+    --admin-bg-chat: #f9fafb;       /* gray-50 */
+    --admin-bg-input: #ffffff;       /* white */
+    --admin-bg-training-qa: #f3f4f6; /* gray-100 */
+    --admin-bg-active: #dbeafe;       /* blue-100 */
+    --admin-border-color: #e5e7eb;  /* gray-200 */
+    
     font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
+
+/* --- Base Layout & Backgrounds --- */
+html:not([data-theme="giacngo"]) .admin-page-container > aside {
+    background-color: var(--admin-bg-sidebar);
+    border-color: var(--admin-border-color);
+}
+html:not([data-theme="giacngo"]) .admin-page-container > aside .border-b,
+html:not([data-theme="giacngo"]) .admin-page-container > aside .border-t {
+    border-color: var(--admin-border-color) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container > main {
+    background-color: var(--admin-bg-list); 
+}
+html:not([data-theme="giacngo"]) .admin-page-container > main > div {
+    background-color: var(--admin-bg-content);
+}
+
+/* --- AI Management Page Specifics --- */
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full {
+    background-color: var(--admin-bg-sidebar);
+}
+
+/* AI List panel */
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .w-64 {
+    background-color: var(--admin-bg-list);
+    border-color: var(--admin-border-color);
+}
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .w-64 .border-b,
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .w-64 .border-r {
+    border-color: var(--admin-border-color) !important;
+}
+
+/* AI Configuration form panel */
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .flex-1 > div:first-child {
+    background-color: var(--admin-bg-content);
+    border-color: var(--admin-border-color);
+}
+
+/* Test Chat panel */
+html:not([data-theme="giacngo"]) .admin-page-container .flex-col.bg-background-light {
+    background-color: var(--admin-bg-chat) !important;
+    border-left: 1px solid var(--admin-border-color);
+}
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .flex-1 .border-b,
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .flex-1 .border-t,
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .flex-1 .border-r {
+     border-color: var(--admin-border-color) !important;
+}
+
+/* Test chat input area */
+html:not([data-theme="giacngo"]) .admin-page-container .flex-col.bg-background-light .bg-background-panel {
+    background-color: var(--admin-bg-content) !important;
+}
+
+/* --- Active/Selected Item Styling --- */
+html:not([data-theme="giacngo"]) .admin-page-container nav button.bg-primary-light,
+html:not([data-theme="giacngo"]) .admin-page-container .flex.h-full > .w-64 .bg-primary-light {
+    background-color: var(--admin-bg-active) !important;
+    color: var(--color-primary) !important;
+}
+
+html:not([data-theme="giacngo"]) .admin-page-container nav button.bg-primary-light svg {
+    color: var(--color-primary);
+}
+
+
+/* --- Element Specific Styling --- */
+html:not([data-theme="giacngo"]) .admin-page-container input:not([class~="border-0"]),
+html:not([data-theme="giacngo"]) .admin-page-container select,
+html:not([data-theme="giacngo"]) .admin-page-container textarea {
+    background-color: var(--admin-bg-input) !important;
+    border-color: var(--admin-border-color) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container input:not([class~="border-0"]):focus,
+html:not([data-theme="giacngo"]) .admin-page-container select:focus,
+html:not([data-theme="giacngo"]) .admin-page-container textarea:focus {
+    border-color: var(--color-primary) !important;  
+    --tw-ring-color: var(--color-primary);
+}
+html:not([data-theme="giacngo"]) .admin-page-container .h-48.overflow-y-auto {
+    background-color: var(--admin-bg-training-qa) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .h-48.overflow-y-auto .bg-background-light {
+    background-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+
+/* General Overrides */
+html:not([data-theme="giacngo"]) .admin-page-container .border-border-color {
+    border-color: var(--admin-border-color) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .bg-background-panel {
+    background-color: var(--admin-bg-content) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .bg-background-light {
+    background-color: var(--admin-bg-list) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container aside .hover\:bg-background-light:hover {
+    background-color: #e5e7eb !important; /* gray-200 */
+}
+
+/* AI Test Chat bubble */
+html:not([data-theme="giacngo"]) .admin-page-container .flex-col.bg-background-light .bg-background-panel {
+    background-color: var(--admin-bg-content) !important;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .flex-col.bg-background-light .shadow-sm {
+    box-shadow: none;
+    border: 1px solid var(--admin-border-color);
+}
+/* Test chat input wrapper */
+html:not([data-theme="giacngo"]) .admin-page-container .flex-col.bg-background-light .bg-white {
+    background-color: white !important;
+}
+
+/* Markdown Formatting */
+html:not([data-theme="giacngo"]) .admin-page-container .markdown-content {
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .markdown-content p { 
+    margin-bottom: 0; 
+}
+html:not([data-theme="giacngo"]) .admin-page-container .markdown-content ul, html:not([data-theme="giacngo"]) .admin-page-container .markdown-content ol { padding-left: 1.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+html:not([data-theme="giacngo"]) .admin-page-container .markdown-content li { margin-bottom: 0.25rem; }
+
+/* Ensure toast notifications use the correct admin font */
+html:not([data-theme="giacngo"]) .fixed.top-5.right-5 > div {
+    font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* Custom style for AI Thought block */
+html:not([data-theme="giacngo"]) .admin-page-container .ai-thought-block {
+    margin-top: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .ai-thought-block > div {
+    background-color: #fefce8; /* yellow-50 */
+    border: 1px solid #fef08a; /* yellow-200 */
+    color: #854d0e; /* yellow-800 */
+    font-size: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .ai-thought-block p {
+    color: #854d0e;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .ai-thought-block .font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+html:not([data-theme="giacngo"]) .admin-page-container .ai-thought-block .italic {
+    font-style: italic;
+}
+
+/* Chat Input Styles (Copied from PracticeSpacePage.css) */
+html:not([data-theme="giacngo"]) .chat-input-area { flex-shrink: 0; z-index: 20; padding: 1rem 1rem 0.5rem; background: var(--color-background-panel); border-top: 1px solid var(--color-border-color); }
+html:not([data-theme="giacngo"]) .image-preview-container { position: absolute; bottom: 100%; left: 1rem; margin-bottom: 0.5rem; background: var(--color-background-light); padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--color-border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+html:not([data-theme="giacngo"]) .image-preview-thumb { width: 5rem; height: 5rem; object-fit: cover; border-radius: 0.25rem; }
+html:not([data-theme="giacngo"]) .file-preview-thumb { width: 5rem; height: 5rem; border-radius: 0.25rem; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: var(--color-background-panel); padding: 0.25rem; }
+html:not([data-theme="giacngo"]) .image-preview-remove-btn { position: absolute; top: -0.5rem; right: -0.5rem; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: var(--color-accent-red); color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 2px solid var(--color-background-panel); }
+html:not([data-theme="giacngo"]) .chat-input-wrapper { display: flex; align-items: center; gap: 0.5rem; background-color: var(--color-background-panel); border: 1px solid var(--color-border-color); border-radius: 1.5rem; padding: 0.25rem 0.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+html:not([data-theme="giacngo"]) .chat-input-field { flex-grow: 1; border: none; background: transparent; padding: 0.5rem; resize: none; max-height: 120px; }
+html:not([data-theme="giacngo"]) .chat-input-field:focus { outline: none; }
+html:not([data-theme="giacngo"]) .chat-input-icon-btn { color: var(--color-text-light); padding: 0.5rem; border-radius: 0.5rem; flex-shrink: 0; }
+html:not([data-theme="giacngo"]) .chat-input-icon-btn:hover { background: var(--color-background-light); }
+html:not([data-theme="giacngo"]) .chat-input-icon-btn:disabled { opacity: 0.5; }
+html:not([data-theme="giacngo"]) .chat-send-btn { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 1.25rem; background-color: var(--color-primary); color: var(--color-text-on-primary); flex-shrink: 0; }
+html:not([data-theme="giacngo"]) .chat-send-btn:hover { background-color: var(--color-primary-hover); }
+html:not([data-theme="giacngo"]) .chat-send-btn:disabled { background-color: var(--color-primary); opacity: 0.5; cursor: not-allowed; }

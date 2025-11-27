@@ -1,150 +1,329 @@
 // client/src/services/apiService.ts
 
-import { User, AIConfig, SystemConfig, Conversation, Message, ModelType, PricingPlan, Transaction, Role, DashboardStats, TrainingDataSource } from '../types';
+import { User, AIConfig, SystemConfig, Conversation, Message, ModelType, PricingPlan, Transaction, Role, DashboardStats, TrainingDataSource, KoiiTask, Document, Tag, DocumentAuthor, DocumentType, DocumentTopic, SocialFeedPost, Comment, DocumentConfig, Space, DharmaTalk, WithdrawalRequest, SpaceOwnerData, SpaceType } from '../types';
+
+const getAuthToken = (): string | null => {
+    try {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+            const user: User = JSON.parse(userStr);
+            return user.apiToken || null;
+        }
+    } catch (e) {
+        // ignore parsing error
+    }
+    return null;
+};
+
+const authedFetch = (url: RequestInfo, options?: RequestInit): Promise<Response> => {
+    const token = getAuthToken();
+    const headers = new Headers(options?.headers);
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    if (options?.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    return fetch(url, { ...options, headers });
+};
+
+const createSearchParams = (params: object): URLSearchParams => {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== null && value !== undefined && value !== '') {
+            searchParams.append(key, String(value));
+        }
+    }
+    return searchParams;
+};
+
 
 const handleResponse = async (response: Response) => {
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }
     if (response.status === 204) {
         return null;
     }
-    return response.json();
+
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType && contentType.includes('application/json');
+
+    if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+            if (isJson) {
+                const errorData = await response.json();
+                errorMessage = errorData.message || JSON.stringify(errorData);
+            } else {
+                const errorText = await response.text();
+                const titleMatch = errorText.match(/<title>(.*?)<\/title>/i);
+                if (titleMatch && titleMatch[1]) {
+                     errorMessage = titleMatch[1];
+                } else {
+                    errorMessage = errorText.length > 200 ? errorText.slice(0, 200) + '...' : errorText;
+                }
+            }
+        } catch (e) {
+            errorMessage = `HTTP error! status: ${response.status} and failed to parse error response.`;
+        }
+        throw new Error(errorMessage);
+    }
+    
+    const text = await response.text();
+    if (!text) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return text;
+    }
 };
 
 interface StreamCallbacks {
     onChunk: (text: string) => void;
-    onEnd: (conversationId?: number | null, fullResponse?: string) => void;
+    onEnd: (conversationId?: number | null, updatedUser?: User | null, finalMessage?: { text: string; thought?: string | null }) => void;
     onError: (message: string) => void;
 }
 
-const apiService = {
-    // Dashboard
-    getDashboardStats: (): Promise<DashboardStats> => {
-        return fetch('/api/dashboard/stats').then(handleResponse);
+export const apiService = {
+    getAllDharmaTalks: (): Promise<DharmaTalk[]> => {
+        return authedFetch('/api/dharma-talks').then(handleResponse);
     },
-
-    // Auth
-    login: (email: string, password: string): Promise<User> => {
-        return fetch('/api/login', {
+    createDharmaTalk: (talk: Partial<DharmaTalk>): Promise<DharmaTalk> => {
+        return authedFetch('/api/dharma-talks', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(talk),
+        }).then(handleResponse);
+    },
+    updateDharmaTalk: (talk: DharmaTalk): Promise<DharmaTalk> => {
+        return authedFetch(`/api/dharma-talks/${talk.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(talk),
+        }).then(handleResponse);
+    },
+    deleteDharmaTalk: (id: number): Promise<void> => {
+        return authedFetch(`/api/dharma-talks/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getDharmaTalksBySpaceId: (spaceId: number): Promise<DharmaTalk[]> => {
+        return authedFetch(`/api/spaces/${spaceId}/dharma-talks`).then(handleResponse);
+    },
+    getDocumentsBySpaceId: (spaceId: number): Promise<Document[]> => {
+        return authedFetch(`/api/spaces/${spaceId}/documents`).then(handleResponse);
+    },
+    generateTtsAudio: (text: string, provider: ModelType, model: string, voice: string, lang: 'vi' | 'en', userId: number): Promise<{ audioContent: string }> => {
+        return authedFetch('/api/tts/generate', {
+            method: 'POST',
+            body: JSON.stringify({ text, provider, model, voice, lang, userId }),
+        }).then(handleResponse);
+    },
+    translateText: (provider: ModelType, model: string, text: string, targetLanguage: 'en' | 'vi', userId: number, contextPrompt?: string): Promise<{ translatedText: string }> => {
+        return authedFetch('/api/translate', {
+            method: 'POST',
+            body: JSON.stringify({ provider, model, text, targetLanguage, userId, contextPrompt }),
+        }).then(handleResponse);
+    },
+    extractTextFromFile: (provider: ModelType, model: string, file: File, userId: number): Promise<{ htmlContent: string }> => {
+        const formData = new FormData();
+        formData.append('provider', provider);
+        formData.append('model', model);
+        formData.append('file', file);
+        formData.append('userId', String(userId));
+        return authedFetch('/api/documents/extract-text', {
+            method: 'POST',
+            body: formData,
+        }).then(handleResponse);
+    },
+    getSocialFeedPosts: (): Promise<SocialFeedPost[]> => {
+        return authedFetch('/api/social-feed').then(handleResponse);
+    },
+    getDashboardStats: (): Promise<DashboardStats> => {
+        return authedFetch('/api/dashboard/stats').then(handleResponse);
+    },
+    login: (email: string, password: string): Promise<User> => {
+        return authedFetch('/api/login', {
+            method: 'POST',
             body: JSON.stringify({ email, password }),
         }).then(handleResponse);
     },
     register: (user: Partial<User> & { password?: string }): Promise<User> => {
-        return fetch('/api/register', {
+        return authedFetch('/api/register', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user),
         }).then(handleResponse);
     },
-
-
-    // System Config
+    forgotPassword: (email: string, language: 'vi' | 'en'): Promise<{ message: string }> => {
+        return authedFetch('/api/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email, language }),
+        }).then(handleResponse);
+    },
+    resetPassword: (token: string, password: string): Promise<{ message: string }> => {
+        return authedFetch('/api/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token, password }),
+        }).then(handleResponse);
+    },
+    changePassword: (userId: number, oldPassword: string, newPassword: string): Promise<{ message: string }> => {
+        return authedFetch('/api/users/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ userId, oldPassword, newPassword }),
+        }).then(handleResponse);
+    },
     getSystemConfig: (): Promise<SystemConfig | null> => {
-        return fetch('/api/system-config').then(handleResponse);
+        return authedFetch('/api/system-config').then(handleResponse);
     },
     updateSystemConfig: (config: SystemConfig): Promise<SystemConfig> => {
-        return fetch('/api/system-config', {
+        return authedFetch('/api/system-config', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config),
         }).then(handleResponse);
     },
-
-    // AI Config
-    // For ChatPage: Gets public AIs based on user's status
     getAiConfigs: (user: User | null): Promise<AIConfig[]> => {
-        return fetch('/api/ai-configs', {
+        return authedFetch('/api/ai-configs', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user?.id }),
         }).then(handleResponse);
     },
-     // For AdminPage: Gets manageable AIs based on user's role/ownership
+     getAiConfigsBySpaceId: (spaceId: number): Promise<AIConfig[]> => {
+        return authedFetch(`/api/spaces/${spaceId}/ai-configs`).then(handleResponse);
+    },
     getManageableAiConfigs: (user: User): Promise<AIConfig[]> => {
-        return fetch('/api/ai-configs/manageable', {
+        return authedFetch('/api/ai-configs/manageable', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
             body: JSON.stringify({ userId: user.id }),
         }).then(handleResponse);
     },
     createAiConfig: (aiConfig: Partial<AIConfig>): Promise<AIConfig> => {
-        return fetch('/api/ai-configs/create', {
+        return authedFetch('/api/ai-configs/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(aiConfig),
         }).then(handleResponse);
     },
     updateAiConfig: (aiConfig: AIConfig): Promise<AIConfig> => {
-        return fetch(`/api/ai-configs/${aiConfig.id}`, {
+        return authedFetch(`/api/ai-configs/${aiConfig.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(aiConfig),
         }).then(handleResponse);
     },
     deleteAiConfig: (id: number | string): Promise<void> => {
-        return fetch(`/api/ai-configs/${id}`, { method: 'DELETE' }).then(res => {
+        return authedFetch(`/api/ai-configs/${id}`, { method: 'DELETE' }).then(res => {
             if (!res.ok) throw new Error('Failed to delete AI config');
         });
     },
-
-    // Conversations
+    purchaseAi: (aiId: number | string, userId: number): Promise<{ updatedUser: User }> => {
+        return authedFetch(`/api/ai-configs/${aiId}/purchase`, {
+            method: 'POST',
+            body: JSON.stringify({ userId }),
+        }).then(handleResponse);
+    },
+    claimFreeAi: (aiId: number | string, userId: number): Promise<{ updatedUser: User }> => {
+        return authedFetch(`/api/ai-configs/${aiId}/claim`, {
+            method: 'POST',
+            body: JSON.stringify({ userId }),
+        }).then(handleResponse);
+    },
+    getAiAccessList: (aiId: number | string): Promise<User[]> => {
+        return authedFetch(`/api/ai-configs/${aiId}/access`).then(handleResponse);
+    },
+    updateAiAccessList: (aiId: number | string, emails: string[]): Promise<void> => {
+        return authedFetch(`/api/ai-configs/${aiId}/access`, {
+            method: 'POST',
+            body: JSON.stringify({ emails }),
+        }).then(handleResponse);
+    },
+    submitKoiiTask: (aiConfigId: number | string): Promise<{ message: string }> => {
+        return authedFetch(`/api/koii/submit-task`, {
+            method: 'POST',
+            body: JSON.stringify({ aiConfigId }),
+        }).then(handleResponse);
+    },
+    getKoiiTaskStatus: (aiConfigId: number | string): Promise<KoiiTask | null> => {
+        return authedFetch(`/api/koii/task-status/${aiConfigId}`).then(res => {
+            if (res.status === 404) {
+                return null;
+            }
+            return handleResponse(res);
+        });
+    },
     getConversations: (user: User): Promise<Conversation[]> => {
         if (!user || typeof user.id !== 'number') {
             return Promise.resolve([]);
         }
-        return fetch(`/api/conversations?userId=${user.id}`).then(handleResponse);
+        return authedFetch(`/api/conversations?userId=${user.id}`).then(handleResponse);
+    },
+    getTrainedConversationsForAI: (aiConfigId: number | string): Promise<Conversation[]> => {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/trained-conversations`).then(handleResponse);
+    },
+    getTestConversationsForAI: (aiConfigId: number | string, userId: number): Promise<Conversation[]> => {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/test-conversations`, {
+            method: 'POST',
+            body: JSON.stringify({ userId }),
+        }).then(handleResponse);
     },
     getLatestConversationForAI: (aiConfigId: number | string, user: User): Promise<Conversation | null> => {
-        return fetch(`/api/ai-configs/${aiConfigId}/latest-conversation`, {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/latest-conversation`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id }),
         }).then(handleResponse);
     },
     getAllConversations: (_user: User): Promise<Conversation[]> => {
-        return fetch('/api/conversations/all').then(handleResponse);
+        return authedFetch('/api/conversations/all', { headers: {'Cache-Control': 'no-store'} }).then(handleResponse);
     },
     createConversation: (aiConfigId: number | string, messages: Message[], user: User): Promise<Conversation> => {
-        return fetch('/api/conversations', {
+        return authedFetch('/api/conversations', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ aiConfigId, messages, userId: user.id }),
         }).then(handleResponse);
     },
     deleteConversation: (id: number): Promise<void> => {
-        return fetch(`/api/conversations/${id}`, { method: 'DELETE' }).then(res => {
+        return authedFetch(`/api/conversations/${id}`, { method: 'DELETE' }).then(res => {
             if (!res.ok) throw new Error('Failed to delete conversation');
         });
     },
-    updateConversationMessages: (id: number, messages: Message[]): Promise<any> => {
-        return fetch(`/api/conversations/${id}`, {
+    renameConversation: (id: number, newTitle: string): Promise<Conversation> => {
+        return authedFetch(`/api/conversations/${id}/rename`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle }),
+        }).then(handleResponse);
+    },
+    updateConversationMessages: (id: number, messages: Message[]): Promise<any> => {
+        return authedFetch(`/api/conversations/${id}`, {
+            method: 'PUT',
             body: JSON.stringify({ messages }),
         }).then(handleResponse);
     },
-
-    // Chat Streaming
+    updateConversationTrainingStatus: (id: number, isTrained: boolean): Promise<Conversation> => {
+        return authedFetch(`/api/conversations/${id}/train-status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isTrained }),
+        }).then(handleResponse);
+    },
+     setMessageFeedback: (conversationId: number, messageId: string | number, feedback: 'liked' | 'disliked' | null): Promise<{success: boolean, updatedMessage: Message}> => {
+        return authedFetch(`/api/conversations/${conversationId}/messages/${messageId}/feedback`, {
+            method: 'POST',
+            body: JSON.stringify({ feedback }),
+        }).then(handleResponse);
+    },
     sendMessageStream: async (
         aiConfig: AIConfig,
         messages: Message[],
         user: User | null,
         conversationId: number | null,
-        callbacks: StreamCallbacks
+        callbacks: StreamCallbacks,
+        isTestChat: boolean = false,
+        language: 'vi' | 'en',
+        clientAiMessageId?: string | number
     ): Promise<void> => {
         let fullResponseText = '';
-        let hasEnded = false; // Prevent double-calling onEnd
+        let hasEnded = false;
 
         try {
-            const bodyPayload = { aiConfig, messages, userId: user?.id, conversationId };
-
-            const response = await fetch('/api/chat/stream', {
+            const bodyPayload = { aiConfig, messages, userId: user?.id, conversationId, isTestChat, language, clientAiMessageId };
+            const response = await authedFetch('/api/conversations/chat/stream', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyPayload),
             });
             
@@ -159,20 +338,16 @@ const apiService = {
             let finalConversationId: number | null = conversationId;
 
             const processBuffer = () => {
-                // Event streams are separated by double newlines from the server.
                 const events = buffer.split('\n\n');
-                buffer = events.pop() || ''; // Keep the last, possibly partial, event
+                buffer = events.pop() || '';
 
                 for (const event of events) {
                     if (!event.startsWith('data: ')) continue;
-
                     const jsonStr = event.substring(6).trim();
                     if (!jsonStr) continue;
-
                     try {
                         const data = JSON.parse(jsonStr);
-
-                        if (data.text) {
+                        if (data.text && !data.done) {
                             callbacks.onChunk(data.text);
                             fullResponseText += data.text;
                         }
@@ -182,12 +357,13 @@ const apiService = {
                         if (data.error) {
                             callbacks.onError(data.error);
                             hasEnded = true;
-                            return; // Stop processing
+                            return;
                         }
                         if (data.done && !hasEnded) {
-                            callbacks.onEnd(finalConversationId, fullResponseText);
+                            const finalMessage = data.text ? { text: data.text, thought: data.thought } : undefined;
+                            callbacks.onEnd(finalConversationId, data.updatedUser, finalMessage);
                             hasEnded = true;
-                            return; // Stop processing
+                            return;
                         }
                     } catch (e) {
                         console.error("Failed to parse stream event:", jsonStr, e);
@@ -198,10 +374,7 @@ const apiService = {
             while (!hasEnded) {
                 const { done, value } = await reader.read();
                 if (done) {
-                    // Stream finished, process any remaining buffer
-                    if (buffer) {
-                        processBuffer();
-                    }
+                    if (buffer) processBuffer();
                     break;
                 }
                 buffer += decoder.decode(value, { stream: true });
@@ -209,154 +382,369 @@ const apiService = {
             }
 
             if (!hasEnded && fullResponseText) {
-                callbacks.onEnd(finalConversationId, fullResponseText);
+                 callbacks.onEnd(finalConversationId, null, { text: fullResponseText, thought: null });
             }
-
         } catch (error: any) {
-            console.error("Error in sendMessageStream:", error);
             if (!hasEnded) {
                 callbacks.onError(error.message || "An unknown streaming error occurred.");
             }
         }
     },
-
-    // Users
-    getAllUsers: (): Promise<User[]> => fetch('/api/users').then(handleResponse),
+    getSpaceOwners: (): Promise<User[]> => authedFetch('/api/users/space-owners').then(handleResponse),
+    getAllUsers: (page: number, limit: number, search: string): Promise<User[]> => {
+        const params = new URLSearchParams({
+            page: String(page),
+            limit: String(limit),
+            search: search,
+        });
+        return authedFetch(`/api/users?${params.toString()}`).then(handleResponse);
+    },
     createUser: (user: Partial<User> & { password?: string }): Promise<User> => {
-        return fetch('/api/users', {
+        return authedFetch('/api/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user),
         }).then(handleResponse);
     },
     updateUser: (user: Partial<User>): Promise<User> => {
-        return fetch(`/api/users/${user.id}`, {
+        return authedFetch(`/api/users/${user.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user),
         }).then(handleResponse);
     },
     deleteUser: (userId: number): Promise<void> => {
-        return fetch(`/api/users/${userId}`, { method: 'DELETE' }).then(res => {
+        return authedFetch(`/api/users/${userId}`, { method: 'DELETE' }).then(res => {
             if (!res.ok) throw new Error('Failed to delete user');
         });
     },
     regenerateApiToken: (userId: number): Promise<User> => {
-        return fetch(`/api/users/${userId}/regenerate-token`, {
+        return authedFetch(`/api/users/${userId}/regenerate-token`, {
             method: 'POST',
         }).then(handleResponse);
     },
-
-    // Roles (RBAC)
-    getAllRoles: (): Promise<Role[]> => fetch('/api/roles').then(handleResponse),
+    getMySpaceOwnerData: (): Promise<SpaceOwnerData> => {
+        return authedFetch('/api/users/my-space-owner-data').then(handleResponse);
+    },
+    getAllRoles: (): Promise<Role[]> => authedFetch('/api/roles').then(handleResponse),
     createRole: (role: Partial<Role>): Promise<Role> => {
-        return fetch('/api/roles', {
+        return authedFetch('/api/roles', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(role),
         }).then(handleResponse);
     },
     updateRole: (role: Role): Promise<Role> => {
-        return fetch(`/api/roles/${role.id}`, {
+        return authedFetch(`/api/roles/${role.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(role),
         }).then(handleResponse);
     },
     deleteRole: (roleId: number | string): Promise<void> => {
-        return fetch(`/api/roles/${roleId}`, { method: 'DELETE' }).then(handleResponse);
+        return authedFetch(`/api/roles/${roleId}`, { method: 'DELETE' }).then(handleResponse);
     },
-
-    // Billing & Subscriptions
-    getAllTransactions: (): Promise<Transaction[]> => fetch('/api/transactions').then(handleResponse),
+    getAllTransactions: (): Promise<Transaction[]> => authedFetch('/api/transactions').then(handleResponse),
     getTransactionsForUser: (userId: number): Promise<Transaction[]> => {
-        return fetch(`/api/transactions/user/${userId}`).then(handleResponse);
+        return authedFetch(`/api/transactions/user/${userId}`).then(handleResponse);
     },
     addMeritsManually: (userId: number, merits: number, adminId: number): Promise<User> => {
-        return fetch('/api/transactions/manual', {
+        return authedFetch('/api/transactions/manual', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, merits, adminId }),
         }).then(handleResponse);
     },
     purchaseSubscription: (userId: number, planId: number | string): Promise<User> => {
-        return fetch('/api/subscriptions/purchase', {
+        return authedFetch('/api/subscriptions/purchase', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, planId }),
         }).then(handleResponse);
     },
-     // Crypto Payments
     initiateMeritPurchase: (userId: number, merits: number, crypto: 'USDT' | 'USDC' | 'ETH'): Promise<{ paymentAddress: string, amount: string, transactionId: string }> => {
-        return fetch('/api/crypto/initiate-merit-purchase', {
+        return authedFetch('/api/crypto/initiate-merit-purchase', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, merits, crypto }),
         }).then(handleResponse);
     },
     confirmCryptoPayment: (userId: number, transactionId: string): Promise<User> => {
-        return fetch('/api/crypto/confirm', {
+        return authedFetch('/api/crypto/confirm', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, transactionId }),
         }).then(handleResponse);
     },
-    
-    // File Upload
-    uploadFiles: (formData: FormData): Promise<{ filePaths: string[] }> => {
-        return fetch('/api/upload', {
+    getStripeConfig: (): Promise<{ publishableKey: string }> => {
+        return authedFetch('/api/stripe/config').then(handleResponse);
+    },
+    getEnabledPaymentMethods: (): Promise<string[]> => {
+        return authedFetch('/api/stripe/payment-methods').then(handleResponse);
+    },
+    initiateStripePurchase: (userId: number, merits: number): Promise<{ clientSecret: string, paymentIntentId: string }> => {
+        return authedFetch('/api/stripe/create-payment-intent', {
             method: 'POST',
-            body: formData,
+            body: JSON.stringify({ userId, merits }),
         }).then(handleResponse);
     },
-
-    // Get available models
-    getAvailableModels: (provider: ModelType, userId?: number): Promise<string[]> => {
-        const url = userId ? `/api/models/${provider}?userId=${userId}` : `/api/models/${provider}`;
-        return fetch(url).then(handleResponse);
-    },
-    
-    // Pricing Plans
-    getPricingPlans: (): Promise<PricingPlan[]> => fetch('/api/pricing-plans').then(handleResponse),
-    createPricingPlan: (plan: Omit<PricingPlan, 'id' | 'meritCost' | 'durationDays'> & { meritCost: number, durationDays: number | null }): Promise<PricingPlan> => {
-        return fetch('/api/pricing-plans', {
+    confirmStripePayment: (paymentIntentId: string): Promise<User> => {
+        return authedFetch('/api/stripe/confirm-payment', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentIntentId }),
+        }).then(handleResponse);
+    },
+    createWithdrawalRequest: (userId: number, amount: number): Promise<WithdrawalRequest> => {
+        return authedFetch('/api/withdrawals', {
+            method: 'POST',
+            body: JSON.stringify({ userId, amount }),
+        }).then(handleResponse);
+    },
+    getDocumentAuthors: (spaceId?: string): Promise<DocumentAuthor[]> => authedFetch(`/api/documents/authors${spaceId ? `?spaceId=${spaceId}` : ''}`).then(handleResponse),
+    createDocumentAuthor: (data: { name: string; spaceId: number | null }): Promise<DocumentAuthor> => {
+        return authedFetch('/api/documents/authors', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    updateDocumentAuthor: (id: number, data: { name?: string; spaceId?: number | null }): Promise<DocumentAuthor> => {
+        return authedFetch(`/api/documents/authors/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    deleteDocumentAuthor: (id: number): Promise<void> => {
+        return authedFetch(`/api/documents/authors/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getDocumentTypes: (spaceId?: string): Promise<DocumentType[]> => authedFetch(`/api/documents/types${spaceId ? `?spaceId=${spaceId}` : ''}`).then(handleResponse),
+    createDocumentType: (data: { name: string; spaceId: number | null }): Promise<DocumentType> => {
+        return authedFetch('/api/documents/types', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    updateDocumentType: (id: number, data: { name?: string; spaceId?: number | null }): Promise<DocumentType> => {
+        return authedFetch(`/api/documents/types/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    deleteDocumentType: (id: number): Promise<void> => {
+        return authedFetch(`/api/documents/types/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getDocumentTopics: (spaceId?: string): Promise<DocumentTopic[]> => authedFetch(`/api/documents/topics${spaceId ? `?spaceId=${spaceId}` : ''}`).then(handleResponse),
+    createDocumentTopic: (data: { name: string; spaceId: number | null }): Promise<DocumentTopic> => {
+        return authedFetch('/api/documents/topics', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    updateDocumentTopic: (id: number, data: { name?: string; spaceId?: number | null }): Promise<DocumentTopic> => {
+        return authedFetch(`/api/documents/topics/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    deleteDocumentTopic: (id: number): Promise<void> => {
+        return authedFetch(`/api/documents/topics/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getAllTags: (): Promise<Tag[]> => authedFetch('/api/documents/tags').then(handleResponse),
+    getDocuments: (filters?: any): Promise<{ data: Document[], total: number }> => {
+        const query = new URLSearchParams(filters).toString();
+        return authedFetch(`/api/documents?${query}`).then(handleResponse);
+    },
+    createDocument: (docData: Partial<Document>): Promise<Document> => {
+        return authedFetch('/api/documents', {
+            method: 'POST',
+            body: JSON.stringify(docData),
+        }).then(handleResponse);
+    },
+    updateDocument: (id: number, docData: Partial<Document>): Promise<Document> => {
+        return authedFetch(`/api/documents/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(docData),
+        }).then(handleResponse);
+    },
+    deleteDocument: (id: number): Promise<void> => {
+        return authedFetch(`/api/documents/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    likeDocument: (id: number): Promise<{ likes: number }> => {
+        return authedFetch(`/api/documents/${id}/like`, { method: 'POST' }).then(handleResponse);
+    },
+    getLibraryRecommended: (): Promise<{ topKe: Document[], topTruyen: Document[] }> => authedFetch('/api/library/recommended').then(handleResponse),
+    getLibrarySidebarData: (): Promise<any> => authedFetch('/api/library/sidebar').then(handleResponse),
+    getLibraryFilters: (spaceId?: number | null, filters?: any): Promise<any> => {
+        const params: Record<string, any> = { spaceId, ...filters };
+        const query = createSearchParams(params).toString();
+        return authedFetch(`/api/library/filters?${query}`).then(handleResponse);
+    },
+    getLibraryDocuments: async (params: any = {}): Promise<{ data: Document[], total: number }> => {
+        const { signal, ...rest } = params || {};
+        const q = new URLSearchParams(
+            Object.entries(rest)
+                .filter(([_, v]) => v !== undefined && v !== null && v !== 0 && v !== '')
+                .map(([k, v]) => [k, String(v)])
+        ).toString();
+        const response = await authedFetch(`/api/library/documents?${q}`, { signal });
+        const result = await handleResponse(response);
+        
+        if (result && typeof result === 'object' && 'data' in result && 'total' in result) {
+            return result;
+        }
+        if (Array.isArray(result)) {
+            return { data: result, total: result.length };
+        }
+        return { data: [], total: 0 };
+    },
+    getDocumentDetail: (id: number): Promise<Document> => authedFetch(`/api/library/documents/${id}`).then(handleResponse),
+    postComment: (data: any): Promise<Comment> => {
+        return authedFetch('/api/comments', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    getComments: (filters: any): Promise<Comment[]> => {
+        const query = new URLSearchParams(filters).toString();
+        return authedFetch(`/api/admin/comments?${query}`).then(handleResponse);
+    },
+    updateCommentStatus: (id: number, status: string): Promise<Comment> => {
+        return authedFetch(`/api/admin/comments/${id}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status }),
+        }).then(handleResponse);
+    },
+    deleteComment: (id: number): Promise<void> => {
+        return authedFetch(`/api/admin/comments/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getSpaces: (): Promise<Space[]> => {
+        return authedFetch('/api/spaces').then(handleResponse);
+    },
+    getSpaceById: (id: number): Promise<Space> => {
+        return authedFetch(`/api/spaces/${id}`).then(handleResponse);
+    },
+    getSpaceBySlug: (slug: string): Promise<Space> => {
+        return authedFetch(`/api/spaces/${slug}`).then(handleResponse);
+    },
+    createSpace: (spaceData: Partial<Space>): Promise<Space> => {
+        return authedFetch('/api/spaces', { 
+            method: 'POST', 
+            body: JSON.stringify(spaceData) 
+        }).then(handleResponse);
+    },
+    updateSpace: ({ id, spaceData }: { id: number, spaceData: Partial<Space> }): Promise<Space> => {
+        return authedFetch(`/api/spaces/${id}`, { 
+            method: 'PUT', 
+            body: JSON.stringify(spaceData) 
+        }).then(handleResponse);
+    },
+    deleteSpace: (id: number): Promise<void> => {
+        return authedFetch(`/api/spaces/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getSpaceTypes: (): Promise<SpaceType[]> => authedFetch('/api/space-types').then(handleResponse),
+    createSpaceType: (data: Partial<SpaceType>): Promise<SpaceType> => authedFetch('/api/space-types', { method: 'POST', body: JSON.stringify(data) }).then(handleResponse),
+    updateSpaceType: (id: number, data: Partial<SpaceType>): Promise<SpaceType> => authedFetch(`/api/space-types/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then(handleResponse),
+    deleteSpaceType: (id: number): Promise<void> => authedFetch(`/api/space-types/${id}`, { method: 'DELETE' }).then(handleResponse),
+    incrementSpaceView: (id: number): Promise<void> => {
+        return authedFetch(`/api/spaces/${id}/view`, { method: 'POST' }).then(handleResponse);
+    },
+    likeSpace: (id: number): Promise<{ likes: number }> => {
+        return authedFetch(`/api/spaces/${id}/like`, { method: 'POST' }).then(handleResponse);
+    },
+    makeOffering: (spaceId: number, amount: number, userId: number): Promise<{ updatedUser: User }> => {
+        return authedFetch(`/api/spaces/${spaceId}/offer`, {
+            method: 'POST',
+            body: JSON.stringify({ amount, userId }),
+        }).then(handleResponse);
+    },
+    sendContactForm: (data: { name: string; email: string; message: string; spaceName: string }): Promise<void> => {
+        return authedFetch('/api/contact', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }).then(handleResponse);
+    },
+    likeDharmaTalk: (id: number): Promise<{ likes: number }> => {
+        return authedFetch(`/api/dharma-talks/${id}/like`, { method: 'POST' }).then(handleResponse);
+    },
+    getWithdrawalRequests: (): Promise<WithdrawalRequest[]> => authedFetch('/api/admin/withdrawals').then(handleResponse),
+    processWithdrawalRequest: (id: number, action: 'approve' | 'reject'): Promise<WithdrawalRequest> => {
+        return authedFetch(`/api/admin/withdrawals/${id}/process`, {
+            method: 'PUT',
+            body: JSON.stringify({ action }),
+        }).then(handleResponse);
+    },
+    getPricingPlans: (): Promise<PricingPlan[]> => authedFetch('/api/pricing-plans').then(handleResponse),
+    createPricingPlan: (plan: Partial<PricingPlan>): Promise<PricingPlan> => {
+        return authedFetch('/api/pricing-plans', {
+            method: 'POST',
             body: JSON.stringify(plan),
         }).then(handleResponse);
     },
     updatePricingPlan: (plan: PricingPlan): Promise<PricingPlan> => {
-        return fetch(`/api/pricing-plans/${plan.id}`, {
+        return authedFetch(`/api/pricing-plans/${plan.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(plan),
         }).then(handleResponse);
     },
-    deletePricingPlan: (id: number | string): Promise<void> => fetch(`/api/pricing-plans/${id}`, { method: 'DELETE' }).then(handleResponse),
-
-    // Training Data Sources for a specific AI
+    deletePricingPlan: (id: number | string): Promise<void> => {
+        return authedFetch(`/api/pricing-plans/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
     getTrainingDataForAI: (aiConfigId: number | string): Promise<TrainingDataSource[]> => {
-        return fetch(`/api/ai-configs/${aiConfigId}/training-data`).then(handleResponse);
+        return authedFetch(`/api/ai-configs/${aiConfigId}/training-data`).then(handleResponse);
     },
-    createTrainingDataSourceForAI: (aiConfigId: number | string, data: FormData): Promise<TrainingDataSource> => {
-        return fetch(`/api/ai-configs/${aiConfigId}/training-data`, {
-            method: 'POST',
-            body: data,
-        }).then(handleResponse);
-    },
-    createTrainingQaDataSource: (aiConfigId: number, question: string, answer: string): Promise<TrainingDataSource> => {
-        const formData = new FormData();
-        formData.append('type', 'qa');
-        formData.append('question', question);
-        formData.append('answer', answer);
-        return fetch(`/api/ai-configs/${aiConfigId}/training-data`, {
+    createTrainingDataSourceForAI: (aiConfigId: number, formData: FormData): Promise<TrainingDataSource> => {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/training-data`, {
             method: 'POST',
             body: formData,
         }).then(handleResponse);
     },
+    createTrainingQaDataSource: (aiConfigId: number, question: string, answer: string, thought?: string | null): Promise<TrainingDataSource> => {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/training-data`, {
+            method: 'POST',
+            body: JSON.stringify({ type: 'qa', question, answer, thought }),
+        }).then(handleResponse);
+    },
     deleteTrainingDataSource: (id: number): Promise<void> => {
-        return fetch(`/api/training-data/${id}`, { method: 'DELETE' }).then(handleResponse);
+        return authedFetch(`/api/training-data/${id}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    deleteTrainingQaDataSource: (aiConfigId: number, question: string, answer: string): Promise<void> => {
+        return authedFetch(`/api/training-data/qa`, {
+            method: 'DELETE',
+            body: JSON.stringify({ aiConfigId, question, answer }),
+        }).then(handleResponse);
+    },
+    getAllQaTrainingData: (): Promise<TrainingDataSource[]> => authedFetch('/api/training-data/qa/all').then(handleResponse),
+    exportQaDataForFinetune: (sources: any): Promise<any> => {
+        return authedFetch('/api/training-data/qa/export', {
+            method: 'POST',
+            body: JSON.stringify({ sourcesToExport: sources }),
+        }).then(handleResponse);
+    },
+    uploadFiles: (formData: FormData): Promise<{ filePaths: string[] }> => {
+        return authedFetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        }).then(handleResponse);
+    },
+    getAvailableModels: (provider: ModelType, userId: number): Promise<string[]> => authedFetch(`/api/models/${provider}?userId=${userId}`).then(handleResponse),
+    generateSummaryForDataSource: (id: number): Promise<TrainingDataSource> => {
+        return authedFetch(`/api/training-data/${id}/summarize`, { method: 'POST' }).then(handleResponse);
+    },
+    getDocumentConfig: (): Promise<DocumentConfig | null> => authedFetch('/api/documents/config').then(handleResponse),
+    updateDocumentConfig: (config: DocumentConfig): Promise<DocumentConfig> => {
+        return authedFetch('/api/documents/config', {
+            method: 'PUT',
+            body: JSON.stringify(config),
+        }).then(handleResponse);
+    },
+    linkDocumentsToAi: (aiConfigId: number, documentIds: number[]): Promise<any> => {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/documents`, {
+            method: 'POST',
+            body: JSON.stringify({ documentIds }),
+        }).then(handleResponse);
+    },
+    unlinkDocumentFromAi: (aiConfigId: number, documentId: number): Promise<void> => {
+        return authedFetch(`/api/ai-configs/${aiConfigId}/documents/${documentId}`, { method: 'DELETE' }).then(handleResponse);
+    },
+    getLibraryTopics: async (params: any = {}) => {
+        const { signal, page = 1, limit = 16, spaceId } = params || {};
+        const q = new URLSearchParams(
+            Object.entries({ spaceId, page: String(page), limit: String(limit) })
+                .filter(([_, v]) => v !== undefined && v !== null)
+                .map(([k, v]) => [k, String(v)])
+        ).toString();
+        const response = await authedFetch(`/api/library/topics?${q}`, { signal });
+        return handleResponse(response);
     },
 };
-
-export { apiService };

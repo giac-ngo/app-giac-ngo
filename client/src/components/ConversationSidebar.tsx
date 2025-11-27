@@ -1,20 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { AIConfig, Conversation, User, PricingPlan, SystemConfig } from '../types';
+// client/src/components/ConversationSidebar.tsx
+import React, { useState, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { AIConfig, Conversation, User, SystemConfig, ViewMode, LibraryFilters, Space } from '../types';
 import { apiService } from '../services/apiService';
 import { useToast } from './ToastProvider';
-import { LanguageIcon, CryptoIcon,  LogoutIcon, ChatBubbleIcon, LoginIcon, PlusIcon } from './Icons';
+import { LanguageIcon, CryptoIcon,  LogoutIcon, PencilIcon, TrashIcon, HelmetIcon } from './Icons';
+import { LibraryMenu } from './LibraryMenu';
 
 interface ConversationSidebarProps {
-    user: User | null;
+    user: User;
     aiConfigs: AIConfig[];
     conversations: Conversation[];
+    currentAiConfig: AIConfig | null;
     selectedConversationId: number | null;
     onSelectConversation: (conv: Conversation) => void;
     onNewConversation: (aiConfig: AIConfig) => void;
     onDeleteConversation: (id: number) => void;
-    onGoToLogin: () => void;
     onGoToAdmin: () => void;
     onLogout: () => void;
+    onGoToLogin: () => void;
     language: 'vi' | 'en';
     setLanguage: (lang: 'vi' | 'en') => void;
     systemConfig: SystemConfig;
@@ -22,124 +26,255 @@ interface ConversationSidebarProps {
     setIsSidebarCollapsed: (collapsed: boolean) => void;
     isLoading: boolean;
     onOpenMeritPurchase: () => void;
-    viewMode: 'chat' | 'meditation';
-    setViewMode: (mode: 'chat' | 'meditation') => void;
+    viewMode: ViewMode;
+    libraryFilters: LibraryFilters;
+    onSetLibraryFilters: React.Dispatch<React.SetStateAction<LibraryFilters>>;
+    spaceSlug?: string;
+    currentSpace: Space | null;
 }
 
 const translations = {
     vi: {
         newChat: "Trò chuyện mới",
-        startWith: "Bắt đầu với",
         recentChats: "Cuộc trò chuyện gần đây",
-        loginToSeeHistory: "Đăng nhập để xem lịch sử.",
         noRecentChats: "Không có cuộc trò chuyện nào.",
         delete: "Xóa",
-        login: "Đăng nhập",
+        rename: "Đổi tên",
+        renameSuccess: "Đã đổi tên hội thoại.",
+        renameError: "Lỗi khi đổi tên hội thoại.",
         meritsLeft: "Số merit còn lại",
-        subscriptionPlan: "Gói đăng ký",
-        expiresOn: "Ngày hết hạn",
-        changeLanguage: "English",
-        adminPage: "Trang quản trị",
+        requestsLeft: "Request gói tháng",
+        aiRequestsLeft: "Request của AI này",
+        adminPage: "Quản trị",
         logout: "Đăng xuất",
         unlimited: "Không giới hạn",
-        noPlan: "Chưa đăng ký",
         loading: "Đang tải...",
         topUp: "Nạp Merit",
-        featureNotImplemented: 'Chức năng "{feature}" chưa được cài đặt.',
-        info: 'Thông tin',
-        activity: 'Hoạt động',
-        character: 'Mạng xã hội',
-        context: 'Radio',
         chatMode: 'Trò chuyện',
         meditationMode: 'Thiền',
+        communityMode: 'Cộng Đồng',
+        dharmaTalksMode: 'Pháp Thoại',
+        libraryMode: 'Thư Viện',
         meditationTitle: 'Thiền Định',
-        meditationDesc: 'Tĩnh tâm là khoảng lặng cần thiết để tâm trí được nghỉ ngơi, tái tạo năng lượng và tìm thấy sự bình an từ bên trong. Hãy dành 30 phút để ngồi yên, tập trung vào hơi thở và để mọi suy nghĩ trôi qua nhẹ nhàng.',
+        meditationDesc: 'Tĩnh tâm là khoảng lặng cần thiết để tâm trí được nghỉ ngơi, tái tạo năng lượng và tìm thấy sự bình an từ bên trong.',
+        dharmaTalksTitle: 'Pháp Thoại',
+        dharmaTalksDesc: 'Lắng nghe các bài giảng pháp thoại từ các thiền sư và giảng sư uy tín.',
     },
     en: {
         newChat: "New Conversation",
-        startWith: "Start with",
         recentChats: "Recent Chats",
-        loginToSeeHistory: "Login to see history.",
         noRecentChats: "No recent chats.",
         delete: "Delete",
-        login: "Login",
+        rename: "Rename",
+        renameSuccess: "Conversation renamed.",
+        renameError: "Error renaming conversation.",
         meritsLeft: "Merits Left",
-        subscriptionPlan: "Subscription Plan",
-        expiresOn: "Expires On",
-        changeLanguage: "Tiếng Việt",
+        requestsLeft: "Subscription Requests",
+        aiRequestsLeft: "Requests for this AI",
         adminPage: "Admin Page",
         logout: "Logout",
         unlimited: "Unlimited",
-        noPlan: "Not Subscribed",
         loading: "Loading...",
         topUp: "Top up Merits",
-        featureNotImplemented: 'Feature "{feature}" is not implemented yet.',
-        info: 'Info',
-        activity: 'Activity',
-        character: 'Social feed',
-        context: 'Radio',
         chatMode: 'Chat',
         meditationMode: 'Meditation',
+        communityMode: 'Community',
+        dharmaTalksMode: 'Dharma Talks',
+        libraryMode: 'Library',
         meditationTitle: 'Meditation',
-        meditationDesc: 'Meditation is a necessary pause for the mind to rest, regenerate energy, and find inner peace. Take 30 minutes to sit still, focus on your breath, and let all thoughts pass gently.',
+        meditationDesc: 'Meditation is a necessary pause for the mind to rest, regenerate energy, and find inner peace.',
+        dharmaTalksTitle: 'Dharma Talks',
+        dharmaTalksDesc: 'Listen to dharma talks from reputable Zen masters and teachers.',
     }
 };
 
-// FIX: Export the component to make it available for import.
+const INITIAL_CONVERSATIONS_COUNT = 14;
+const CONVERSATIONS_BATCH_SIZE = 10;
+
+const ConversationList: React.FC<{
+    conversations: Conversation[];
+    selectedConversationId: number | null;
+    currentAiConfig: AIConfig | null;
+    onSelectConversation: (conv: Conversation) => void;
+    onDeleteConversation: (id: number) => void;
+    language: 'vi' | 'en';
+}> = 
+({ conversations, selectedConversationId, currentAiConfig, onSelectConversation, onDeleteConversation, language }) => {
+    const t = translations[language];
+    const { showToast } = useToast();
+    const [renamingId, setRenamingId] = useState<number | null>(null);
+    const [renameValue, setRenameValue] = useState('');
+    const listRef = useRef<HTMLDivElement>(null);
+    const [displayedCount, setDisplayedCount] = useState(INITIAL_CONVERSATIONS_COUNT);
+
+    const filteredConversations = useMemo(() => {
+        if (!currentAiConfig) return [];
+        return conversations.filter(c => c.aiConfigId === currentAiConfig.id);
+    }, [conversations, currentAiConfig]);
+    
+    // Reset displayed count when AI agent changes
+    React.useEffect(() => {
+        setDisplayedCount(INITIAL_CONVERSATIONS_COUNT);
+    }, [currentAiConfig]);
+
+
+    const handleScroll = () => {
+        if (listRef.current) {
+            const { scrollTop } = listRef.current;
+            // Load more when scrolled to the top
+            if (scrollTop === 0) {
+                 if (displayedCount < filteredConversations.length) {
+                    setDisplayedCount(prev => Math.min(prev + CONVERSATIONS_BATCH_SIZE, filteredConversations.length));
+                }
+            }
+        }
+    };
+
+    const handleRename = async (id: number) => {
+        if (!renameValue.trim()) {
+            setRenamingId(null);
+            return;
+        }
+        try {
+            await apiService.renameConversation(id, renameValue);
+            // Parent component will refresh conversations list
+            showToast(t.renameSuccess, 'success');
+        } catch (error) {
+            showToast(t.renameError, 'error');
+        } finally {
+            setRenamingId(null);
+        }
+    };
+
+    if (filteredConversations.length === 0) {
+        return <p className="px-3 text-sm text-text-light">{t.noRecentChats}</p>;
+    }
+    
+    const displayedConversations = filteredConversations.slice(0, displayedCount);
+    
+    return (
+        <div className="conversation-list" ref={listRef} onScroll={handleScroll}>
+            {displayedConversations.map(conv => (
+                 <div key={conv.id} className={`conversation-item-wrapper ${selectedConversationId === conv.id ? 'active' : ''}`}>
+                    <button onClick={() => onSelectConversation(conv)} className="conversation-item">
+                        {renamingId === conv.id ? (
+                            <input 
+                                type="text"
+                                value={renameValue}
+                                onChange={e => setRenameValue(e.target.value)}
+                                onBlur={() => handleRename(conv.id)}
+                                onKeyDown={e => e.key === 'Enter' && handleRename(conv.id)}
+                                autoFocus
+                                className="rename-input"
+                            />
+                        ) : (
+                            <span className="truncate">{conv.messages[0]?.text || `Conversation ${conv.id}`}</span>
+                        )}
+                    </button>
+                    {renamingId !== conv.id && (
+                        <div className="conversation-actions">
+                            <button onClick={() => { setRenamingId(conv.id); setRenameValue(conv.messages[0]?.text || ''); }} title={t.rename}><PencilIcon className="w-4 h-4" /></button>
+                            <button onClick={() => onDeleteConversation(conv.id)} title={t.delete}><TrashIcon className="w-4 h-4" /></button>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const SidebarInfoPanel: React.FC<{ title: string, description: string }> = ({ title, description }) => (
+    <div className="sidebar-info-panel">
+        <h3 className="title">{title}</h3>
+        <p className="description">{description}</p>
+    </div>
+);
+
+
 export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) => {
     const {
-        user, aiConfigs, conversations, selectedConversationId, onSelectConversation,
-        onNewConversation, onDeleteConversation, onGoToLogin, onLogout, language,
+        user, conversations, currentAiConfig, selectedConversationId, onSelectConversation,
+        onNewConversation, onDeleteConversation, onLogout, language,
         setLanguage, systemConfig, isSidebarCollapsed, setIsSidebarCollapsed,
-        isLoading, onGoToAdmin, onOpenMeritPurchase, viewMode, setViewMode
+        onGoToAdmin, onOpenMeritPurchase, viewMode, libraryFilters, onSetLibraryFilters, spaceSlug, currentSpace
     } = props;
 
     const t = translations[language];
-    const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
-    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
-    const newChatRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
-    const { showToast } = useToast();
-    
-    useEffect(() => {
-        apiService.getPricingPlans().then(setPricingPlans).catch(console.error);
-    }, []);
-    
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (newChatRef.current && !newChatRef.current.contains(event.target as Node)) {
-                setIsNewChatOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    const handleQuickAction = (featureName: string) => {
-        showToast(t.featureNotImplemented.replace('{feature}', featureName), 'info');
-    };
-
-    const currentPlanName = user?.subscriptionPlanId 
-        ? pricingPlans.find(p => p.id === user.subscriptionPlanId)?.planName || 'Unknown Plan'
-        : t.noPlan;
-        
-    const formattedExpiresAt = user?.subscriptionExpiresAt
-        ? new Date(user.subscriptionExpiresAt).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')
-        : '-';
-        
-    const hasAdminPermission = user?.isAdmin || user?.permissions?.some(p => p !== 'user-billing');
-    
+    const hasAdminPermission = user?.permissions?.some(p => p !== 'user-billing');
     const currentTheme = user?.template || systemConfig.template;
+
+    const logoUrl = currentSpace?.imageUrl || systemConfig.templateSettings[currentTheme].logoUrl;
+
+    const relevantRequests = useMemo(() => {
+        if (!user) {
+            return { count: 0, label: t.requestsLeft };
+        }
+    
+        if (currentAiConfig) {
+            const ownedAiDetail = user.ownedAis?.find(ai => ai.aiConfigId === currentAiConfig.id);
+            if (ownedAiDetail && typeof ownedAiDetail.requestsRemaining === 'number') {
+                return { count: ownedAiDetail.requestsRemaining.toLocaleString(language), label: t.aiRequestsLeft };
+            }
+        }
+    
+        const subRequests = user.requestsRemaining === null ? t.unlimited : (user.requestsRemaining ?? 0).toLocaleString(language);
+        return { count: subRequests, label: t.requestsLeft };
+    
+    }, [user, currentAiConfig, language, t]);
+    
+    const isOwned = useMemo(() => {
+        if (!user || !currentAiConfig) return false;
+        return user.ownedAis?.some(ai => ai.aiConfigId === currentAiConfig.id);
+    }, [user, currentAiConfig]);
+
+    const requiresPurchase = currentAiConfig && currentAiConfig.purchaseCost && currentAiConfig.purchaseCost > 0;
+
+    const shouldShowRequests = !requiresPurchase || isOwned;
+
+    const renderSidebarContent = () => {
+        if (isSidebarCollapsed) return null;
+        switch(viewMode) {
+            case 'chat':
+                return (
+                    <div className="flex flex-col gap-4 flex-grow min-h-0">
+                        <div className="px-3">
+                            <button onClick={() => currentAiConfig && onNewConversation(currentAiConfig)} className="btn-new-chat-plus w-full">
+                                {t.newChat}
+                            </button>
+                        </div>
+                        <div className="px-3"><h3 className="text-xs font-semibold uppercase text-text-light">{t.recentChats}</h3></div>
+                        <div className="overflow-y-auto flex-grow min-h-0">
+                             <ConversationList 
+                                conversations={conversations}
+                                selectedConversationId={selectedConversationId}
+                                currentAiConfig={currentAiConfig}
+                                onSelectConversation={onSelectConversation}
+                                onDeleteConversation={onDeleteConversation}
+                                language={language}
+                            />
+                        </div>
+                    </div>
+                );
+            case 'library':
+                return <LibraryMenu filters={libraryFilters} onSetFilters={onSetLibraryFilters} language={language} isSidebarCollapsed={isSidebarCollapsed} spaceId={currentSpace?.id} />;
+            case 'meditationtimer':
+                return <SidebarInfoPanel title={t.meditationTitle} description={t.meditationDesc} />;
+            case 'dharmatalks':
+                 return <SidebarInfoPanel title={t.dharmaTalksTitle} description={t.dharmaTalksDesc} />;
+            default:
+                return null;
+        }
+    }
+
 
     return (
         <aside className={`conversation-sidebar ${isSidebarCollapsed ? 'conversation-sidebar-collapsed' : 'w-80'} bg-background-panel flex flex-col h-full flex-shrink-0 border-r border-border-color`}>
             <header className="sidebar-header">
                  {!isSidebarCollapsed && (
-                    <a href="#/" className="logo-link">
-                        <img src={systemConfig.templateSettings[currentTheme].logoUrl} alt="Logo" className="logo" />
-                    </a>
+                    <Link to={`/${spaceSlug}`} className="logo-link">
+                        <img src={logoUrl} alt="Logo" className="logo" />
+                    </Link>
                 )}
                 <button 
                     onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
@@ -151,168 +286,72 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                 </button>
             </header>
 
-            <div className="flex-shrink-0">
-                <div className="quick-actions-container">
+            <div className="flex-grow min-h-0 flex flex-col">
+                 <div className="quick-actions-container">
                     <div className="quick-actions-grid">
-                        <button onClick={() => setViewMode('chat')} className={`quick-action-btn ${viewMode === 'chat' ? 'active' : ''}`} title={t.chatMode}>
+                        <Link to={`/${spaceSlug}/chat`} className={`quick-action-btn ${viewMode === 'chat' ? 'active' : ''}`} title={t.chatMode}>
                             <img src="/themes/giacngo/2.png" alt={t.chatMode} className="w-full h-full object-contain p-3" />
-                        </button>
-                        <button onClick={() => setViewMode('meditation')} className={`quick-action-btn ${viewMode === 'meditation' ? 'active' : ''}`} title={t.meditationMode}>
+                        </Link>
+                        <Link to={`/${spaceSlug}/meditationtimer`} className={`quick-action-btn ${viewMode === 'meditationtimer' ? 'active' : ''}`} title={t.meditationMode}>
                             <img src="/themes/giacngo/5.png" alt={t.meditationMode} className="w-full h-full object-contain p-3" />
-                        </button>
-                        <button onClick={() => handleQuickAction(t.character)} className="quick-action-btn" title={t.character}>
-                            <img src="/themes/giacngo/3.png" alt={t.character} className="w-full h-full object-contain p-3" />
-                        </button>
-                        <button onClick={() => handleQuickAction(t.context)} className="quick-action-btn" title={t.context}>
-                            <img src="/themes/giacngo/4.png" alt={t.context} className="w-full h-full object-contain p-3" />
-                        </button>
+                        </Link>
+                        <Link to={`/${spaceSlug}/community`} className={`quick-action-btn ${viewMode === 'community' ? 'active' : ''}`} title={t.communityMode}>
+                            <img src="/themes/giacngo/3.png" alt={t.communityMode} className="w-full h-full object-contain p-3" />
+                        </Link>
+                        <Link to={`/${spaceSlug}/dharmatalks`} className={`quick-action-btn ${viewMode === 'dharmatalks' ? 'active' : ''}`} title={t.dharmaTalksMode}>
+                            <img src="/themes/giacngo/4.png" alt={t.dharmaTalksMode} className="w-full h-full object-contain p-3" />
+                        </Link>
                     </div>
                 </div>
-            </div>
-            
-            <div className="flex-grow overflow-y-auto">
-                {viewMode === 'chat' ? (
-                    <>
-                        <div className="px-3 pt-3">
-                            {isSidebarCollapsed ? (
-                                <button
-                                    onClick={() => {
-                                        if (aiConfigs.length > 0) {
-                                            onNewConversation(aiConfigs[0]);
-                                        }
-                                    }}
-                                    className="btn-new-chat justify-center"
-                                    title={t.newChat}
-                                >
-                                    <PlusIcon className="w-6 h-6" />
-                                </button>
-                            ) : (
-                                <div className="relative" ref={newChatRef}>
-                                    <button onClick={() => setIsNewChatOpen(prev => !prev)} className="btn-new-chat">
-                                        <span className="btn-new-chat-text">{t.newChat}</span>
-                                    </button>
-                                    {isNewChatOpen && (
-                                        <div className="absolute bottom-full left-0 mb-2 w-full bg-background-panel border border-border-color rounded-lg shadow-lg z-10">
-                                            <p className="p-2 text-xs text-text-light">{t.startWith}:</p>
-                                            <ul className="p-2 max-h-60 overflow-y-auto">
-                                                {aiConfigs.map(ai => (
-                                                    <li key={ai.id}>
-                                                        <button onClick={() => { onNewConversation(ai); setIsNewChatOpen(false); }} className="w-full text-left p-2 flex items-center gap-2 rounded-md hover:bg-background-light">
-                                                            <img src={ai.avatarUrl} alt={ai.name} className="w-7 h-7 rounded-full" />
-                                                            <p className="text-sm font-semibold">{ai.name}</p>
-                                                        </button>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {!isSidebarCollapsed && (
-                            <div className="px-3 py-2 space-y-1">
-                                <h3 className="px-2 py-2 text-sm font-semibold text-text-light">{t.recentChats}</h3>
-                                {user ? (
-                                    isLoading ? <p className="text-center text-sm text-text-light p-4">{t.loading}</p> :
-                                    conversations.length === 0 ? <p className="text-center text-sm text-text-light p-4">{t.noRecentChats}</p> :
-                                    <ul className="space-y-1">
-                                        {conversations.map(conv => (
-                                            <li key={conv.id} className="relative group">
-                                                <button
-                                                    onClick={() => onSelectConversation(conv)}
-                                                    className={`w-full text-left p-2 flex items-start gap-3 rounded-md transition-colors ${
-                                                        selectedConversationId === conv.id ? 'bg-primary-light' : 'hover:bg-background-light'
-                                                    }`}
-                                                >
-                                                    <ChatBubbleIcon className="w-4 h-4 mt-1 flex-shrink-0 text-text-light" />
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <p className="text-sm font-semibold truncate text-text-main">{conv.messages[0]?.text || '...'}</p>
-                                                        <p className="text-xs text-text-light">{new Date(conv.startTime).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')}</p>
-                                                    </div>
-                                                </button>
-                                                <button onClick={() => onDeleteConversation(conv.id)} title={t.delete} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-text-light hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-center text-sm text-text-light p-4">{t.loginToSeeHistory}</p>
-                                )}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    !isSidebarCollapsed && (
-                        <div className="p-4">
-                            <h3 className="font-semibold text-lg mb-2">{t.meditationTitle}</h3>
-                            <p className="text-sm text-text-light">{t.meditationDesc}</p>
-                        </div>
-                    )
-                )}
+                {renderSidebarContent()}
             </div>
 
             <footer className="sidebar-footer">
                 {isSidebarCollapsed ? (
-                    <div className="flex justify-center items-center py-2">
-                        {user ? (
+                     <div className="flex flex-col items-center gap-y-2 py-2">
+                         <div className="flex flex-col items-center gap-y-2">
                             <button onClick={() => setIsSidebarCollapsed(false)} className="p-0 border-0 bg-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-panel focus:ring-primary">
                                 <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full cursor-pointer" title={user.name} />
                             </button>
-                        ) : (
-                            <button onClick={onGoToLogin} className="p-2 text-text-light hover:bg-background-light rounded-full" title={t.login}>
-                                <LoginIcon className="w-7 h-7" />
+                            <button onClick={onLogout} className="p-2 text-text-light hover:bg-background-light rounded-full" title={t.logout}>
+                                <LogoutIcon className="w-6 h-6" />
                             </button>
-                        )}
+                        </div>
                     </div>
                 ) : (
                      <div ref={userMenuRef}>
-                        {user ? (
-                            <div className="user-info-card">
-                                <div className="user-info-header">
-                                    <img src={user.avatarUrl} alt={user.name} />
-                                    <div className="user-info-details overflow-hidden">
-                                        <p className="font-semibold truncate">{user.name}</p>
-                                        <p className="text-xs text-text-light truncate">{user.email}</p>
-                                    </div>
-                                </div>
-                                <div className="user-info-stats">
-                                    <div><span>{user.merits ?? t.unlimited}</span>{t.meritsLeft}</div>
-                                    <div><span className="truncate">{currentPlanName}</span>{t.subscriptionPlan}</div>
-                                    <div><span>{formattedExpiresAt}</span>{t.expiresOn}</div>
-                                </div>
-                                <div className="user-info-actions">
-                                    <button onClick={onOpenMeritPurchase} className="btn-cta">
-                                        <CryptoIcon className="w-4 h-4" /> {t.topUp}
-                                    </button>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')} className="btn-secondary">
-                                            <LanguageIcon className="w-4 h-4" />
-                                            {t.changeLanguage}
-                                        </button>
-                                        {hasAdminPermission && (
-                                            <button onClick={onGoToAdmin} className="btn-secondary">{t.adminPage}</button>
-                                        )}
-                                    </div>
-                                    <button onClick={onLogout} className="btn-logout">
-                                        <LogoutIcon className="w-4 h-4" />
-                                        {t.logout}
-                                    </button>
+                        <div className="user-info-card-new">
+                            <div className="user-info-header">
+                                <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
+                                <div className="user-info-details overflow-hidden">
+                                    <p className="font-semibold truncate">{user.name}</p>
+                                    <p className="text-xs text-text-light truncate">{user.email}</p>
                                 </div>
                             </div>
-                        ) : (
-                           <div className="space-y-2">
-                               <button onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')} className="w-full flex items-center justify-center space-x-2 p-3 text-sm font-medium text-text-main bg-background-light rounded-lg hover:bg-border-color">
-                                   <LanguageIcon className="w-5 h-5" />
-                                   <span>{t.changeLanguage}</span>
-                               </button>
-                               <button onClick={onGoToLogin} className="w-full flex items-center justify-center space-x-2 p-3 text-sm font-medium text-text-on-primary bg-primary rounded-lg hover:bg-primary-hover">
-                                   <LoginIcon className="w-5 h-5" />
-                                   <span>{t.login}</span>
-                               </button>
-                           </div>
-                        )}
+                            <div className="user-info-stats">
+                                <div><span>{user.merits === null ? t.unlimited : (user.merits ?? 0).toLocaleString(language)}</span>{t.meritsLeft}</div>
+                                {shouldShowRequests && <div><span>{relevantRequests.count}</span>{relevantRequests.label}</div>}
+                            </div>
+                            <div className="user-info-actions">
+                                <button onClick={onOpenMeritPurchase} className="btn-cta-new">
+                                    <CryptoIcon className="w-4 h-4" /> {t.topUp}
+                                </button>
+                                 <div className="flex items-center gap-2">
+                                    <button onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')} className="btn-secondary-new">
+                                        <LanguageIcon className="w-4 h-4"/> {language === 'vi' ? 'English' : 'Tiếng Việt'}
+                                    </button>
+                                    {hasAdminPermission && (
+                                        <button onClick={onGoToAdmin} className="btn-secondary-new">
+                                            <HelmetIcon className="w-4 h-4"/> {t.adminPage}
+                                        </button>
+                                    )}
+                                </div>
+                                <button onClick={onLogout} className="btn-logout-new">
+                                    <LogoutIcon className="w-4 h-4" />
+                                    {t.logout}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </footer>

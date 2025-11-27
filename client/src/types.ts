@@ -1,5 +1,15 @@
 // client/types.ts
 
+export type ViewMode = 'chat' | 'meditationtimer' | 'community' | 'dharmatalks' | 'library' | 'about';
+
+export interface LibraryFilters {
+    typeId?: number;
+    authorId?: number;
+    topicId?: number;
+    search?: string;
+}
+
+
 export interface Message {
   id?: string | number;
   text: string;
@@ -10,12 +20,15 @@ export interface Message {
     name: string;
     url: string;
   };
+  thought?: string;
+  feedback?: 'liked' | 'disliked' | null;
 }
 
 export type ModelType = 'gemini' | 'gpt' | 'grok';
 
 export interface AIConfig {
   id: string | number;
+  spaceId: number | null;
   name: string;
   nameEn?: string;
   description?: string;
@@ -28,9 +41,22 @@ export interface AIConfig {
   suggestedQuestionsEn?: string[];
   tags: string[];
   isPublic: boolean;
-  ownerId: number;
+  isContactForAccess?: boolean;
+  purchaseCost?: number; // One-time cost to buy the AI
+  oldPurchaseCost?: number;
+  isOnSale?: boolean;
+  requestsGrantedOnPurchase?: number;
+  views?: number;
+  likes?: number;
+  rating?: number;
+  maxOutputTokens?: number;
+  thinkingBudget?: number;
+  // Deprecated properties, kept for now to avoid breaking old components immediately
   isTrialAllowed: boolean;
   requiresSubscription: boolean;
+  ownerId?: number;
+  meritCost?: number;
+  accessType?: 'free' | 'per_use_merit';
 }
 
 export interface User {
@@ -38,20 +64,23 @@ export interface User {
   email: string;
   name:string;
   avatarUrl: string;
-  isAdmin: boolean;
   isActive: boolean;
   merits: number | null; // null for unlimited
+  ownedAis?: { aiConfigId: number; requestsRemaining: number; }[];
+  grantedAiConfigIds?: number[];
   apiToken?: string;
   apiKeys?: {
     gemini?: string;
     gpt?: string;
     grok?: string;
   };
-  subscriptionPlanId?: number | string | null;
-  subscriptionExpiresAt?: string | null;
+  requestsRemaining: number;
   roleIds?: number[];
   permissions?: string[];
   template?: TemplateName;
+  stripeCustomerId?: string;
+  stripeAccountId?: string;
+  subscriptionPlanId?: number | null;
 }
 
 export interface Role {
@@ -68,7 +97,13 @@ export interface Transaction {
     adminName?: string;
     merits: number;
     timestamp: number;
-    type: 'manual' | 'payment' | 'daily' | 'subscription' | 'crypto';
+    type: 'manual' | 'payment' | 'ai_purchase' | 'ai_usage' | 'offering' | 'withdrawal' | 'subscription' | 'crypto' | 'stripe' | 'stripe_deposit';
+    destinationSpaceId?: number;
+    details?: {
+      aiConfigId?: number;
+      withdrawalRequestId?: number;
+    };
+    stripeChargeId?: string;
 }
 
 export type TemplateName = 'w5g' | 'giacngo';
@@ -76,7 +111,6 @@ export type TemplateName = 'w5g' | 'giacngo';
 export interface SystemConfig {
     guestMessageLimit: number;
     systemKeys: {
-// FIX: Made properties optional to align with usage and fix type error.
         gemini?: string;
         gpt?: string;
         grok?: string;
@@ -97,6 +131,8 @@ export interface Conversation {
     aiName?: string;
     startTime: number;
     messages: Message[];
+    isTestChat?: boolean;
+    isTrained?: boolean;
 }
 
 export interface PricingPlan {
@@ -106,7 +142,8 @@ export interface PricingPlan {
     price: string;
     priceEn?: string;
     meritCost: number;
-    durationDays: number | null; // null for enterprise/unlimited
+    requestLimit: number;
+    aiConfigIds: number[];
     features: string[];
     featuresEn?: string[];
     isActive: boolean;
@@ -121,6 +158,8 @@ export interface DashboardStats {
         name: string;
         avatarUrl: string;
         conversationCount: string;
+        totalLikes: number;
+        totalDislikes: number;
     }[];
     recentConversations: {
         id: number;
@@ -128,20 +167,56 @@ export interface DashboardStats {
         aiName: string;
         startTime: number;
     }[];
+    totalDocuments: number;
+    totalSpaces: number;
+    totalDharmaTalks: number;
+    topDocuments: {
+        id: number;
+        title: string;
+        titleEn?: string;
+        thumbnailUrl: string;
+        views: number;
+        likes: number;
+    }[];
+    topSpaces: {
+        id: number;
+        name: string;
+        nameEn?: string;
+        slug: string;
+        imageUrl: string;
+        membersCount: number;
+        views: number;
+        likes: number;
+    }[];
+    topDharmaTalks: {
+        id: number;
+        title: string;
+        titleEn?: string;
+        speaker: string;
+        views: number;
+        likes: number;
+    }[];
 }
 
-// ADD: Interface for Training Data Sources
 export interface TrainingDataSource {
     id: number | 'new';
     aiConfigId: number | string;
-    type: 'qa' | 'file';
+    type: 'qa' | 'file' | 'document';
     question?: string;
     answer?: string;
+    thought?: string;
     fileUrl?: string;
     fileName?: string;
+    summary?: string;
     description?: string;
     createdAt?: string;
     isTrained?: boolean;
+    isIndexed?: boolean;
+    lastExportedAt?: string;
+    aiName?: string;
+    // For linked documents
+    documentId?: number; 
+    documentName?: string;
 }
 
 export interface FineTuningJob {
@@ -149,4 +224,182 @@ export interface FineTuningJob {
     status: 'VALIDATING_FILES' | 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
     fineTunedModelId?: string;
     createdAt: string;
+}
+
+export interface KoiiTask {
+    id?: number;
+    aiConfigId?: number;
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'idle';
+    createdAt?: string;
+    updatedAt: string;
+    errorMessage?: string;
+}
+
+export interface DocumentAuthor {
+    id: number;
+    name: string;
+    spaceId?: number | null;
+}
+export interface DocumentType {
+    id: number;
+    name: string;
+    spaceId?: number | null;
+}
+export interface DocumentTopic {
+    id: number;
+    name: string;
+    typeId: number | null;
+    spaceId?: number | null;
+}
+
+export interface Document {
+  id: number | 'new';
+  title: string;
+  titleEn?: string;
+  summary?: string;
+  summaryEn?: string;
+  author: string;
+  authorId: number;
+  type: string;
+  typeId: number;
+  topic: string;
+  topicId: number;
+  spaceId?: number | null;
+  spaceName?: string | null;
+  spaceSlug?: string | null;
+  content: string;
+  contentEn?: string;
+  thumbnailUrl?: string;
+  audioUrl?: string;
+  audioUrlEn?: string;
+  duration?: number;
+  createdAt: string;
+  tags: string[];
+  views?: number;
+  likes?: number;
+  rating?: number;
+  comments?: Comment[]; // For getDocumentDetail
+  // For navigation
+  prevId?: number | null;
+  nextId?: number | null;
+  prevTitle?: string | null;
+  nextTitle?: string | null;
+  prevTitleEn?: string | null;
+  nextTitleEn?: string | null;
+}
+
+export interface DocumentConfig {
+    id: number;
+    translationProvider: ModelType;
+    translationModel: string;
+    ttsProvider: ModelType;
+    ttsModel: string;
+    ttsVoice: string;
+}
+
+export interface Tag {
+    id: number;
+    name: string;
+}
+
+export interface SocialFeedPost {
+  id: number;
+  userName: string;
+  userAvatarUrl: string;
+  question: string;
+  answer: string;
+  aiName: string;
+  aiAvatarUrl: string;
+  likes: number;
+  createdAt: string;
+}
+
+export interface Comment {
+  id: number;
+  userId: number;
+  userName: string;
+  userAvatarUrl?: string;
+  commentType: 'document' | string; // Allow for future types
+  sourceId: string;
+  sourceTitle?: string;
+  parentId?: number | null;
+  content: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface SpaceType {
+    id: number;
+    name: string;
+    nameEn?: string;
+    icon: string;
+}
+
+export interface Space {
+  id: number | 'new';
+  userId: number | null;
+  rank: number;
+  slug: string;
+  name: string;
+  nameEn?: string;
+  description?: string;
+  descriptionEn?: string;
+  imageUrl?: string;
+  locationText?: string;
+  locationTextEn?: string;
+  membersCount?: number;
+  views?: number;
+  likes?: number;
+  rating?: number;
+  tags: string[];
+  tagsEn?: string[];
+  typeId?: number | null;
+  spaceTypeName?: string;
+  spaceTypeNameEn?: string;
+  spaceTypeIcon?: string;
+  spaceColor?: string;
+  status: string;
+  statusEn?: string;
+  merits: number;
+  meritsSold: number;
+  event?: string;
+  eventEn?: string;
+}
+
+export interface DharmaTalk {
+  id: number | 'new';
+  spaceId: number | null;
+  title: string;
+  titleEn?: string;
+  subtitle?: string;
+  speaker?: string;
+  url?: string;
+  duration?: number; // in seconds
+  date?: string; // ISO date string
+  views?: number;
+  likes?: number;
+  rating?: number;
+  tags?: string[];
+  tagsEn?: string[];
+  status?: string;
+  statusEn?: string;
+  notifications?: number;
+}
+
+export interface WithdrawalRequest {
+  id: number;
+  userId: number;
+  userName?: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  createdAt: string;
+  stripeTransferId?: string;
+}
+
+export interface SpaceOwnerData {
+    totalEarnings: number;
+    stripeAccountId?: string;
+    ownedSpaces: { id: number; name: string }[];
+    revenueHistory: Transaction[];
+    withdrawalHistory: WithdrawalRequest[];
 }

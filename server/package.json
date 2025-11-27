@@ -10,7 +10,7 @@
     "db:init": "node initDb.js"
   },
   "dependencies": {
-    "@google/genai": "^1.22.0",
+    "@google/genai": "1.22.0",
     "ai-chat-platform": "file:..",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -19,8 +19,11 @@
     "mammoth": "^1.7.2",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^2.7.0",
+    "nodemailer": "^6.9.14",
     "pdf-parse": "^1.1.1",
     "pg": "^8.11.5",
+    "stripe": "^16.2.0",
+    "weaviate-ts-client": "^2.2.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

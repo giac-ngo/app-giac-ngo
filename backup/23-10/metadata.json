@@ -1,7 +1,0 @@
-{
-  "name": "Giác Ngộ AI - Agent Management Platform",
-  "description": "An advanced platform to manage, train, and deploy multiple AI agents named Tâm An, Giác Ngộ, and Đốn Ngộ. Integrates with Supabase for data storage and Weaviate for vector search, featuring comprehensive management tools for users, billing, conversations, and system settings.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}

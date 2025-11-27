@@ -1,7 +1,10 @@
 // client/src/components/admin/FineTuneManagement.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { useToast } from '../ToastProvider';
+import { TrainingDataSource } from '../../types';
+import { apiService } from '../../services/apiService';
+import { DownloadIcon } from '../Icons';
 
 interface FineTuneManagementProps {
     language: 'vi' | 'en';
@@ -10,7 +13,7 @@ interface FineTuneManagementProps {
 const translations = {
     vi: {
         title: 'Tạo Dữ liệu Fine-tune',
-        instructionsTitle: 'Hướng dẫn',
+        instructionsTitle: 'Hướng dẫn chuyển đổi từ Excel',
         instructions: [
             '1. Chuẩn bị file Excel (.xlsx hoặc .xls).',
             '2. Dòng đầu tiên là tiêu đề (sẽ được bỏ qua).',
@@ -29,11 +32,23 @@ const translations = {
             missingColumns: 'File Excel cần có ít nhất 2 cột.',
             processingError: 'Đã xảy ra lỗi khi xử lý file.',
         },
-        processSuccess: 'Xử lý file thành công! Sẵn sàng để tải về.'
+        processSuccess: 'Xử lý file thành công! Sẵn sàng để tải về.',
+        trainedConversations: 'Các đoạn hội thoại đã huấn luyện',
+        aiAgent: 'AI Agent',
+        qaPairs: 'Cặp Q&A',
+        lastExported: 'Ngày xuất gần nhất',
+        actions: 'Hành động',
+        downloadJsonl: 'Tải xuống JSONL',
+        noTrainedData: 'Chưa có dữ liệu Hỏi-Đáp nào được huấn luyện.',
+        loadingTrainedData: 'Đang tải dữ liệu đã huấn luyện...',
+        exporting: 'Đang xuất...',
+        exportSuccess: 'Xuất file thành công!',
+        exportError: 'Xuất file thất bại: {message}',
+        notYetExported: 'Chưa xuất',
     },
     en: {
         title: 'Fine-tune Data Generator',
-        instructionsTitle: 'Instructions',
+        instructionsTitle: 'Excel Converter Instructions',
         instructions: [
             '1. Prepare an Excel file (.xlsx or .xls).',
             '2. The first row is the header (it will be ignored).',
@@ -52,17 +67,90 @@ const translations = {
             missingColumns: 'The Excel file must have at least 2 columns.',
             processingError: 'An error occurred while processing the file.',
         },
-        processSuccess: 'File processed successfully! Ready for download.'
+        processSuccess: 'File processed successfully! Ready for download.',
+        trainedConversations: 'Trained Conversation Snippets',
+        aiAgent: 'AI Agent',
+        qaPairs: 'Q&A Pairs',
+        lastExported: 'Last Exported',
+        actions: 'Actions',
+        downloadJsonl: 'Download JSONL',
+        noTrainedData: 'No Q&A data has been trained yet.',
+        loadingTrainedData: 'Loading trained data...',
+        exporting: 'Exporting...',
+        exportSuccess: 'File exported successfully!',
+        exportError: 'Failed to export file: {message}',
+        notYetExported: 'Not yet exported',
     }
 };
 
-const FineTuneManagement: React.FC<FineTuneManagementProps> = ({ language }) => {
+export const FineTuneManagement: React.FC<FineTuneManagementProps> = ({ language }) => {
     const t = translations[language];
     const { showToast } = useToast();
 
+    // State for Excel converter
     const [jsonlData, setJsonlData] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // State for trained data list
+    const [trainedData, setTrainedData] = useState<TrainingDataSource[]>([]);
+    const [isLoadingTrainedData, setIsLoadingTrainedData] = useState(true);
+    const [exportingAiId, setExportingAiId] = useState<number | string | null>(null);
+
+    const fetchTrainedData = async () => {
+        setIsLoadingTrainedData(true);
+        try {
+            const data = await apiService.getAllQaTrainingData();
+            setTrainedData(data);
+        } catch (error) {
+            showToast((error as Error).message, 'error');
+        } finally {
+            setIsLoadingTrainedData(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTrainedData();
+    }, []);
+
+    const groupedData = useMemo(() => {
+        return trainedData.reduce((acc: Record<string, { aiName: string; sources: TrainingDataSource[]; lastExported: string | null }>, item) => {
+            const key = String(item.aiConfigId);
+            if (!acc[key]) {
+                acc[key] = {
+                    aiName: item.aiName || `AI ID ${key}`,
+                    sources: [],
+                    lastExported: null,
+                };
+            }
+            acc[key].sources.push(item);
+            if (item.lastExportedAt) {
+                const currentExportDate = new Date(item.lastExportedAt);
+                if (!acc[key].lastExported || currentExportDate > new Date(acc[key].lastExported!)) {
+                    acc[key].lastExported = item.lastExportedAt;
+                }
+            }
+            return acc;
+        }, {});
+    }, [trainedData]);
+
+
+    const handleExport = async (aiConfigId: number | string) => {
+        setExportingAiId(aiConfigId);
+        try {
+            const dataToExport = groupedData[String(aiConfigId)]?.sources;
+            if (!dataToExport || dataToExport.length === 0) {
+                throw new Error('No data to export for this AI.');
+            }
+            await apiService.exportQaDataForFinetune(dataToExport);
+            showToast(t.exportSuccess, 'success');
+            await fetchTrainedData(); // Refresh data to show new export date
+        } catch (error) {
+            showToast(t.exportError.replace('{message}', (error as Error).message), 'error');
+        } finally {
+            setExportingAiId(null);
+        }
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -105,20 +193,16 @@ const FineTuneManagement: React.FC<FineTuneManagementProps> = ({ language }) => 
                     throw new Error('No data');
                 }
 
-                // The first row is the header. Check if it has at least 2 columns.
                 if (!data[0] || data[0].length < 2) {
                     showToast(t.errors.missingColumns, 'error');
                     throw new Error('Missing columns');
                 }
 
-                const qIndex = 0; // First column for question
-                const aIndex = 1; // Second column for answer
-
                 const jsonlLines: string[] = [];
-                for (let i = 1; i < data.length; i++) { // Start from the second row for data
+                for (let i = 1; i < data.length; i++) {
                     const row = data[i];
-                    const question = row[qIndex];
-                    const answer = row[aIndex];
+                    const question = row[0];
+                    const answer = row[1];
 
                     if (question && answer) {
                         const line = {
@@ -137,7 +221,6 @@ const FineTuneManagement: React.FC<FineTuneManagementProps> = ({ language }) => 
                 if ((err as Error).message !== 'No data' && (err as Error).message !== 'Missing columns') {
                     showToast(t.errors.processingError, 'error');
                 }
-                console.error(err);
             } finally {
                 setIsProcessing(false);
             }
@@ -196,8 +279,58 @@ const FineTuneManagement: React.FC<FineTuneManagementProps> = ({ language }) => 
                     </button>
                 </div>
             </div>
+
+            <div className="mt-12">
+                <h2 className="text-2xl font-bold mb-6">{t.trainedConversations}</h2>
+                <div className="bg-background-panel shadow-md rounded-lg overflow-hidden">
+                    {isLoadingTrainedData ? (
+                        <p className="p-6 text-center text-text-light">{t.loadingTrainedData}</p>
+                    ) : Object.keys(groupedData).length === 0 ? (
+                        <p className="p-6 text-center text-text-light">{t.noTrainedData}</p>
+                    ) : (
+                        <table className="min-w-full divide-y divide-border-color">
+                            <thead className="bg-background-light">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase">{t.aiAgent}</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase">{t.qaPairs}</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase">{t.lastExported}</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-text-light uppercase">{t.actions}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-background-panel divide-y divide-border-color">
+                                {Object.entries(groupedData).map(([aiId, data]) => (
+                                    <tr key={aiId}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-main">{data.aiName}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-text-main">{data.sources.length}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-text-light">
+                                            {data.lastExported ? new Date(data.lastExported).toLocaleString(language) : t.notYetExported}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => handleExport(aiId)}
+                                                disabled={exportingAiId === aiId}
+                                                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-text-on-primary bg-primary hover:bg-primary-hover disabled:opacity-50"
+                                            >
+                                                {exportingAiId === aiId ? (
+                                                    <>
+                                                        <span className="w-4 h-4 border-2 border-dashed rounded-full animate-spin border-white mr-2"></span>
+                                                        {t.exporting}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <DownloadIcon className="w-4 h-4 mr-2" />
+                                                        {t.downloadJsonl}
+                                                    </>
+                                                )}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
-
-export default FineTuneManagement;

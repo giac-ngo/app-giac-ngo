@@ -67,7 +67,6 @@ interface LiveSessionCallbacks {
     onOpen: () => void;
 }
 
-// FIX: Update return type to `Promise<any>` and accept an apiKey parameter.
 export const connectLiveSession = (apiKey: string, callbacks: LiveSessionCallbacks): Promise<any> => {
     if (!apiKey) {
         return Promise.reject(new Error("Gemini API key is not available for this user."));

@@ -1,0 +1,1989 @@
+/* client/public/themes/giacngo/HomePage.css */
+
+/* -------------------------------------------------------------------------- */
+/*                           HOMEPAGE STYLES                              */
+/* -------------------------------------------------------------------------- */
+html[data-theme="giacngo"] .homepage-container {
+  --font-sans: 'Be Vietnam Pro', sans-serif;
+  --font-serif: "Libre Baskerville", "Lora", "Merriweather", Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  background-color: #f5efdc;
+  color: #4B3226;
+  font-family: var(--font-serif);
+}
+html[data-theme="giacngo"] .homepage-section {
+  padding: 5rem 1rem;
+}
+html[data-theme="giacngo"] .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+html[data-theme="giacngo"] .homepage-container .section-title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  color:rgb(153 27 27 / var(--tw-text-opacity, 1));
+  margin-bottom: 0.5rem;
+}
+html[data-theme="giacngo"] .homepage-container .section-subtitle {
+  text-align: center;
+  color: #8c7b75;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+/* Header & Footer Styles */
+html[data-theme="giacngo"] .main-header {
+    background-color: var(--color-background-panel);
+    border-bottom: 1px solid var(--color-border-color);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+html[data-theme="giacngo"] .main-footer {
+    border-bottom: none;
+    border-top: 1px solid var(--color-border-color);
+}
+
+html[data-theme="giacngo"] .main-header .container, html[data-theme="giacngo"] .main-footer .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    max-width: 100%;
+}
+
+/* Container for logo + arrow to enable relative positioning for the dropdown */
+html[data-theme="giacngo"] .logo-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+html[data-theme="giacngo"] .logo-toggle-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-primary);
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+html[data-theme="giacngo"] .logo-toggle-button:hover {
+    color: var(--color-primary-hover);
+}
+
+
+/* Dropdown menu styling based on the second image */
+html[data-theme="giacngo"] .logo-dropdown {
+    position: absolute;
+    top: calc(100% + 1rem);
+    left: 0;
+    background-color: var(--color-background-panel); /* #efe0bd */
+    border-radius: 1rem; /* rounded-2xl */
+    border: 1px solid var(--color-border-color); /* #dcd5bc */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    width: 280px;
+    z-index: 50;
+}
+
+html[data-theme="giacngo"] .logo-dropdown-title {
+    font-family: var(--font-sans);
+    color: var(--color-primary);
+    font-weight: 700;
+    font-size: 1.125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+html[data-theme="giacngo"] .logo-dropdown-title::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-color: var(--color-primary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M7.5 5.25A2.25 2.25 0 0 1 9.75 3h4.5a2.25 2.25 0 0 1 2.25 2.25v.75a.75.75 0 0 1-1.5 0v-.75a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0-.75.75v.75a.75.75 0 0 1-1.5 0v-.75Zm-3 2.25A2.25 2.25 0 0 1 6.75 5.25h10.5a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 17.25 21H6.75a2.25 2.25 0 0 1-2.25-2.25V7.5Zm1.5 0v10.5a.75.75 0 0 0 .75.75h10.5a.75.75 0 0 0 .75-.75V7.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75Z' clip-rule='evenodd' /%3E%3C/svg%3E") no-repeat center;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M7.5 5.25A2.25 2.25 0 0 1 9.75 3h4.5a2.25 2.25 0 0 1 2.25 2.25v.75a.75.75 0 0 1-1.5 0v-.75a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0-.75.75v.75a.75.75 0 0 1-1.5 0v-.75Zm-3 2.25A2.25 2.25 0 0 1 6.75 5.25h10.5a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 17.25 21H6.75a2.25 2.25 0 0 1-2.25-2.25V7.5Zm1.5 0v10.5a.75.75 0 0 0 .75.75h10.5a.75.75 0 0 0 .75-.75V7.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75Z' clip-rule='evenodd' /%3E%3C/svg%3E") no-repeat center;
+}
+
+html[data-theme="giacngo"] .logo-dropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+html[data-theme="giacngo"] .logo-dropdown li {
+    padding-left: 0;
+}
+
+html[data-theme="giacngo"] .logo-dropdown li::before {
+    display: none;
+}
+
+html[data-theme="giacngo"] .logo-dropdown a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color:rgb(139 69 19 / 0.8);
+    text-decoration: none;
+    transition: color 0.2s, background-color 0.2s;
+    font-size: 1.125rem; /* text-lg */
+    border-radius: 0.5rem;
+}
+
+html[data-theme="giacngo"] .logo-dropdown a:hover {
+    color:#90201d;
+    background-color:#e3c7ab;
+}
+
+html[data-theme="giacngo"] .logo-dropdown hr {
+    border: none;
+    border-top: 1px solid var(--color-border-color);
+    margin: 1.5rem 0;
+}
+
+html[data-theme="giacngo"] .logo-dropdown-socials {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+html[data-theme="giacngo"] .logo-dropdown-socials a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #dfcaa7;
+    color:rgb(139 69 19 / var(--tw-text-opacity, 1));
+    transition: all 0.2s;
+}
+
+html[data-theme="giacngo"] .logo-dropdown-socials a:hover {
+    background-color:rgb(153, 27, 27);
+    color: #fff;
+}
+
+
+html[data-theme="giacngo"] .main-header .logo {
+    height: 40px;
+    width: auto;
+    opacity: 0.9;
+}
+
+html[data-theme="giacngo"] .main-nav, html[data-theme="giacngo"] .footer-nav {
+    display: flex;
+    gap: 2.5rem;
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+html[data-theme="giacngo"] .main-nav a, html[data-theme="giacngo"] .footer-nav a {
+    color: rgb(139 69 19 / 0.7);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+html[data-theme="giacngo"] .main-nav a:hover, html[data-theme="giacngo"] .footer-nav a:hover {
+    color: var(--color-primary);
+}
+
+html[data-theme="giacngo"] .header-actions {
+    display: flex;
+    align-items: center;
+}
+
+html[data-theme="giacngo"] .language-switcher {
+    display: flex;
+    border: 1.5px solid var(--color-primary);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+html[data-theme="giacngo"] .language-switcher button {
+    padding: 0.4rem 1.1rem;
+    border: none;
+    background-color: #fefcf5; /* Match card background */
+    color: var(--color-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+html[data-theme="giacngo"] .language-switcher button.active {
+    background-color: var(--color-primary);
+    color: var(--color-text-on-primary);
+}
+
+html[data-theme="giacngo"] .language-switcher button:not(.active):hover {
+    background-color: var(--color-primary-light);
+}
+
+html[data-theme="giacngo"] .footer-initiative a {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+html[data-theme="giacngo"] .footer-copyright {
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    color: var(--color-text-light);
+}
+
+
+/* Hero Section */
+html[data-theme="giacngo"] .hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* Center the .content block */
+  text-align: center;
+  padding: 2rem 1rem 8rem; /* Make room for absolute stats */
+  min-height: calc(100vh - 73px); /* Header height approx 73px */
+  background: radial-gradient(circle, rgba(245,239,220,1) 0%, rgba(232,214,164,1) 100%);
+  position: relative; /* For absolute positioning of children */
+}
+
+html[data-theme="giacngo"] .hero-section .content {
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    width: 100%;
+}
+
+html[data-theme="giacngo"] .hero-title {
+  font-family: var(--font-serif);
+  font-size: 5.5rem;
+  font-weight: 700;
+  color: #991b1b;
+  margin-bottom: 0;
+}
+html[data-theme="giacngo"] .hero-subtitle {
+  font-size: 1.25rem;
+  color: #8c7b75;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+html[data-theme="giacngo"] .search-wrapper {
+    position: relative;
+    display: flex;
+    background: #fff;
+    border-radius: 9999px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    border: 1px solid #dcd5bc;
+    width: 100%;
+}
+html[data-theme="giacngo"] .search-icon {
+    position: absolute;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a1a1aa;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+html[data-theme="giacngo"] .search-wrapper input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    padding: 1rem 1.5rem 1rem 4rem;
+    font-size: 1rem;
+    outline: none;
+}
+html[data-theme="giacngo"] .chat-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #fff;
+    border-radius: 9999px;
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+    margin: 0.5rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+}
+html[data-theme="giacngo"] .chat-button span:first-child { color: #ef4444; }
+html[data-theme="giacngo"] .chat-button span:nth-child(2) { color: #4B3226; }
+
+html[data-theme="giacngo"] .chat-button .arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: #991b1b;
+    color: #fff;
+    font-size: 1.5rem;
+    transition: transform 0.2s;
+}
+html[data-theme="giacngo"] .chat-button:hover .arrow {
+    transform: translateX(3px);
+}
+
+html[data-theme="giacngo"] .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+html[data-theme="giacngo"] .suggestions button {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid #dcd5bc;
+    border-radius: 9999px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+html[data-theme="giacngo"] .suggestions button:hover {
+    background: #fff;
+    border-color: #c4a984;
+}
+
+html[data-theme="giacngo"] .hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  width: 100%;
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+html[data-theme="giacngo"] .stat-item {
+  text-align: center;
+}
+html[data-theme="giacngo"] .stat-item .value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+}
+html[data-theme="giacngo"] .stat-item .label {
+  color: #8c7b75;
+  font-size: 0.875rem;
+}
+
+
+/* Agent Card */
+html[data-theme="giacngo"] .agents-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3.5rem;
+    margin-top: 5rem;
+    justify-items: center;
+}
+
+@media (min-width: 768px) {
+    html[data-theme="giacngo"] .agents-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 2rem;
+    }
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card {
+    background: #f4ebdb;
+    border-radius: 1rem;
+    border: 1px solid var(--color-border-color);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    overflow: hidden;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.07);
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .card-image-top {
+    margin-top: 1.5rem;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    border: 4px solid #fefcf5;
+    box-shadow: 0 0 0 1px var(--color-border-color);
+    flex-shrink: 0;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .card-image-top img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .card-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 0.25rem;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .agent-name {
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #5c524d;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .agent-subtitle {
+    color: var(--color-primary);
+    font-weight: bold;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-family: var(--font-serif);
+    line-height: 1.4;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .agent-description {
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    min-height: calc(1.5em * 3);
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .agent-divider {
+    width: 100%;
+    border-color: var(--color-border-color);
+    margin: 0 0 1rem;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .agent-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .model-tag {
+    background-color: #e0e7d4;
+    color: #3f6212;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .space-name {
+    color: var(--color-text-light);
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .agent-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin-bottom: 1rem;
+    width: 100%;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .agent-stats > div {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .agent-price {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin-bottom: 1.5rem;
+    min-height: 24px;
+    width: 100%;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .agent-price .line-through {
+    text-decoration: line-through;
+    opacity: 0.6;
+    margin-right: 0.25rem;
+}
+
+html[data-theme="giacngo"] .agents-section .agent-card .explore-button {
+    margin-top: auto;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--color-primary);
+    color: var(--color-text-on-primary);
+    border: none;
+    border-radius: 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+html[data-theme="giacngo"] .agents-section .agent-card .explore-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+/* View More Button */
+html[data-theme="giacngo"] .view-more {
+    text-align: center;
+    margin-top: 3rem;
+}
+html[data-theme="giacngo"] .view-more a, html[data-theme="giacngo"] .view-more button {
+    background: transparent;
+    border: 1px solid rgb(153 27 27 / var(--tw-text-opacity, 1));
+    border-radius: 9999px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+    color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+    text-decoration: none;
+}
+html[data-theme="giacngo"] .view-more a:hover, html[data-theme="giacngo"] .view-more button:hover {
+    color: #fff;
+    background-color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+    border-color: #991b1b;
+}
+
+/* Community Section */
+html[data-theme="giacngo"] .community-section { 
+    background-color: #e8d6a4;
+    box-shadow: inset 0 6px 12px -4px rgba(0,0,0,0.07), inset 0 -6px 12px -4px rgba(0,0,0,0.07);
+}
+html[data-theme="giacngo"] .community-controls { margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1.5rem; align-items: center; }
+html[data-theme="giacngo"] .community-search { position: relative; width: 100%; max-width: 500px; }
+html[data-theme="giacngo"] .community-search input { width: 100%; padding: 0.75rem 1.5rem 0.75rem 3rem; border-radius: 9999px; border: 1px solid var(--color-border-color); background-color: #fff; }
+html[data-theme="giacngo"] .community-search svg { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); width: 1.25rem; height: 1.25rem; color: #a1a1aa; }
+html[data-theme="giacngo"] .community-filters { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
+html[data-theme="giacngo"] .community-filters button { display: flex; align-items: center; gap: 0.5rem; background-color: #fff; border: 1px solid var(--color-border-color); padding: 0.5rem 1.25rem; border-radius: 9999px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+html[data-theme="giacngo"] .community-filters button.active { background-color: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+html[data-theme="giacngo"] .community-filters button:hover:not(.active) { background-color: var(--color-background-light); }
+html[data-theme="giacngo"] .community-filters svg { width: 1rem; height: 1rem; }
+html[data-theme="giacngo"] .community-count { text-align: center; font-size: 0.875rem; color: #8c7b75; margin-bottom: 2rem; }
+
+html[data-theme="giacngo"] .community-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    html[data-theme="giacngo"] .community-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: 1024px) {
+    html[data-theme="giacngo"] .community-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (min-width: 1280px) {
+    html[data-theme="giacngo"] .community-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+
+html[data-theme="giacngo"] .community-card-home {
+    background-color: #fefcf5;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border-color);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+html[data-theme="giacngo"] .community-card-home:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.07);
+}
+
+html[data-theme="giacngo"] .community-card-home .card-top {
+    position: relative;
+    padding: 1.5rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-rank {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background-color: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-status {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background-color: #dcfce7; /* green-100 */
+    color: #166534; /* green-800 */
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+html[data-theme="giacngo"] .community-card-home .card-status::before {
+    content: '•';
+    margin-right: 4px;
+    color: #22c55e; /* green-500 */
+}
+
+html[data-theme="giacngo"] .community-card-home .card-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    padding: 4px;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-icon-compact {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fefcf5;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-icon-emoji {
+    font-size: 2.5rem;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-bottom {
+    background-color: #f5ecdc;
+    padding: 1rem;
+    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+
+html[data-theme="giacngo"] .community-card-home .card-title {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    line-height: 1.3;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    min-height: 42px; /* 2 lines */
+}
+
+html[data-theme="giacngo"] .community-card-home .card-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: #8c7b75;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    min-height: 26px; /* space for one line of tags */
+}
+
+html[data-theme="giacngo"] .community-card-home .card-tags span {
+    color: #1c643b; /* A dark green-ish color for text on light backgrounds */
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-footer {
+    border-top: 1px solid var(--color-border-color);
+    margin-top: auto;
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-type {
+    color: #1c643b; /* same as tag text */
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+html[data-theme="giacngo"] .community-card-home .card-offering {
+    background-color: var(--color-primary);
+    color: #fff;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Dharma Radio Section */
+html[data-theme="giacngo"] .dharma-radio-section { background: radial-gradient(circle, rgba(245,239,220,1) 0%, rgba(232,214,164,1) 100%); }
+html[data-theme="giacngo"] .dharma-radio-section .section-title { display: flex; align-items: center; justify-content: center;color: rgb(153 27 27 / var(--tw-text-opacity, 1)); }
+html[data-theme="giacngo"] .radio-icon { display: inline-block; width: 2.5rem; height: 2.5rem; vertical-align: middle; margin-right: 0.75rem; color: var(--color-accent-red); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+html[data-theme="giacngo"] .dharma-subsection { margin-top: 3rem; }
+html[data-theme="giacngo"] .subsection-title { font-family: var(--font-serif); font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; color: #1f2937; }
+html[data-theme="giacngo"] .live-dot { width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; }
+html[data-theme="giacngo"] .dharma-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+}
+html[data-theme="giacngo"] .dharma-card { background: #f2e8d9; border-radius: 1rem; border: 1px solid var(--color-border-color); padding: 1.5rem; width: 400px; cursor: pointer; transition: all 0.2s; }
+html[data-theme="giacngo"] .dharma-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.05); }
+html[data-theme="giacngo"] .dharma-card .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+html[data-theme="giacngo"] .dharma-card .live-badge { background-color: #ef4444; color: #fff; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+html[data-theme="giacngo"] .dharma-card .viewer-count, html[data-theme="giacngo"] .dharma-card .notification-count { display: flex; align-items: center; gap: 0.25rem; font-size: 0.875rem; color: #8c7b75; }
+html[data-theme="giacngo"] .dharma-card .countdown-badge { display: flex; align-items: center; gap: 0.25rem; font-size: 0.875rem; font-weight: 600; color: #991b1b; }
+html[data-theme="giacngo"] .dharma-card .session-title { font-family: var(--font-serif); font-size: 1.25rem; font-weight: 700; }
+html[data-theme="giacngo"] .dharma-card .session-subtitle { font-size: 0.875rem; color: var(--color-text-light); margin-top: 0.25rem; }
+html[data-theme="giacngo"] .dharma-card .host-info { display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; }
+html[data-theme="giacngo"] .dharma-card .host-info img { width: 40px; height: 40px; border-radius: 50%; }
+html[data-theme="giacngo"] .dharma-card .host-info .host-name { font-weight: 600; }
+html[data-theme="giacngo"] .dharma-card .host-info .host-label { font-size: 0.75rem; color: #8c7b75; }
+html[data-theme="giacngo"] .dharma-card .session-tags { display: flex; gap: 0.5rem; margin-top: 1rem; font-size: 0.75rem; color: #991b1b; }
+
+
+/* Skeleton Loading Styles */
+html[data-theme="giacngo"] .skeleton-card { overflow: hidden; }
+html[data-theme="giacngo"] .skeleton { background-color: #e8d6a4; position: relative; overflow: hidden; }
+html[data-theme="giacngo"] .skeleton::after { content: ''; position: absolute; top: 0; left: -150%; width: 150%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent); animation: shimmer 1.5s infinite; }
+html[data-theme="giacngo"] .skeleton-image { width: 120px; height: 120px; border-radius: 50%; margin: 1.5rem auto 0; }
+html[data-theme="giacngo"] .skeleton-title { height: 2rem; width: 70%; margin: 1.5rem auto 0.75rem; border-radius: 0.25rem; }
+html[data-theme="giacngo"] .skeleton-title.small { height: 1.25rem; margin-top: 1.5rem; }
+html[data-theme="giacngo"] .skeleton-text { height: 0.875rem; width: 90%; margin: 0.5rem auto; border-radius: 0.25rem; }
+html[data-theme="giacngo"] .skeleton-text.short { width: 60%; }
+html[data-theme="giacngo"] .skeleton-button { height: 2.5rem; width: 100%; margin-top: 1rem; border-radius: 9999px; }
+html[data-theme="giacngo"] .skeleton-icon { width: 50px; height: 50px; border-radius: 50%; margin: 1.5rem auto 0; }
+html[data-theme="giacngo"] .skeleton-doc-thumb { width: 100%; aspect-ratio: 16 / 10; }
+
+@keyframes shimmer { 0% { transform: translateX(0); } 100% { transform: translateX(100%); } }
+
+/* Pricing Section */
+html[data-theme="giacngo"] .pricing-section {
+    background: radial-gradient(circle, rgba(239, 224, 189, 1) 0%, rgba(245, 239, 220, 1) 100%);
+}
+
+html[data-theme="giacngo"] .pricing-section .section-title {
+    color:rgb(153 27 27 / var(--tw-text-opacity, 1))
+}
+
+html[data-theme="giacngo"] .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 4rem auto 0;
+    align-items: stretch; /* Make cards equal height */
+}
+
+@media (min-width: 1024px) {
+    html[data-theme="giacngo"] .pricing-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+html[data-theme="giacngo"] .pricing-card {
+    background-color: #f3e9d9;
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    transition: all 0.2s;
+    overflow: hidden;
+}
+
+html[data-theme="giacngo"] .pricing-card.popular {
+    border: 2px solid #991b1b;
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+html[data-theme="giacngo"] .pricing-card .pricing-card-header {
+    padding: 2rem 2rem 0rem;
+    position: relative;
+}
+
+html[data-theme="giacngo"] .pricing-card.popular .pricing-card-header {
+    background-color: #991b1b;
+}
+
+html[data-theme="giacngo"] .popular-badge {
+    color: #fff;
+    font-size: 0.8rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    padding: 0.25rem 1rem;
+    border-radius: 9999px;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] .pricing-card-body {
+    padding: 1.5rem 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+html[data-theme="giacngo"] .pricing-card-title {
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    text-align: center;
+}
+html[data-theme="giacngo"] .popular .pricing-card-title {
+    color: #fff;
+}
+
+html[data-theme="giacngo"] .pricing-card-subtitle {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    color: #8b4513b3;
+    text-align: center;
+    margin-top: 0.25rem;
+}
+html[data-theme="giacngo"] .popular .pricing-card-subtitle {
+    color: #fde8e8;
+}
+
+html[data-theme="giacngo"] .pricing-card-price {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 2rem;
+    justify-content: center;
+}
+
+html[data-theme="giacngo"] .pricing-card-price .price-amount {
+    font-size: 3.5rem;
+    color: #b91c1c;
+}
+html[data-theme="giacngo"] .pricing-card:first-child .pricing-card-price .price-amount {
+    font-size: 2.5rem;
+}
+
+html[data-theme="giacngo"] .pricing-card-price .price-suffix {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 500;
+    color: #a39e8c;
+    margin-left: 0.5rem;
+}
+
+html[data-theme="giacngo"] .pricing-card-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+html[data-theme="giacngo"] .pricing-card-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+}
+
+html[data-theme="giacngo"] .pricing-card-features .check-icon {
+    color: #b91c1c;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+html[data-theme="giacngo"] .pricing-card .btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    transition: all 0.2s ease;
+    font-family: var(--font-sans);
+    margin-top: auto;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+html[data-theme="giacngo"] .pricing-card .btn.solid {
+    background-color: #991b1b;
+    color: white;
+    border: 1px solid #991b1b;
+}
+html[data-theme="giacngo"] .pricing-card .btn.solid:hover {
+    background-color: #7f1d1d;
+}
+
+html[data-theme="giacngo"] .pricing-card .btn.outline {
+    background-color: white;
+    border: 1px solid #991b1b;
+    color: #1f2937;
+}
+html[data-theme="giacngo"] .pricing-card .btn.outline:hover {
+    background-color: #fef2f2;
+}
+
+/* Radio Session Modal */
+.radio-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(43, 27, 27, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.radio-modal {
+    background-color: #f3e9d9;
+    border-radius: 1rem;
+    border: 1px solid #dcd5bc;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    font-family: var(--font-sans);
+    color: #2c2c2c;
+    position: relative;
+    padding: 1.5rem;
+}
+
+.radio-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #8c7b75;
+}
+
+.radio-modal-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.radio-modal-header .top-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+.radio-modal-header .live-badge {
+    background-color: #ef4444;
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+}
+.radio-modal-header .viewer-count {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #6D605A;
+}
+
+.radio-modal-header .session-title {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #4B3226;
+}
+.radio-modal-header .session-subtitle {
+    font-size: 0.875rem;
+    color: #6D605A;
+    text-align: center;
+}
+
+.radio-modal-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #dcd5bc;
+}
+.radio-modal-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.radio-modal-section .section-label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #8c7b75;
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.radio-modal-host {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+.radio-modal-host .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #facc15;
+}
+.radio-modal-host .host-name {
+    font-weight: 600;
+}
+
+.avatar-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+}
+.avatar-grid.speakers .avatar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+.avatar-grid.speakers .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.avatar-grid.speakers .speaker-name {
+    font-size: 0.75rem;
+    color: #6D605A;
+}
+
+.avatar-grid.listeners .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.radio-modal-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.radio-modal-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+.radio-modal-actions button[data-testid="button-radio-leave"] {
+    background-color: #991b1b;
+    border: 2px solid #991b1b;
+}
+.radio-modal-actions button[data-testid="button-radio-leave"]:hover {
+    background-color: #7a1515;
+}
+.radio-modal-actions button[data-testid="button-radio-leave"] svg {
+    color: white;
+}
+.radio-modal-actions button:not([data-testid="button-radio-leave"]) {
+    background-color: white;
+    border: 2px solid #2c2c2c;
+}
+.radio-modal-actions button:not([data-testid="button-radio-leave"]):hover {
+    background-color: rgba(139, 69, 19, 0.1);
+}
+.radio-modal-actions button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+.radio-modal-actions button:not([data-testid="button-radio-leave"]) svg {
+    color: #2c2c2c;
+}
+
+/* Library Teaser Section */
+html[data-theme="giacngo"] .library-teaser-section {
+    background-color: #f5efdc;
+}
+html[data-theme="giacngo"] .library-teaser-section .section-title {
+    color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+}
+
+html[data-theme="giacngo"] .library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+@media (min-width: 1280px) {
+    html[data-theme="giacngo"] .library-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+html[data-theme="giacngo"] .library-card {
+    background: #fefcf5;
+    border-radius: 1rem;
+    border: 1px solid var(--color-border-color);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+}
+html[data-theme="giacngo"] .library-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.07);
+    border-color: var(--color-primary);
+}
+html[data-theme="giacngo"] .library-card-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background-color: var(--color-background-light);
+}
+html[data-theme="giacngo"] .library-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+html[data-theme="giacngo"] .library-card-content {
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+html[data-theme="giacngo"] .library-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+}
+html[data-theme="giacngo"] .library-card-author {
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin-top: 0.25rem;
+    flex-grow: 1;
+}
+html[data-theme="giacngo"] .library-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border-color);
+}
+html[data-theme="giacngo"] .library-card-stats span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+html[data-theme="giacngo"] .library-card-stats svg {
+    width: 0.875rem; /* 14px */
+    height: 0.875rem;
+}
+html[data-theme="giacngo"] .library-card-stats .icon-heart {
+    color: #ef4444; /* red-500 */
+}
+html[data-theme="giacngo"] .library-card-stats .icon-star {
+    color: #facc15; /* amber-400 */
+    fill: #facc15;
+}
+
+
+/* USER MENU DROPDOWN */
+html[data-theme="giacngo"] .user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 1rem);
+    right: 0;
+    background-color: var(--color-background-panel);
+    border-radius: 1rem;
+    border: 1px solid var(--color-border-color);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    width: 250px;
+    z-index: 50;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+html[data-theme="giacngo"] .user-menu-header {
+    padding: 0.75rem 1rem;
+}
+
+html[data-theme="giacngo"] .user-menu-header p {
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+html[data-theme="giacngo"] .user-menu-dropdown hr {
+    border-color: var(--color-border-color);
+    margin: 0.25rem 0;
+}
+
+html[data-theme="giacngo"] .user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    text-decoration: none;
+    color: var(--color-text-main);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+html[data-theme="giacngo"] .user-menu-item:hover {
+    background-color: var(--color-background-light);
+}
+
+html[data-theme="giacngo"] .user-menu-item.logout:hover {
+    background-color: var(--color-accent-red-light);
+    color: var(--color-accent-red);
+}
+
+html[data-theme="giacngo"] .user-menu-language-switcher {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+}
+
+html[data-theme="giacngo"] .user-menu-language-switcher-pill {
+    display: inline-flex;
+    border: 1.5px solid var(--color-primary);
+    border-radius: 9999px;
+    overflow: hidden;
+    background-color: #fefcf5;
+}
+
+html[data-theme="giacngo"] .user-menu-language-switcher-pill button {
+    padding: 0.4rem 1.1rem;
+    border: none;
+    background-color: transparent;
+    color: var(--color-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+html[data-theme="giacngo"] .user-menu-language-switcher-pill button.active {
+    background-color: var(--color-primary);
+    color: var(--color-text-on-primary);
+}
+
+/* MOBILE NAV */
+html[data-theme="giacngo"] .mobile-nav-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 320px;
+    background-color: var(--color-background-panel);
+    border-left: 1px solid var(--color-border-color);
+    box-shadow: -10px 0 20px -10px rgba(0,0,0,0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+html[data-theme="giacngo"] .mobile-nav-panel.is-open {
+    transform: translateX(0);
+}
+
+html[data-theme="giacngo"] .mobile-nav-user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] .mobile-nav-section-divider {
+    border-top: 1px solid var(--color-border-color);
+    margin: 1rem 0;
+}
+html[data-theme="giacngo"] .mobile-nav-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+html[data-theme="giacngo"] .mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    text-decoration: none;
+    color: var(--color-text-main);
+    font-weight: 600;
+}
+html[data-theme="giacngo"] .mobile-nav-link:hover {
+    background-color: var(--color-background-light);
+}
+html[data-theme="giacngo"] .mobile-nav-sublink {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    color: var(--color-text-light);
+}
+
+@media (min-width: 1024px) {
+    html[data-theme="giacngo"] .main-footer {
+        display: block;
+    }
+}
+@media (max-width: 1023px) {
+    html[data-theme="giacngo"] .main-footer {
+        display: none;
+    }
+}
+
+/* SocialFeed styles appended from user request */
+html[data-theme="giacngo"] #social-feed-section .social-section {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+html[data-theme="giacngo"] #social-feed-section .section-title h2 {
+  font-size: 2.5rem;
+  color: #991b1b;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+html[data-theme="giacngo"] #social-feed-section .section-title p {
+  font-size: 1.125rem;
+  color: #8B4513;
+  opacity: 0.7;
+}
+
+html[data-theme="giacngo"] #social-feed-section .nav-container {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(139, 69, 19, 0.2);
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .nav-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .nav-btn {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #2c2c2c;
+  border-radius: 16px;
+  background: #f3ead7;
+  color: #1f1f1f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2), 0 0 0 3px rgba(0,0,0,0.06) inset;
+  position: relative;
+}
+
+html[data-theme="giacngo"] #social-feed-section .nav-btn:hover {
+  background: #efe2c9;
+  transform: translateY(-2px);
+}
+
+html[data-theme="giacngo"] #social-feed-section .nav-btn.active {
+  background: #d4af37;
+  color: #2c2c2c;
+}
+
+html[data-theme="giacngo"] #social-feed-section .nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: #991b1b;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html[data-theme="giacngo"] #social-feed-section .post-card {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(139, 69, 19, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s;
+}
+
+html[data-theme="giacngo"] #social-feed-section .post-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+html[data-theme="giacngo"] #social-feed-section .post-header {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #d4af37;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+html[data-theme="giacngo"] #social-feed-section .user-info {
+  flex: 1;
+}
+
+html[data-theme="giacngo"] #social-feed-section .user-name {
+  font-weight: bold;
+  color: #2c2c2c;
+  margin-right: 0.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .user-handle {
+  color: rgba(139, 69, 19, 0.5);
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .post-time {
+  color: rgba(139, 69, 19, 0.5);
+  font-size: 0.875rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .social-agent-card {
+  background: linear-gradient(135deg, rgba(239, 224, 189, 0.8) 0%, rgba(229, 213, 183, 0.8) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .social-agent-card .agent-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .social-agent-card .agent-icon {
+  width: 20px;
+  height: 20px;
+  color: #991b1b;
+}
+
+html[data-theme="giacngo"] #social-feed-section .social-agent-card .agent-name {
+  font-weight: bold;
+  color: #991b1b;
+}
+
+html[data-theme="giacngo"] #social-feed-section .social-agent-card .agent-question {
+  font-style: italic;
+  color: rgba(44, 44, 44, 0.7);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .social-agent-card .agent-answer {
+  color: #2c2c2c;
+  line-height: 1.8;
+}
+
+html[data-theme="giacngo"] #social-feed-section .post-content {
+  color: #2c2c2c;
+  margin-bottom: 1rem;
+}
+
+/* Post Actions */
+html[data-theme="giacngo"] #social-feed-section .post-actions {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(139, 69, 19, 0.2);
+}
+
+html[data-theme="giacngo"] #social-feed-section .action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: rgba(139, 69, 19, 0.6);
+  cursor: pointer;
+  transition: color 0.3s;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+html[data-theme="giacngo"] #social-feed-section .action-btn:hover {
+  color: #991b1b;
+}
+
+html[data-theme="giacngo"] #social-feed-section .action-btn.liked {
+  color: #991b1b;
+}
+
+html[data-theme="giacngo"] #social-feed-section .action-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+html[data-theme="giacngo"] #social-feed-section .action-btn.liked svg {
+  fill: #991b1b;
+}
+
+/* Search View */
+html[data-theme="giacngo"] #social-feed-section .search-input {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(139, 69, 19, 0.2);
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #2c2c2c;
+  margin-bottom: 1.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .search-input::placeholder {
+  color: rgba(139, 69, 19, 0.5);
+}
+
+html[data-theme="giacngo"] #social-feed-section .search-input:focus {
+  outline: none;
+  border-color: rgba(153, 27, 27, 0.4);
+}
+
+html[data-theme="giacngo"] #social-feed-section .trending-section {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(139, 69, 19, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .trending-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: #2c2c2c;
+}
+
+html[data-theme="giacngo"] #social-feed-section .trending-title svg {
+  width: 16px;
+  height: 16px;
+  color: #991b1b;
+}
+
+html[data-theme="giacngo"] #social-feed-section .tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .tag-btn {
+  padding: 0.5rem 1rem;
+  background: #EFE0BD;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #2c2c2c;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+
+html[data-theme="giacngo"] #social-feed-section .tag-btn:hover {
+  background: #d4af37;
+  color: white;
+}
+
+html[data-theme="giacngo"] #social-feed-section .question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .question-btn {
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  background: white;
+  border: 1px solid rgba(153, 27, 27, 0.1);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: #2c2c2c;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+
+html[data-theme="giacngo"] #social-feed-section .question-btn:hover {
+  background: #EFE0BD;
+  border-color: rgba(153, 27, 27, 0.3);
+}
+
+/* Profile Section */
+html[data-theme="giacngo"] #social-feed-section .profile-card {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(139, 69, 19, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-info {
+  display: flex;
+  gap: 1.5rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid #d4af37;
+  object-fit: cover;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-details h2 {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #2c2c2c;
+  margin-bottom: 0.25rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-details .handle {
+  color: rgba(139, 69, 19, 0.6);
+  margin-bottom: 1rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-bio {
+  font-size: 0.875rem;
+  color: rgba(44, 44, 44, 0.8);
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+html[data-theme="giacngo"] #social-feed-section .edit-btn {
+  padding: 0.5rem 1.5rem;
+  background: white;
+  border: 2px solid #2c2c2c;
+  border-radius: 12px;
+  color: #2c2c2c;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2), 0 0 0 3px rgba(0,0,0,0.06) inset;
+  font-family: inherit;
+}
+
+html[data-theme="giacngo"] #social-feed-section .edit-btn:hover {
+  background: #efe2c9;
+}
+
+html[data-theme="giacngo"] #social-feed-section .profile-stats {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+html[data-theme="giacngo"] #social-feed-section .stat {
+  text-align: center;
+}
+
+html[data-theme="giacngo"] #social-feed-section .stat-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #2c2c2c;
+}
+
+html[data-theme="giacngo"] #social-feed-section .stat-label {
+  font-size: 0.875rem;
+  color: rgba(139, 69, 19, 0.6);
+}
+
+html[data-theme="giacngo"] #social-feed-section .follow-btn {
+  padding: 0.5rem 1.5rem;
+  background: #991b1b;
+  border: 2px solid #991b1b;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 0 rgba(153, 27, 27, 0.2);
+  font-family: inherit;
+  margin-left: auto;
+}
+
+html[data-theme="giacngo"] #social-feed-section .follow-btn:hover {
+  background: #7a1515;
+}
+
+/* Notifications */
+html[data-theme="giacngo"] #social-feed-section .notification-item {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(239, 224, 189, 0.2);
+  border-bottom: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-item:last-child {
+  border-bottom: none;
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #8B4513;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-content {
+  flex: 1;
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-text {
+  font-size: 0.875rem;
+  color: #2c2c2c;
+  margin-bottom: 0.25rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-text .username {
+  font-weight: 600;
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-text .action {
+  color: rgba(139, 69, 19, 0.7);
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-time {
+  font-size: 0.75rem;
+  color: rgba(139, 69, 19, 0.5);
+}
+
+html[data-theme="giacngo"] #social-feed-section .notification-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+html[data-theme="giacngo"] #social-feed-section .unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #991b1b;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
+/* CTA Button */
+html[data-theme="giacngo"] #social-feed-section .cta-container {
+  text-align: center;
+  margin-top: 3rem;
+}
+
+html[data-theme="giacngo"] #social-feed-section .cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: #991b1b;
+  color: white;
+  border: none;
+  border-radius: 48px;
+  font-family: inherit;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 8px 24px rgba(153, 27, 27, 0.3);
+}
+
+html[data-theme="giacngo"] #social-feed-section .cta-btn:hover {
+  background: #7a1515;
+  box-shadow: 0 12px 32px rgba(153, 27, 27, 0.4);
+  transform: translateY(-2px);
+}
+
+html[data-theme="giacngo"] #social-feed-section .cta-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+html[data-theme="giacngo"] #social-feed-section .hidden {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  html[data-theme="giacngo"] #social-feed-section .hero h1 {
+    font-size: 2rem;
+  }
+
+  html[data-theme="giacngo"] #social-feed-section .section-title h2 {
+    font-size: 1.75rem;
+  }
+
+  html[data-theme="giacngo"] #social-feed-section .post-card {
+    padding: 1.5rem;
+  }
+
+  html[data-theme="giacngo"] #social-feed-section .profile-info {
+    flex-direction: column;
+  }
+
+  html[data-theme="giacngo"] #social-feed-section .profile-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

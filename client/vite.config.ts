@@ -8,13 +8,13 @@ export default defineConfig({
     proxy: {
       // Chuyển tiếp tất cả các yêu cầu bắt đầu bằng /api đến server backend
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3002',
         changeOrigin: true,
         secure: false,
       },
       // Chuyển tiếp các yêu cầu đến file đã upload
       '/uploads': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3002',
         changeOrigin: true,
         secure: false,
       }

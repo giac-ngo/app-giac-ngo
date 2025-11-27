@@ -8,17 +8,25 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
   }
 
   #root,
   .App {
-    height: 100svh; /* Use small viewport height for the app container */
+    /* height: 100svh; Removed to allow natural document flow */
     margin: 0;
     padding: 0;
   }
   
   html {
-    font-size: 14px;
+    font-size: 12px;
+    scroll-behavior: smooth;
   }
+}
+
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: #a1a1aa; /* gray-400 */
+  background-color: transparent;
+  pointer-events: none;
 }

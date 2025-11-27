@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Role } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
+import { SettingsIcon, BookOpenIcon, AiIcon, UsersIcon, BillingIcon } from '../Icons';
 
 const translations = {
     vi: {
@@ -22,18 +23,28 @@ const translations = {
         deleteSuccess: 'Xóa quyền thành công!',
         deleteError: 'Xóa quyền thất bại: {message}',
         fetchError: 'Không thể tải danh sách quyền.',
+        groupSystem: 'Tổng quan & Hệ thống',
+        groupContent: 'Nội dung & Thư viện',
+        groupAi: 'AI & Dữ liệu',
+        groupUsers: 'Người dùng & Phân quyền',
+        groupFinance: 'Tài chính',
         permissionLabels: {
             'dashboard': 'Dashboard',
+            'files': 'Tệp & Tài liệu',
+            'spaces': 'Quản lý Không gian',
+            'dharma-talks': 'Quản lý Pháp Thoại',
             'ai': 'Quản lý AI',
             'users': 'Quản lý Người dùng',
-            'roles': 'Quản lý Quyền',
+            'roles': 'Phân quyền',
             'conversations': 'Quản lý Hội thoại',
             'pricing': 'Quản lý Giá',
             'user-billing': 'Giao dịch & Nạp Merit',
-            'manual-billing': 'Nạp Merit Thủ công',
+            'space-billing': 'Ví Space',
+            'manual-billing': 'Giao dịch & Rút tiền',
             'templates': 'Giao diện',
             'finetune': 'Fine-tune Dữ liệu',
             'settings': 'Cài đặt',
+            'comments': 'Quản lý Bình luận',
         }
     },
     en: {
@@ -53,27 +64,44 @@ const translations = {
         deleteSuccess: 'Role deleted successfully!',
         deleteError: 'Failed to delete role: {message}',
         fetchError: 'Could not load roles.',
+        groupSystem: 'Overview & System',
+        groupContent: 'Content & Library',
+        groupAi: 'AI & Data',
+        groupUsers: 'Users & Permissions',
+        groupFinance: 'Finance',
         permissionLabels: {
             'dashboard': 'Dashboard',
+            'files': 'Files & Documents',
+            'spaces': 'Space Management',
+            'dharma-talks': 'Dharma Talk Management',
             'ai': 'AI Management',
             'users': 'User Management',
-            'roles': 'Role Management',
+            'roles': 'Permissions',
             'conversations': 'Conversation Management',
             'pricing': 'Pricing Management',
             'user-billing': 'Transactions & Merit Top-up',
-            'manual-billing': 'Manual Top-Up',
+            'space-billing': 'Space Wallet',
+            'manual-billing': 'Transactions & Withdrawals',
             'templates': 'Appearance',
             'finetune': 'Fine-tune Data',
             'settings': 'Settings',
+            'comments': 'Comment Management',
         }
     }
 };
 
-const ALL_PERMISSIONS: (keyof typeof translations['vi']['permissionLabels'])[] = [
-    'dashboard', 'ai', 'users', 'roles', 'conversations', 'pricing', 'user-billing', 'manual-billing', 'templates', 'finetune', 'settings'
+type PermissionKey = keyof typeof translations['vi']['permissionLabels'];
+
+const permissionGroups: { titleKey: keyof Omit<typeof translations['vi'], 'permissionLabels' | 'title' | 'loading' | 'roleList' | 'newRole' | 'noRoleSelected' | 'roleName' | 'permissions' | 'save' | 'saving' | 'delete' | 'confirmDelete' | 'saveSuccess' | 'saveError' | 'deleteSuccess' | 'deleteError' | 'fetchError'>; icon: React.FC<{className?: string}>; permissions: PermissionKey[] }[] = [
+    { titleKey: 'groupSystem', icon: SettingsIcon, permissions: ['dashboard', 'settings', 'templates'] },
+    { titleKey: 'groupContent', icon: BookOpenIcon, permissions: ['files', 'spaces', 'dharma-talks', 'comments'] },
+    { titleKey: 'groupAi', icon: AiIcon, permissions: ['ai', 'conversations', 'finetune'] },
+    { titleKey: 'groupUsers', icon: UsersIcon, permissions: ['users', 'roles'] },
+    { titleKey: 'groupFinance', icon: BillingIcon, permissions: ['pricing', 'user-billing', 'space-billing', 'manual-billing'] },
 ];
 
-const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }) => {
+
+export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }) => {
     const [roles, setRoles] = useState<Role[]>([]);
     const [selectedRole, setSelectedRole] = useState<Partial<Role> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -151,6 +179,18 @@ const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }) => {
             }
         }
     };
+
+    const renderPermissionCheckbox = (permissionKey: PermissionKey) => (
+        <label key={permissionKey} className="flex items-center space-x-3 cursor-pointer">
+            <input
+                type="checkbox"
+                checked={selectedRole?.permissions?.includes(permissionKey) || false}
+                onChange={() => handlePermissionChange(permissionKey)}
+                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+            />
+            <span className="text-sm text-text-main">{t.permissionLabels[permissionKey]}</span>
+        </label>
+    );
     
     return (
         <div className="flex h-full bg-background-light">
@@ -174,35 +214,38 @@ const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }) => {
                 </div>
             </aside>
 
-            <main className="flex-1 overflow-y-auto p-8">
+            <main className="bg-background-panel flex-1 overflow-y-auto p-8">
                  {selectedRole ? (
-                    <div className="space-y-6 max-w-2xl mx-auto">
+                    <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-text-main">{t.roleName}</label>
                             <input
                                 type="text"
                                 value={selectedRole.name || ''}
                                 onChange={e => handleFormChange('name', e.target.value)}
-                                className="mt-1 w-full p-2 border border-border-color rounded-md focus:ring-primary focus:border-primary"
+                                className="mt-1 w-full p-2 border border-border-color rounded-md focus:ring-primary focus:border-primary bg-white"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-text-main mb-2">{t.permissions}</label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 border border-border-color rounded-md bg-white">
-                                {ALL_PERMISSIONS.map(permissionKey => (
-                                    <label key={permissionKey} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedRole.permissions?.includes(permissionKey) || false}
-                                            onChange={() => handlePermissionChange(permissionKey)}
-                                            className="h-4 w-4 text-primary border-border-color rounded focus:ring-primary"
-                                        />
-                                        <span className="text-sm">{t.permissionLabels[permissionKey as keyof typeof t.permissionLabels]}</span>
-                                    </label>
-                                ))}
+                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {permissionGroups.map((group) => {
+                                    const Icon = group.icon;
+                                    return (
+                                        <div key={group.titleKey} className="bg-white border border-border-color rounded-lg p-4 shadow-sm">
+                                            <h3 className="flex items-center gap-2 font-semibold mb-4 text-text-main border-b border-border-color pb-2">
+                                                <Icon className="w-5 h-5 text-gray-500" />
+                                                {t[group.titleKey]}
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {group.permissions.map(p => renderPermissionCheckbox(p))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
-                        <div className="flex justify-end items-center space-x-4 pt-4 border-t">
+                        <div className="flex justify-end items-center space-x-4 pt-4 border-t border-border-color">
                             {selectedRole.id !== 'new' && (
                                 <button onClick={handleDelete} className="px-4 py-2 bg-accent-red text-text-on-primary rounded-md hover:bg-accent-red-hover">{t.delete}</button>
                             )}
@@ -218,4 +261,3 @@ const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }) => {
         </div>
     );
 };
-export default RoleManagement;

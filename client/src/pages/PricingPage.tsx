@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
-import PricingCard from '../components/PricingCard';
-import { PricingPlan, User } from '../types';
+import { PricingCard } from '../components/PricingCard';
+import { PricingPlan, User, AIConfig } from '../types';
 import { apiService } from '../services/apiService';
 import { useToast } from '../components/ToastProvider';
 import { LanguageIcon } from '../components/Icons';
+import { Link } from 'react-router-dom';
 
 const translations = {
     vi: {
-        backToChat: "Về trang Chat",
+        backToApp: "Về không gian thực hành",
         title: "Bảng giá",
         subtitle: "Chọn gói phù hợp với bạn.",
         balance: "Số dư của bạn",
@@ -19,7 +21,7 @@ const translations = {
         languageToggle: "English",
     },
     en: {
-        backToChat: "Back to Chat",
+        backToApp: "Back to Practice Space",
         title: "Pricing",
         subtitle: "Choose the plan that's right for you.",
         balance: "Your balance",
@@ -33,8 +35,9 @@ const translations = {
 }
 
 
-const PricingPage: React.FC = () => {
+export const PricingPage: React.FC = () => {
     const [plans, setPlans] = useState<PricingPlan[]>([]);
+    const [aiConfigs, setAiConfigs] = useState<AIConfig[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -52,10 +55,18 @@ const PricingPage: React.FC = () => {
     }, [language]);
 
     useEffect(() => {
-        const fetchPlans = async () => {
+        const fetchData = async () => {
             try {
-                const fetchedPlans = await apiService.getPricingPlans();
-                setPlans(fetchedPlans.filter(p => p.isActive));
+                const [fetchedPlans, fetchedAis] = await Promise.all([
+                    apiService.getPricingPlans(),
+                    apiService.getAiConfigs(user)
+                ]);
+                const correctedPlans = fetchedPlans.map(plan => ({
+                    ...plan,
+                    aiConfigIds: Array.isArray(plan.aiConfigIds) ? plan.aiConfigIds.map(Number) : [],
+                }));
+                setPlans(correctedPlans.filter(p => p.isActive));
+                setAiConfigs(fetchedAis);
             } catch (err) {
                 setError(t.loadError);
                 console.error(err);
@@ -63,8 +74,8 @@ const PricingPage: React.FC = () => {
                 setIsLoading(false);
             }
         };
-        fetchPlans();
-    }, [t.loadError]);
+        fetchData();
+    }, [t.loadError, user]);
     
     const handleUserUpdate = (updatedUser: User) => {
         setUser(updatedUser);
@@ -94,7 +105,7 @@ const PricingPage: React.FC = () => {
                 </button>
             </div>
             <div className="text-center">
-                <a href="/#/" className="text-primary hover:underline mb-4 inline-block">&larr; {t.backToChat}</a>
+                <Link to="/giac-ngo/chat" className="text-primary hover:underline mb-4 inline-block">&larr; {t.backToApp}</Link>
                 <h1 className="text-4xl font-bold text-text-main mb-4">{t.title}</h1>
                 <p className="text-lg text-text-light">{t.subtitle}</p>
                  {user && (
@@ -115,6 +126,7 @@ const PricingPage: React.FC = () => {
                             onPurchase={handlePurchase}
                             isPurchasing={isPurchasing}
                             language={language}
+                            allAis={aiConfigs}
                         />
                     ))}
                 </div>
@@ -122,5 +134,3 @@ const PricingPage: React.FC = () => {
         </div>
     );
 };
-
-export default PricingPage;

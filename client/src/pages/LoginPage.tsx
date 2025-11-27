@@ -4,7 +4,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useToast } from '../components/ToastProvider';
 import { apiService } from '../services/apiService';
 import { User } from '../types';
-import { GoogleIcon, FacebookIcon } from '../components/Icons';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
+import { GoogleIcon } from '../components/Icons';
 
 
 const translations = {
@@ -41,11 +42,12 @@ interface LoginPageProps {
     language: 'vi' | 'en';
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
   const t = translations[language];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,14 +69,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
     }
   };
 
-  const SocialButton: React.FC<{ icon: React.ReactNode, label: string }> = ({ icon, label }) => (
-    <button className="social-login-btn">
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-
   return (
+    <>
     <div className="login-page-grid">
       <div className="login-form-container">
         <div className="w-full max-w-md">
@@ -105,7 +101,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
                   <label htmlFor="password"  className="block text-sm font-medium text-text-main">
                     {t.passwordLabel}
                   </label>
-                   <Link to="#" className="text-sm text-primary hover:underline">{t.forgotPassword}</Link>
+                   <button type="button" onClick={() => setIsForgotPasswordModalOpen(true)} className="text-sm text-primary hover:underline">{t.forgotPassword}</button>
                 </div>
                 <input
                   id="password"
@@ -132,15 +128,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
           </form>
 
           <div className="login-divider">
-              <span/>
-              <span className="text-xs text-text-light">{t.continueWith}</span>
-              <span/>
+            <span></span>
+            <span>{t.continueWith}</span>
+            <span></span>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-              <SocialButton icon={<GoogleIcon />} label="Google" />
-              <SocialButton icon={<FacebookIcon />} label="Facebook" />
+          <div className="space-y-3">
+            <a href="/api/auth/google" onClick={() => sessionStorage.setItem('redirectPath', from)} className="social-login-btn">
+              <GoogleIcon className="w-5 h-5" />
+              <span>Google</span>
+            </a>
           </div>
+
 
           <p className="mt-8 text-center text-sm text-text-light">
             {t.noAccount} <Link to="/register" className="font-semibold text-primary hover:underline">{t.signUp}</Link>
@@ -155,7 +154,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
         <img src="/themes/giacngo/giac-ngo-login.png" alt="Giác Ngộ AI Logo" className="w-full h-full object-contain" />
       </div>
     </div>
+    <ForgotPasswordModal 
+        isOpen={isForgotPasswordModalOpen}
+        onClose={() => setIsForgotPasswordModalOpen(false)}
+        language={language}
+    />
+    </>
   );
 };
-
-export default LoginPage;

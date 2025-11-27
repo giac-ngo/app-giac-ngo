@@ -1,78 +1,75 @@
 // server/services/fileParserService.js
 import fs from 'fs/promises';
 import path from 'path';
-import mammoth from 'mammoth';
-import xlsx from 'xlsx';
-import pdf from 'pdf-parse';
 import { fileURLToPath } from 'url';
-import { db } from '../db.js';
+import pdf from 'pdf-parse';
+import mammoth from 'mammoth';
+import { trainingDataModel } from '../models/trainingData.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const MAX_FILE_CONTENT_LENGTH = 15000; // Approx 4k tokens
 
 export const fileParserService = {
-    async extractText(fileUrl, fileName) {
+    async extractText(fileUrl, originalFileName) {
+        // fileUrl is relative like /uploads/filename.pdf
         const filePath = path.join(__dirname, '..', fileUrl);
-        const extension = path.extname(fileName).toLowerCase();
-
+        const extension = path.extname(originalFileName).toLowerCase();
+        
         try {
-            if (extension === '.docx') {
-                const result = await mammoth.extractRawText({ path: filePath });
-                return result.value;
-            } else if (extension === '.pdf') {
-                const dataBuffer = await fs.readFile(filePath);
+            const dataBuffer = await fs.readFile(filePath);
+
+            if (extension === '.pdf') {
                 const data = await pdf(dataBuffer);
                 return data.text;
-            } else if (extension === '.xlsx' || extension === '.xls') {
-                const workbook = xlsx.readFile(filePath);
-                let fullText = '';
-                workbook.SheetNames.forEach(sheetName => {
-                    const worksheet = workbook.Sheets[sheetName];
-                    // Use { raw: false } to get formatted text, which is often cleaner
-                    const sheetText = xlsx.utils.sheet_to_txt(worksheet, { raw: false });
-                    fullText += `--- Sheet: ${sheetName} ---\n${sheetText}\n\n`;
-                });
-                return fullText.trim();
-            } else if (['.txt', '.md', '.json', '.csv'].includes(extension)) {
-                return await fs.readFile(filePath, 'utf-8');
-            } else {
-                console.warn(`Unsupported file type for training: ${fileName}. Skipping.`);
-                return null;
+            } else if (extension === '.docx') {
+                const { value } = await mammoth.extractRawText({ buffer: dataBuffer });
+                return value;
+            } else if (extension === '.txt') {
+                return dataBuffer.toString('utf-8');
             }
+            // Note: .doc is not easily supported in Node.js without external dependencies like LibreOffice.
+            // .xlsx can be added here using a library like 'xlsx' if needed.
         } catch (error) {
-            console.error(`Error processing file ${fileName}:`, error);
-            return null;
+            console.error(`Error parsing file ${originalFileName} at ${filePath}:`, error);
+            throw new Error(`Could not parse file: ${originalFileName}`);
         }
+        return '';
     },
 
     async prepareAdditionalTrainingText(aiConfig) {
-        let additionalTrainingText = '';
-        if (typeof aiConfig.id !== 'number') {
-          return '';
+        if (!aiConfig || typeof aiConfig.id !== 'number') {
+            return '';
         }
-    
-        try {
-          const trainingData = await db.getTrainingDataByAiIdForChat(aiConfig.id);
-          for (const source of trainingData) {
-            if (source.type === 'qa' && source.question && source.answer) {
-              additionalTrainingText += `Q: ${source.question}\nA: ${source.answer}\n\n`;
-            } else if (source.type === 'file' && source.fileUrl && source.fileName) {
-              let fileContent = await this.extractText(source.fileUrl, source.fileName);
-              if (fileContent) {
-                if (fileContent.length > MAX_FILE_CONTENT_LENGTH) {
-                  fileContent = fileContent.substring(0, MAX_FILE_CONTENT_LENGTH) + "\n... (content truncated)";
+
+        const dataSources = await trainingDataModel.findByAiIdForChat(aiConfig.id);
+        if (!dataSources || dataSources.length === 0) {
+            return '';
+        }
+        
+        const texts = [];
+        for (const source of dataSources) {
+            try {
+                if (source.type === 'qa' && source.question && source.answer) {
+                    texts.push(`Question: ${source.question}\nAnswer: ${source.answer}`);
+                } else if (source.type === 'file' && source.fileUrl) {
+                    // For uploaded files, prioritize summary. If not available, parse the full content.
+                    const content = source.summary || await this.extractText(source.fileUrl, source.fileName);
+                    if (content) {
+                        texts.push(`--- Content from file: ${source.fileName} ---\n${content}`);
+                    }
+                } else if (source.type === 'document') {
+                     // For linked library documents, prioritize summary, then full content.
+                     // The `answer` field from the getTrainingDataByAiIdForChat query holds the full content.
+                    const content = source.summary || source.answer; 
+                     if (content) {
+                        texts.push(`--- Content from document: ${source.fileName} ---\n${content}`);
+                    }
                 }
-                additionalTrainingText += `--- START OF DOCUMENT: ${source.fileName} ---\n${fileContent}\n--- END OF DOCUMENT ---\n\n`;
-              }
+            } catch (error) {
+                console.error(`Error processing training data source for AI ${aiConfig.id}:`, error);
             }
-          }
-        } catch (error) {
-          console.error("Error preparing training context:", error);
-          // Return empty string on error to not break chat functionality
-          return '';
         }
-    
-        return additionalTrainingText.trim();
-      }
+
+        return texts.join('\n\n---\n\n');
+    }
 };

@@ -51,7 +51,7 @@ const translations = {
     }
 }
 
-const TemplateManagement: React.FC<TemplateManagementProps> = ({ language, systemConfig, onSystemConfigUpdate, user, onUserUpdate }) => {
+export const TemplateManagement: React.FC<TemplateManagementProps> = ({ language, systemConfig, onSystemConfigUpdate, user, onUserUpdate }) => {
     const [localSystemConfig, setLocalSystemConfig] = useState<SystemConfig>(systemConfig);
     const [localUser, setLocalUser] = useState<User>(user);
     const [isSaving, setIsSaving] = useState(false);
@@ -107,15 +107,19 @@ const TemplateManagement: React.FC<TemplateManagementProps> = ({ language, syste
         setIsSaving(true);
         try {
             const systemConfigPromise = apiService.updateSystemConfig(localSystemConfig);
-            // FIX: Send the entire localUser object which contains all current form state.
-            // This ensures a complete and valid user object is sent, matching the behavior
-            // of the Personal Settings page and resolving the server-side validation error.
-            const userPromise = apiService.updateUser(localUser);
+            
+            // Create a specific payload for the user update to prevent overwriting other data.
+            const userPayload: Partial<User> = {
+                id: localUser.id,
+                template: localUser.template,
+            };
+            const userPromise = apiService.updateUser(userPayload);
 
             const [updatedConfig, updatedUser] = await Promise.all([systemConfigPromise, userPromise]);
             
             onSystemConfigUpdate(updatedConfig);
-            onUserUpdate(updatedUser);
+            // The onUserUpdate will merge the partial update with the existing user state.
+            onUserUpdate(updatedUser); 
             showToast(t.saveSuccess);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
@@ -186,5 +190,3 @@ const TemplateManagement: React.FC<TemplateManagementProps> = ({ language, syste
         </div>
     );
 };
-
-export default TemplateManagement;

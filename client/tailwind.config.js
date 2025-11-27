@@ -14,6 +14,7 @@ export default {
         'text-on-primary': 'var(--color-text-on-primary)',
         'accent-red': 'var(--color-accent-red)',
         'accent-red-hover': 'var(--color-accent-red-hover)',
+        'accent-red-light': 'var(--color-accent-red-light)',
         'accent-green': 'var(--color-accent-green)',
         'accent-yellow': 'var(--color-accent-yellow)',
         'text-main': 'var(--color-text-main)',
@@ -28,6 +29,7 @@ export default {
       animation: {
         'fade-in-right': 'fadeInRight 0.5s ease-out forwards',
         'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'spin': 'spin 1s linear infinite',
       },
       keyframes: {
         fadeInRight: {
@@ -38,6 +40,10 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '.5' },
         },
+        spin: {
+          'from': { transform: 'rotate(0deg)' },
+          'to': { transform: 'rotate(360deg)' },
+        }
       }
     },
   },

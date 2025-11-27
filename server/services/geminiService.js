@@ -2,17 +2,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { fileParserService } from './fileParserService.js';
 
+// ==========================
+// Convert conversation to Gemini content format
+// ==========================
 const toGeminiContent = (messages) => {
-    // Start from the first user message to ignore any initial system/AI welcome messages
     const firstUserMessageIndex = messages.findIndex(m => m.sender === 'user');
-    if (firstUserMessageIndex === -1) {
-        return [];
-    }
-    const conversationMessages = messages.slice(firstUserMessageIndex);
+    if (firstUserMessageIndex === -1) return [];
 
-    if (conversationMessages.length === 0) {
-        return [];
-    }
+    const conversationMessages = messages.slice(firstUserMessageIndex);
+    if (conversationMessages.length === 0) return [];
 
     const contents = [];
     let currentRole = null;
@@ -26,77 +24,195 @@ const toGeminiContent = (messages) => {
 
     for (const msg of conversationMessages) {
         const role = msg.sender === 'user' ? 'user' : 'model';
-
-        // If role changes, flush the previous parts and start a new role.
         if (role !== currentRole) {
             flush();
             currentRole = role;
             currentParts = [];
         }
 
-        // Add text part
-        if (msg.text) {
-            currentParts.push({ text: msg.text });
-        }
-        
-        // Add image part for user messages
+        if (msg.text) currentParts.push({ text: msg.text });
+
         if (msg.imageUrl && role === 'user') {
             try {
                 const [meta, base64Data] = msg.imageUrl.split(',');
                 if (meta && base64Data) {
-                    const mimeTypeMatch = meta.match(/:(.*?);/);
-                    if (mimeTypeMatch && mimeTypeMatch[1]) {
+                    const mimeMatch = meta.match(/:(.*?);/);
+                    if (mimeMatch && mimeMatch[1]) {
                         currentParts.push({
                             inlineData: {
-                                mimeType: mimeTypeMatch[1],
+                                mimeType: mimeMatch[1],
                                 data: base64Data
                             }
                         });
                     }
                 }
-            } catch (e) {
-                console.error("Error parsing image data URL:", e);
+            } catch (err) {
+                console.error("Error parsing image data URL:", err);
             }
         }
     }
-    
-    // Push any remaining parts
-    flush();
 
+    flush();
     return contents;
 };
 
-
+// ==========================
+// Gemini Service
+// ==========================
 export const geminiService = {
-    sendMessageStream: async (aiConfig, history, apiKey, callbacks) => {
+    // ---------- TTS Generation ----------
+    generateTts: async (text, apiKey, model, voice) => {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+            model: model, // e.g., "gemini-2.5-flash-preview-tts"
+            contents: [{ parts: [{ text: text }] }],
+            config: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: { voiceName: voice },
+                    },
+                },
+            },
+        });
+        
+        const audioContent = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!audioContent) {
+            throw new Error('No audio content returned from Gemini TTS.');
+        }
+        return audioContent; // It's already base64
+    },
+    
+    // ---------- OCR from Image ----------
+    extractTextFromImage: async (imageBuffer, mimeType, apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        const model = "gemini-2.5-flash"; // Use flash for speed
+
+        const imagePart = {
+            inlineData: {
+                data: imageBuffer.toString("base64"),
+                mimeType,
+            },
+        };
+
+        const prompt = "Extract all text from this image. Preserve the original formatting as much as possible, including line breaks and spacing.";
+
+        const res = await ai.models.generateContent({
+            model,
+            contents: { parts: [imagePart, {text: prompt}] },
+        });
+
+        return res.text;
+    },
+    
+    // ---------- Format Extracted Text ----------
+    formatExtractedText: async (text, apiKey, modelName) => {
+        const ai = new GoogleGenAI({ apiKey });
+        const model = modelName || "gemini-2.5-flash";
+
+        const prompt = `
+Take the following raw text extracted from a document and format it into clean, readable HTML.
+- Use appropriate heading tags (h1, h2, h3).
+- Use paragraphs (<p>) for text blocks.
+- Use lists (<ul>, <ol>, <li>) where appropriate.
+- Preserve bold (**text**) and italic (*text*) formatting by converting them to <b> and <i> tags.
+- Ensure the final output is only the HTML content, without any surrounding markdown fences or extra text.
+
+Raw text:
+---
+${text}
+---
+Formatted HTML:
+`;
+        const res = await ai.models.generateContent({
+            model,
+            contents: prompt,
+        });
+        
+        // Clean up potential markdown code fences just in case
+        return res.text.replace(/```html|```/g, "").trim();
+    },
+
+    // ---------- Summarize ----------
+    summarizeText: async (text, apiKey) => {
+        if (!apiKey) throw new Error("API Key for Gemini must be provided.");
+        if (!text?.trim()) return null;
+
+        const ai = new GoogleGenAI({ apiKey });
+        const model = "gemini-2.5-flash";
+        const prompt = `
+Please summarize the following text concisely and clearly. The summary should be in the same language as the original text.
+Focus on the key ideas, tone, and message.
+Text:
+---
+${text}
+---
+Summary:`;
+
         try {
-            if (!apiKey) {
-                throw new Error("Lỗi cấu hình: API Key cho Gemini chưa được cung cấp.");
-            }
-            
+            const res = await ai.models.generateContent({
+                model,
+                contents: prompt,
+            });
+            return res.text;
+        } catch (err) {
+            console.error("Error during Gemini summarization:", err);
+            return null;
+        }
+    },
+
+    // ---------- Stream Chat ----------
+    sendMessageStream: async (aiConfig, history, apiKey, callbacks, language, retrievedContext = '') => {
+        try {
+            if (!apiKey) throw new Error("Gemini API Key missing.");
+
             const additionalTrainingText = await fileParserService.prepareAdditionalTrainingText(aiConfig);
-            
-            const ai = new GoogleGenAI({ apiKey });
-            
-            const fullTrainingContent = [aiConfig.trainingContent, additionalTrainingText].filter(Boolean).join('\n\n');
-            const systemInstruction = fullTrainingContent || undefined;
+            const languageName = language === 'vi' ? 'Vietnamese' : 'English';
+
+            const thoughtInstruction = `
+**MANDATORY INSTRUCTION: ALWAYS PROVIDE A THOUGHT BLOCK**
+Your answer MUST begin with a <thought> block.
+Inside it, explain your reasoning or internal thinking step-by-step.
+If the user's request is simple, still include something like:
+<thought>The question is simple. I will answer directly.</thought>
+
+After </thought>, write the final answer (formatted in Markdown).
+Do NOT wrap <thought> in code fences (no \`\`\`).
+Respond in ${languageName}.
+`;
+
+            const systemInstruction = [
+                retrievedContext,
+                aiConfig.trainingContent,
+                additionalTrainingText,
+                thoughtInstruction
+            ].filter(Boolean).join('\n\n---\n\n');
+
             const contents = toGeminiContent(history);
-            
             if (contents.length === 0) {
-                 callbacks.onError(new Error("Vui lòng nhập tin nhắn để bắt đầu cuộc trò chuyện."));
-                 return;
+                callbacks.onError(new Error("Please enter a message to start."));
+                return;
             }
 
-            const modelToUse = aiConfig.modelName || "gemini-2.5-flash";
+            const ai = new GoogleGenAI({ apiKey });
+            const model = aiConfig.modelName || "gemini-2.5-flash";
+            
+            const geminiConfig = { systemInstruction };
+
+            // Use values from aiConfig if they are valid numbers, otherwise use service-level defaults.
+            const maxTokens = typeof aiConfig.maxOutputTokens === 'number' ? aiConfig.maxOutputTokens : 8000;
+            const budget = typeof aiConfig.thinkingBudget === 'number' ? aiConfig.thinkingBudget : 2000;
+
+            geminiConfig.maxOutputTokens = maxTokens;
+            geminiConfig.thinkingConfig = { thinkingBudget: budget };
+
 
             const result = await ai.models.generateContentStream({
-                model: modelToUse,
-                contents: contents,
-                config: {
-                    systemInstruction: systemInstruction,
-                },
+                model,
+                contents,
+                config: geminiConfig
             });
-            
+
             let fullResponseText = '';
             for await (const chunk of result) {
                 const chunkText = chunk.text;
@@ -105,71 +221,82 @@ export const geminiService = {
                     callbacks.onChunk(chunkText);
                 }
             }
-            
-            callbacks.onEnd(fullResponseText);
 
-        } catch (error) {
-            console.error("Error calling Gemini Stream API:", error);
-            callbacks.onError(error);
+            // ======== FIX SECTION ========
+            fullResponseText = fullResponseText.replace(/```/g, '').trim();
+            if (fullResponseText.includes('<thought>') && !fullResponseText.includes('</thought>')) {
+                fullResponseText += '</thought>';
+            }
+
+            const match = fullResponseText.match(/<thought>([\s\S]*?)<\/thought>/i);
+            let thought = null;
+            let finalAnswer = fullResponseText;
+
+            if (match && match[1]) {
+                thought = match[1].trim();
+                finalAnswer = fullResponseText.replace(/<thought>[\s\S]*?<\/thought>/i, '').trim();
+            } else {
+                console.warn("⚠️ Gemini skipped <thought>. Full output:\n", fullResponseText);
+                thought = fullResponseText.slice(0, 200) + (fullResponseText.length > 200 ? '…' : '');
+            }
+
+            console.log("✅ Final thought (Gemini):", thought);
+            callbacks.onEnd({ text: finalAnswer, thought });
+
+        } catch (err) {
+            console.error("Error calling Gemini Stream API:", err);
+            callbacks.onError(err);
         }
     },
     
-    translateMessages: async (messages, targetLanguage, apiKey) => {
+    // ---------- Translate (single text) ----------
+    translateText: async (text, targetLanguage, apiKey, modelName, contextPrompt) => {
+        const messages = [{ text }];
+        const translatedMessages = await geminiService.translateMessages(messages, targetLanguage, apiKey, modelName, contextPrompt);
+        return translatedMessages[0].text;
+    },
+
+    // ---------- Translate (batch) ----------
+    translateMessages: async (messages, targetLanguage, apiKey, modelName, contextPrompt) => {
         const ai = new GoogleGenAI({ apiKey });
         const languageName = targetLanguage === 'en' ? 'English' : 'Vietnamese';
+        const texts = messages.map(m => m.text || '');
+        if (texts.every(t => !t.trim())) return messages;
 
-        const originalTexts = messages.map(m => m.text || '');
-        if (originalTexts.every(t => !t.trim())) {
-            return messages;
-        }
+        const data = { texts };
+        const prompt = `
+${contextPrompt ? `**CONTEXT FOR TRANSLATION STYLE:**\n${contextPrompt}\n\n` : ''}Translate each string in 'texts' into ${languageName}.
+Return valid JSON: {"translatedTexts": ["..."]}, same order as input.
+Input:
+${JSON.stringify(data)}
+`;
 
-        const dataToTranslate = { texts: originalTexts };
-
-        const prompt = `Translate each string in the 'texts' array into ${languageName}.
-        Return a valid JSON object with a single key "translatedTexts" which is an array of strings.
-        This array MUST have the exact same number of elements as the input 'texts' array.
-        If a string in the input is empty or just whitespace, the corresponding string in the output should also be empty.
-
-        Input JSON:
-        ${JSON.stringify(dataToTranslate)}
-        `;
-
-        const responseSchema = {
+        const schema = {
             type: Type.OBJECT,
             properties: {
-                translatedTexts: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                }
+                translatedTexts: { type: Type.ARRAY, items: { type: Type.STRING } }
             },
             required: ['translatedTexts']
         };
 
         try {
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+            const res = await ai.models.generateContent({
+                model: modelName || 'gemini-2.5-flash',
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
-                    responseSchema: responseSchema
+                    responseSchema: schema
                 }
             });
-
-            const result = JSON.parse(response.text);
-            const translatedTexts = result.translatedTexts;
-
-            if (translatedTexts.length !== messages.length) {
-                throw new Error("Translation returned a different number of messages.");
+            const parsed = JSON.parse(res.text);
+            const translated = parsed.translatedTexts;
+            if (translated.length !== messages.length) {
+                throw new Error("Mismatch in number of translated messages.");
             }
-            
-            return messages.map((msg, index) => ({
-                ...msg,
-                text: translatedTexts[index]
-            }));
-
-        } catch (error) {
-            console.error("Error calling Gemini for message translation:", error);
-            throw new Error("Failed to get message translation from Gemini.");
+            return messages.map((m, i) => ({ ...m, text: translated[i] }));
+        } catch (err) {
+            console.error("Gemini translation error:", err);
+            throw new Error("Failed to translate with Gemini.");
         }
-    },
+    }
 };

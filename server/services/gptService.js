@@ -2,28 +2,46 @@
 import fetch from 'node-fetch';
 import { fileParserService } from './fileParserService.js';
 
+// ==========================
+// Convert message history for GPT
+// ==========================
 const toGptMessages = (messages, systemPrompt) => {
     const gptMessages = [{ role: "system", content: systemPrompt }];
     messages.forEach(msg => {
-        gptMessages.push({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text
-        });
+        const role = msg.sender === 'user' ? 'user' : 'assistant';
+        if (role === 'assistant') {
+            if (msg.text) gptMessages.push({ role: 'assistant', content: msg.text });
+            return;
+        }
+        const contentParts = [];
+        if (msg.text) contentParts.push({ type: 'text', text: msg.text });
+        if (msg.imageUrl) {
+            contentParts.push({
+                type: 'image_url',
+                image_url: { url: msg.imageUrl }
+            });
+        }
+        if (contentParts.length > 0) {
+            if (contentParts.length === 1 && contentParts[0].type === 'text') {
+                gptMessages.push({ role: 'user', content: contentParts[0].text });
+            } else {
+                gptMessages.push({ role: 'user', content: contentParts });
+            }
+        }
     });
     return gptMessages;
 };
 
-const callOpenAI = async (messages, apiKey, model, stream, response_format) => {
-     const body = {
-        model: model,
-        messages: messages,
-        stream: stream,
-    };
+// ==========================
+// Call OpenAI API
+// ==========================
+const callOpenAI = async (messages, apiKey, model, stream, response_format, max_tokens) => {
+    const body = { model, messages, stream };
+    if (response_format) body.response_format = response_format;
 
-    if (response_format) {
-        body.response_format = response_format;
-    }
-    
+    // Use provided max_tokens, or default to 4096.
+    body.max_tokens = typeof max_tokens === 'number' ? max_tokens : 4096;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -34,47 +52,90 @@ const callOpenAI = async (messages, apiKey, model, stream, response_format) => {
     });
 
     if (!response.ok) {
-        const errorBody = await response.json();
-        console.error("OpenAI API Error:", errorBody);
-        throw new Error(errorBody.error.message || `OpenAI API request failed with status ${response.status}`);
+        let err;
+        try { err = await response.json(); } catch { err = {}; }
+        console.error("OpenAI API Error:", err);
+        throw new Error(err.error?.message || `OpenAI request failed: ${response.statusText}`);
     }
-    
+
     return response;
 };
 
-
+// ==========================
+// GPT Service
+// ==========================
 export const gptService = {
-    sendMessageStream: async (aiConfig, history, apiKey, callbacks) => {
-        
+
+    // ---------- TTS Generation ----------
+    generateTts: async (text, apiKey, model, voice) => {
+        const response = await fetch('https://api.openai.com/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: model, // e.g., 'tts-1'
+                input: text,
+                voice: voice, // e.g., 'alloy'
+            }),
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || 'GPT TTS request failed');
+        }
+        const buffer = await response.arrayBuffer();
+        return Buffer.from(buffer).toString('base64');
+    },
+
+    // STREAM VERSION (main)
+    sendMessageStream: async (aiConfig, history, apiKey, callbacks, language, retrievedContext = '') => {
         const additionalTrainingText = await fileParserService.prepareAdditionalTrainingText(aiConfig);
-        const systemPrompt = [aiConfig.trainingContent, additionalTrainingText].filter(Boolean).join('\n\n') || "";
+        const languageName = language === 'vi' ? 'Vietnamese' : 'English';
+
+        const thoughtInstruction = `
+**FINAL MANDATORY INSTRUCTION**
+
+Your response MUST always begin with a <thought> block.  
+Inside it, explain your reasoning, analysis, or internal monologue step by step.  
+If the user's request is simple, still include a short thought like:  
+<thought>The question is simple. I will answer directly.</thought>  
+
+Then after </thought>, continue with your final answer, **formatted in Markdown**. This includes using line breaks for lists (e.g., "1. ... \\n2. ..."), bolding, etc.  
+
+Never skip or hide the <thought> block.  
+Never wrap it in markdown or code fences (\`\`\`).  
+Respond only in ${languageName}.
+`;
+
+        const systemPrompt = [
+            retrievedContext,
+            aiConfig.trainingContent,
+            additionalTrainingText,
+            thoughtInstruction
+        ].filter(Boolean).join('\n\n---\n\n');
+
         const messages = toGptMessages(history, systemPrompt);
         const model = aiConfig.modelName || 'gpt-4o';
-        
-        try {
-            const response = await callOpenAI(messages, apiKey, model, true);
+        const maxTokens = aiConfig.maxOutputTokens;
 
-            if (!response.body) {
-                throw new Error('No response body received from OpenAI API.');
-            }
+        try {
+            const response = await callOpenAI(messages, apiKey, model, true, undefined, maxTokens);
+            if (!response.body) throw new Error('No response body from OpenAI.');
 
             let fullResponseText = '';
             let buffer = '';
+            const decoder = new TextDecoder();
 
             for await (const chunk of response.body) {
-                buffer += chunk.toString('utf8');
-                
+                buffer += decoder.decode(chunk, { stream: true });
                 let eolIndex;
-                // Process all full lines in the buffer
                 while ((eolIndex = buffer.indexOf('\n')) >= 0) {
                     const line = buffer.slice(0, eolIndex).trim();
                     buffer = buffer.slice(eolIndex + 1);
-
                     if (line.startsWith('data: ')) {
                         const data = line.substring(6);
-                        if (data === '[DONE]') {
-                            continue;
-                        }
+                        if (data === '[DONE]') break;
                         try {
                             const parsed = JSON.parse(data);
                             const content = parsed.choices[0]?.delta?.content || '';
@@ -82,78 +143,158 @@ export const gptService = {
                                 fullResponseText += content;
                                 callbacks.onChunk(content);
                             }
-                        } catch (error) {
-                            console.error("Failed to parse OpenAI stream chunk:", data, error);
+                        } catch (e) {
+                            console.error("Parse chunk error:", e);
                         }
                     }
                 }
             }
-            
-            callbacks.onEnd(fullResponseText);
 
-        } catch (error) {
-            console.error("Error in GPT Stream service:", error);
-            callbacks.onError(error);
+            // ========== FIX SECTION ==========
+            fullResponseText = fullResponseText.replace(/```/g, '').trim();
+
+            // Auto-close if tag not closed
+            if (fullResponseText.includes('<thought>') && !fullResponseText.includes('</thought>')) {
+                fullResponseText += '</thought>';
+            }
+
+            // Extract thought block
+            const match = fullResponseText.match(/<thought>([\s\S]*?)<\/thought>/i);
+            let thought = null;
+            let finalAnswer = fullResponseText;
+
+            if (match && match[1]) {
+                thought = match[1].trim();
+                finalAnswer = fullResponseText.replace(/<thought>[\s\S]*?<\/thought>/i, '').trim();
+            } else {
+                console.warn("⚠️ Model skipped <thought> block. Full output:\n", fullResponseText);
+                // fallback: first 200 chars as pseudo-thought
+                thought = fullResponseText.slice(0, 200) + (fullResponseText.length > 200 ? '…' : '');
+            }
+
+            console.log("✅ Final thought received on server:", thought);
+            callbacks.onEnd({ text: finalAnswer, thought });
+
+        } catch (err) {
+            console.error("Error in GPT Stream service:", err);
+            callbacks.onError(err);
+        }
+    },
+
+    // Summarize
+    summarizeText: async (text, apiKey) => {
+        if (!apiKey) throw new Error("Missing API Key for GPT summarization.");
+        if (!text?.trim()) return null;
+
+        const systemPrompt = `
+You are an expert summarizer.
+Summarize the provided text clearly and concisely.
+Keep it in the same language as the original text.
+`;
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Please summarize the following text:\n\n---\n${text}\n---` }
+        ];
+
+        try {
+            const response = await callOpenAI(messages, apiKey, 'gpt-4o', false, undefined, 1024);
+            const json = await response.json();
+            const summary = json.choices[0]?.message?.content?.trim();
+            return summary || null;
+        } catch (err) {
+            console.error("Summarization error:", err);
+            return null;
         }
     },
     
-    translateConfig: async (aiConfig, targetLanguage, apiKey) => {
-        const languageName = targetLanguage === 'en' ? 'English' : 'Vietnamese';
-        const dataToTranslate = {
-            name: aiConfig.name,
-            description: aiConfig.description,
-            suggestedQuestions: aiConfig.suggestedQuestions,
-        };
-
-        const systemPrompt = `You are a translation assistant. Your task is to translate the provided JSON object into ${languageName}.
-        The JSON object has three fields: "name", "description", and "suggestedQuestions" (an array of strings).
-        You must translate the text content of all fields.
-        Your response MUST be a valid JSON object with the exact same structure. Do not add any other text, explanations, or markdown formatting.`;
-
-        const userPrompt = JSON.stringify(dataToTranslate);
-
+    // Format Extracted Text
+    formatExtractedText: async (text, apiKey, modelName) => {
+        const model = modelName || 'gpt-4o';
+        const systemPrompt = `You are an expert text formatter. Take the following raw text and format it into clean, readable HTML. 
+- Use appropriate tags like <h1>, <h2>, <p>, <ul>, <ol>, <li>, <b>, <i>. 
+- Convert markdown-like syntax (e.g., **bold**, *italic*) to their HTML equivalents.
+- Ensure the final output is ONLY the HTML content, without any surrounding markdown fences (\`\`\`html) or explanatory text.`;
+        
         const messages = [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
+            { role: 'user', content: `Please format this raw text into HTML:\n\n---\n${text}\n---` }
         ];
 
-        const model = 'gpt-4o'; 
-
         try {
-            const response = await callOpenAI(messages, apiKey, model, false, { type: "json_object" });
-            const jsonResponse = await response.json();
-            const translatedText = jsonResponse.choices[0]?.message?.content;
-            
-            if (!translatedText) {
-                throw new Error('No translated content returned from OpenAI.');
-            }
-            
-            return JSON.parse(translatedText);
-        } catch (e) {
-            console.error('Failed to parse translated JSON from GPT:', e.message);
-            throw new Error('Could not parse translation response from AI.');
+            const response = await callOpenAI(messages, apiKey, model, false, undefined, 4096);
+            const json = await response.json();
+            const formattedHtml = json.choices[0]?.message?.content?.trim();
+            // Clean up potential markdown code fences just in case
+            return formattedHtml?.replace(/```html|```/g, "").trim() || '';
+        } catch (err) {
+            console.error("GPT formatting error:", err);
+            // Return a formatted error to be displayed in the editor
+            return `<p><strong>Error formatting text:</strong> ${err.message}</p>`;
         }
     },
 
+    // Translate Text (single)
+    translateText: async (text, targetLanguage, apiKey, modelName, contextPrompt) => {
+        const messages = [{ text }];
+        const translatedMessages = await gptService.translateMessages(messages, targetLanguage, apiKey, modelName, contextPrompt);
+        return translatedMessages[0].text;
+    },
+
+    // Translate Messages (batch)
+    translateMessages: async (messages, targetLanguage, apiKey, modelName, contextPrompt) => {
+        const model = modelName || 'gpt-4o';
+        const languageName = targetLanguage === 'en' ? 'English' : 'Vietnamese';
+        const texts = messages.map(m => m.text || '');
+        if (texts.every(t => !t.trim())) return messages;
+
+        const prompt = `
+Translate each string in the provided JSON array into ${languageName}.
+Return a valid JSON object with a single key "translatedTexts" which is an array of the translated strings, in the exact same order as the input.
+Example Input: {"texts": ["hello world", "how are you?"]}
+Example Output for Vietnamese: {"translatedTexts": ["xin chào thế giới", "bạn khoẻ không?"]}
+
+Input:
+${JSON.stringify({ texts })}
+`;
+        const systemPrompt = `You are a helpful translation assistant. You always respond with only valid JSON. ${contextPrompt || ''}`;
+        const requestMessages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+        ];
+
+        try {
+            const response = await callOpenAI(requestMessages, apiKey, model, false, { "type": "json_object" }, 4096);
+            const json = await response.json();
+            const content = json.choices[0]?.message?.content;
+            if (!content) throw new Error("No content in translation response");
+
+            const parsed = JSON.parse(content);
+            const translated = parsed.translatedTexts;
+
+            if (!Array.isArray(translated) || translated.length !== messages.length) {
+                throw new Error("Mismatch in number of translated messages or invalid format.");
+            }
+            return messages.map((m, i) => ({ ...m, text: translated[i] }));
+        } catch (error) {
+            console.error('GPT Translation Error:', error);
+            throw new Error("Failed to translate with GPT.");
+        }
+    },
+
+    // List models
     listModels: async (apiKey) => {
         try {
-            const response = await fetch('https://api.openai.com/v1/models', {
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                }
+            const res = await fetch('https://api.openai.com/v1/models', {
+                headers: { 'Authorization': `Bearer ${apiKey}` }
             });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error.message);
-            }
-            const json = await response.json();
-            return json.data
-                .filter(model => model.id.includes('gpt'))
-                .map(model => model.id);
-
-        } catch (error) {
-            console.error("Error listing OpenAI models:", error);
-            throw error;
+            if (!res.ok) throw new Error('Failed to list models');
+            const data = await res.json();
+            return data.data
+                .filter(m => m.id.includes('gpt'))
+                .map(m => m.id);
+        } catch (e) {
+            console.error("Error listing models:", e);
+            throw e;
         }
     }
 };

@@ -1,10 +1,11 @@
+
 // client/src/pages/RegisterPage.tsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../components/ToastProvider';
 import { apiService } from '../services/apiService';
 import { User } from '../types';
-import { GoogleIcon, FacebookIcon } from '../components/Icons';
+import { GoogleIcon } from '../components/Icons';
 
 const translations = {
     vi: {
@@ -52,7 +53,7 @@ interface RegisterPageProps {
     language: 'vi' | 'en';
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language }) => {
+export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language }) => {
     const t = translations[language];
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -73,7 +74,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language }) => 
         try {
             const userData = await apiService.register({ name, email, password });
             onRegister(userData);
-            navigate('/', { replace: true });
+            navigate('/giac-ngo/chat', { replace: true });
         } catch (err) {
             showToast((err as Error).message, 'error');
         } finally {
@@ -81,14 +82,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language }) => 
         }
     };
     
-    const SocialButton: React.FC<{ icon: React.ReactNode, label: string }> = ({ icon, label }) => (
-      <button className="social-login-btn">
-        {icon}
-        <span>{label}</span>
-      </button>
-    );
-
-
     return (
         <div className="login-page-grid">
             <div className="login-form-container">
@@ -159,16 +152,18 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language }) => 
                             </button>
                         </div>
                     </form>
-
-                    <div className="login-divider">
-                        <span/>
-                        <span className="text-xs text-text-light">{t.continueWith}</span>
-                        <span/>
-                    </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                        <SocialButton icon={<GoogleIcon />} label="Google" />
-                        <SocialButton icon={<FacebookIcon />} label="Facebook" />
+                    <div className="login-divider">
+                        <span></span>
+                        <span>{t.continueWith}</span>
+                        <span></span>
+                    </div>
+
+                    <div className="space-y-3">
+                        <a href="/api/auth/google" onClick={() => sessionStorage.setItem('redirectPath', '/giac-ngo/chat')} className="social-login-btn">
+                            <GoogleIcon className="w-5 h-5" />
+                            <span>Google</span>
+                        </a>
                     </div>
 
                     <p className="mt-8 text-center text-sm text-text-light">
@@ -186,5 +181,3 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language }) => 
         </div>
     );
 };
-
-export default RegisterPage;

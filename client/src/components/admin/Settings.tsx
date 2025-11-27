@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { SystemConfig, User } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
+import { EyeIcon, EyeOffIcon } from '../Icons';
 
 const translations = {
     vi: {
@@ -77,21 +78,22 @@ interface SettingsProps {
     onUserUpdate: (updatedData: Partial<User>) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSystemConfigUpdate, onUserUpdate }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSystemConfigUpdate, onUserUpdate }) => {
     const t = translations[language];
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState<'system' | 'personal'>(user.isAdmin ? 'system' : 'personal');
+    const canSeeSystemSettings = user.permissions?.includes('roles');
+    const [activeTab, setActiveTab] = useState<'system' | 'personal'>(canSeeSystemSettings ? 'system' : 'personal');
     
-    // System Config State
     const [localSystemConfig, setLocalSystemConfig] = useState<SystemConfig>(systemConfig);
     const [isSavingSystem, setIsSavingSystem] = useState(false);
 
-    // Personal User State
     const [localUser, setLocalUser] = useState<User>(user);
     const [isSavingPersonal, setIsSavingPersonal] = useState(false);
     const [showToken, setShowToken] = useState(false);
+    
+    const [showSystemKeys, setShowSystemKeys] = useState({ gemini: false, gpt: false, grok: false });
+    const [showPersonalKeys, setShowPersonalKeys] = useState({ gemini: false, gpt: false, grok: false });
 
-    // Sync props -> local state when parent updates props
     useEffect(() => {
         setLocalSystemConfig(systemConfig);
     }, [systemConfig]);
@@ -111,8 +113,11 @@ const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSys
         }));
     };
     
-    const handleLocalUserChange = (keyName: keyof User, value: any) => {
-        setLocalUser(prev => ({ ...prev, [keyName]: value }));
+    const handlePersonalApiKeyChange = (keyName: 'gemini' | 'gpt' | 'grok', value: string) => {
+        setLocalUser(prev => ({
+            ...prev,
+            apiKeys: { ...(prev.apiKeys || {}), [keyName]: value }
+        }));
     };
 
     const handleSaveSystem = async () => {
@@ -131,7 +136,11 @@ const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSys
     const handleSavePersonal = async () => {
         setIsSavingPersonal(true);
         try {
-            const updatedUser = await apiService.updateUser(localUser);
+            const payload: Partial<User> = {
+                id: localUser.id,
+                apiKeys: localUser.apiKeys || {},
+            };
+            const updatedUser = await apiService.updateUser(payload);
             onUserUpdate(updatedUser);
             showToast(t.saveSuccess, 'success');
         } catch (error: any) {
@@ -192,33 +201,63 @@ const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSys
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="geminiKey" className="block text-sm font-medium text-text-main">{t.geminiKey}</label>
-                        <input
-                            type="password"
-                            id="geminiKey"
-                            value={localSystemConfig.systemKeys?.gemini || ''}
-                            onChange={e => handleSystemKeyChange('gemini', e.target.value)}
-                            className="mt-1 w-full p-2 border border-border-color rounded-md"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type={showSystemKeys.gemini ? 'text' : 'password'}
+                                id="geminiKey"
+                                value={localSystemConfig.systemKeys?.gemini || ''}
+                                onChange={e => handleSystemKeyChange('gemini', e.target.value)}
+                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowSystemKeys(prev => ({...prev, gemini: !prev.gemini}))} 
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                                title={showSystemKeys.gemini ? t.hide : t.show}
+                            >
+                                {showSystemKeys.gemini ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="gptKey" className="block text-sm font-medium text-text-main">{t.gptKey}</label>
-                        <input
-                            type="password"
-                            id="gptKey"
-                            value={localSystemConfig.systemKeys?.gpt || ''}
-                            onChange={e => handleSystemKeyChange('gpt', e.target.value)}
-                            className="mt-1 w-full p-2 border border-border-color rounded-md"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type={showSystemKeys.gpt ? 'text' : 'password'}
+                                id="gptKey"
+                                value={localSystemConfig.systemKeys?.gpt || ''}
+                                onChange={e => handleSystemKeyChange('gpt', e.target.value)}
+                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                            />
+                             <button 
+                                type="button"
+                                onClick={() => setShowSystemKeys(prev => ({...prev, gpt: !prev.gpt}))} 
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                                title={showSystemKeys.gpt ? t.hide : t.show}
+                            >
+                                {showSystemKeys.gpt ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="grokKey" className="block text-sm font-medium text-text-main">{t.grokKey}</label>
-                        <input
-                            type="password"
-                            id="grokKey"
-                            value={localSystemConfig.systemKeys?.grok || ''}
-                            onChange={e => handleSystemKeyChange('grok', e.target.value)}
-                            className="mt-1 w-full p-2 border border-border-color rounded-md"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type={showSystemKeys.grok ? 'text' : 'password'}
+                                id="grokKey"
+                                value={localSystemConfig.systemKeys?.grok || ''}
+                                onChange={e => handleSystemKeyChange('grok', e.target.value)}
+                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowSystemKeys(prev => ({...prev, grok: !prev.grok}))} 
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                                title={showSystemKeys.grok ? t.hide : t.show}
+                            >
+                                {showSystemKeys.grok ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -234,13 +273,22 @@ const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSys
                 <h2 className="text-xl font-semibold mb-1">{t.personalAccessToken}</h2>
                 <p className="text-sm text-text-light mb-4">{t.personalAccessTokenDesc}</p>
                  <div className="flex items-center space-x-2">
-                    <input
-                        type={showToken ? 'text' : 'password'}
-                        readOnly
-                        value={localUser.apiToken || 'No token generated'}
-                        className="flex-grow p-2 border border-border-color rounded-md bg-background-light"
-                    />
-                    <button onClick={() => setShowToken(!showToken)} className="px-3 py-2 text-sm border rounded-md">{showToken ? t.hide : t.show}</button>
+                    <div className="relative flex-grow">
+                        <input
+                            type={showToken ? 'text' : 'password'}
+                            readOnly
+                            value={localUser.apiToken || 'No token generated'}
+                            className="w-full p-2 border border-border-color rounded-md bg-background-light pr-10"
+                        />
+                         <button 
+                            type="button"
+                            onClick={() => setShowToken(!showToken)} 
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                            title={showToken ? t.hide : t.show}
+                        >
+                            {showToken ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                        </button>
+                    </div>
                     <button onClick={() => handleCopy(localUser.apiToken || '')} className="px-3 py-2 text-sm border rounded-md">{t.copy}</button>
                 </div>
                  <button onClick={handleRegenerateToken} className="mt-3 text-sm text-primary hover:underline" disabled={isSavingPersonal}>{t.regenerateToken}</button>
@@ -252,33 +300,63 @@ const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSys
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="p-geminiKey" className="block text-sm font-medium text-text-main">{t.geminiKey}</label>
-                        <input
-                            type="password"
-                            id="p-geminiKey"
-                            value={localUser.apiKeys?.gemini || ''}
-                            onChange={e => handleLocalUserChange('apiKeys', { ...localUser.apiKeys, gemini: e.target.value })}
-                            className="mt-1 w-full p-2 border border-border-color rounded-md"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type={showPersonalKeys.gemini ? 'text' : 'password'}
+                                id="p-geminiKey"
+                                value={localUser.apiKeys?.gemini || ''}
+                                onChange={e => handlePersonalApiKeyChange('gemini', e.target.value)}
+                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPersonalKeys(prev => ({...prev, gemini: !prev.gemini}))} 
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                                title={showPersonalKeys.gemini ? t.hide : t.show}
+                            >
+                                {showPersonalKeys.gemini ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="p-gptKey" className="block text-sm font-medium text-text-main">{t.gptKey}</label>
-                        <input
-                            type="password"
-                            id="p-gptKey"
-                            value={localUser.apiKeys?.gpt || ''}
-                            onChange={e => handleLocalUserChange('apiKeys', { ...localUser.apiKeys, gpt: e.target.value })}
-                            className="mt-1 w-full p-2 border border-border-color rounded-md"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type={showPersonalKeys.gpt ? 'text' : 'password'}
+                                id="p-gptKey"
+                                value={localUser.apiKeys?.gpt || ''}
+                                onChange={e => handlePersonalApiKeyChange('gpt', e.target.value)}
+                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPersonalKeys(prev => ({...prev, gpt: !prev.gpt}))} 
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                                title={showPersonalKeys.gpt ? t.hide : t.show}
+                            >
+                                {showPersonalKeys.gpt ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="p-grokKey" className="block text-sm font-medium text-text-main">{t.grokKey}</label>
-                        <input
-                            type="password"
-                            id="p-grokKey"
-                            value={localUser.apiKeys?.grok || ''}
-                            onChange={e => handleLocalUserChange('apiKeys', { ...localUser.apiKeys, grok: e.target.value })}
-                            className="mt-1 w-full p-2 border border-border-color rounded-md"
-                        />
+                        <div className="relative mt-1">
+                            <input
+                                type={showPersonalKeys.grok ? 'text' : 'password'}
+                                id="p-grokKey"
+                                value={localUser.apiKeys?.grok || ''}
+                                onChange={e => handlePersonalApiKeyChange('grok', e.target.value)}
+                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPersonalKeys(prev => ({...prev, grok: !prev.grok}))} 
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
+                                title={showPersonalKeys.grok ? t.hide : t.show}
+                            >
+                                {showPersonalKeys.grok ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -294,18 +372,15 @@ const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSys
             <div className="bg-background-panel shadow-md rounded-lg p-6 max-w-3xl">
                  <div className="border-b border-border-color mb-6">
                     <nav className="-mb-px flex space-x-6">
-                        {user.isAdmin && (
+                        {canSeeSystemSettings && (
                             <button onClick={() => setActiveTab('system')} className={`py-3 px-1 font-medium border-b-2 ${activeTab === 'system' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.systemSettingsTab}</button>
                         )}
                         <button onClick={() => setActiveTab('personal')} className={`py-3 px-1 font-medium border-b-2 ${activeTab === 'personal' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.personalKeysTab}</button>
                     </nav>
                 </div>
 
-                {activeTab === 'system' && user.isAdmin ? renderSystemSettings() : renderPersonalSettings()}
+                {activeTab === 'system' && canSeeSystemSettings ? renderSystemSettings() : renderPersonalSettings()}
             </div>
         </div>
     );
 };
-
-export default Settings;
-// ...existing code...

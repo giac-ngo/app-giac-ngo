@@ -1,16 +1,35 @@
 
-
-
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import { ChatPage } from './pages/ChatPage';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { PracticeSpacePage } from './pages/PracticeSpacePage';
 import AdminPage from './pages/AdminPage';
-import PricingPage from './pages/PricingPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { HomePage } from './pages/HomePage';
+import { SpaceDetailPage } from './pages/SpaceDetailPage';
+import DocumentDetailPage from './pages/DocumentDetailPage';
 import { User, SystemConfig } from './types';
 import { apiService } from './services/apiService';
 import { ToastProvider } from './components/ToastProvider';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import CareerPage from './pages/CareerPage';
+import { DonationPage } from './pages/DonationPage';
+import { DocsLayout } from './layouts/DocsLayout';
+import Manifesto from './pages/docs/Manifesto';
+import MandalaMerit from './pages/docs/MandalaMerit';
+import MeritTokenomics from './pages/docs/MeritTokenomics';
+import PathOfUnraveling from './pages/docs/PathOfUnraveling';
+import TechStack from './pages/docs/TechStack';
+import Overview from './pages/docs/Overview';
+import AgentModels from './pages/docs/AgentModels';
+import QuickStart from './pages/docs/QuickStart';
+import TokenPricing from './pages/docs/TokenPricing';
+
 
 const ProtectedRoute: React.FC<{ user: User | null; children: React.ReactNode }> = ({ user, children }) => {
   const location = useLocation();
@@ -37,60 +56,33 @@ const App: React.FC = () => {
   const [systemConfig, setSystemConfig] = useState<SystemConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    // Global fix for hash-based routing
+    if (location.hash.startsWith('#/')) {
+      const path = location.hash.substring(1); // remove the '#'
+      navigate(path, { replace: true });
+    }
+  }, [location, navigate]);
+
 
   useEffect(() => {
     localStorage.setItem('language', language);
   }, [language]);
   
   useEffect(() => {
-    // Prioritize user's template setting, then system default, finally fallback to 'w5g'
-    const themeToApply = user?.template || systemConfig?.template || 'w5g';
+    if (!systemConfig) return;
+    const themeToApply = user?.template || systemConfig.template || 'w5g';
     document.documentElement.setAttribute('data-theme', themeToApply);
-
-    // --- Dynamically load the PUBLIC theme CSS ---
-    const themeUrl = `/themes/${themeToApply}/theme.css`;
-    let themeLink = document.getElementById('theme-stylesheet') as HTMLLinkElement;
-    if (!themeLink) {
-        themeLink = document.createElement('link');
-        themeLink.id = 'theme-stylesheet';
-        themeLink.rel = 'stylesheet';
-        document.head.appendChild(themeLink);
-    }
-    const fullThemeUrl = new URL(themeUrl, window.location.origin).href;
-    if (themeLink.href !== fullThemeUrl) {
-      themeLink.href = themeUrl;
-    }
     
-    // --- Dynamically load the ADMIN theme CSS ---
-    const isAdminRoute = location.pathname.startsWith('/admin');
-    const adminThemeUrl = `/themes/${themeToApply}/admin.css`;
-    let adminThemeLink = document.getElementById('admin-theme-stylesheet') as HTMLLinkElement;
-
-    if (isAdminRoute) {
-        if (!adminThemeLink) {
-            adminThemeLink = document.createElement('link');
-            adminThemeLink.id = 'admin-theme-stylesheet';
-            adminThemeLink.rel = 'stylesheet';
-            document.head.appendChild(adminThemeLink);
-        }
-        const fullAdminUrl = new URL(adminThemeUrl, window.location.origin).href;
-        if (adminThemeLink.href !== fullAdminUrl) {
-            adminThemeLink.href = adminThemeUrl;
-        }
-    } else {
-        if (adminThemeLink) {
-            adminThemeLink.remove();
-        }
-    }
-    
-    // --- Dynamically update the favicon ---
     const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (favicon && systemConfig) {
         favicon.href = systemConfig.templateSettings[themeToApply].logoUrl;
     }
 
-  }, [user, systemConfig, location.pathname]);
+  }, [user, systemConfig]);
 
   useEffect(() => {
     apiService.getSystemConfig()
@@ -116,10 +108,7 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     sessionStorage.removeItem('user');
-  };
-
-  const handleGoToLogin = () => {
-    window.location.hash = '#/login';
+    navigate('/login');
   };
   
   const handleSystemConfigUpdate = (newConfig: SystemConfig) => {
@@ -135,6 +124,10 @@ const App: React.FC = () => {
     });
   };
   
+  const handleGoToLogin = () => {
+    navigate('/login');
+  };
+
   if (isLoading) {
     return <div className="page-loader">Loading application...</div>;
   }
@@ -148,49 +141,71 @@ const App: React.FC = () => {
         <div className="App">
           {systemConfig ? (
             <Routes>
-              <Route path="/pricing" element={<PricingPage />} />
-              
-              <Route 
-                path="/admin/*" 
-                element={
-                  <ProtectedRoute user={user}>
-                    <AdminPage 
-                      user={user as User} 
-                      onLogout={handleLogout} 
-                      language={language} 
-                      setLanguage={setLanguage} 
-                      systemConfig={systemConfig} 
-                      onSystemConfigUpdate={handleSystemConfigUpdate} 
-                      onUserUpdate={handleUserUpdate} 
-                    />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/login" 
-                element={user ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} language={language} />} 
-              />
+              {/* Static & Auth Routes */}
+              <Route path="/about" element={<AboutPage language={language} />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/career" element={<CareerPage />} />
+              <Route path="/donation" element={<DonationPage user={user} onUserUpdate={handleUserUpdate} />} />
+              <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} language={language} />} />
+              <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleLogin} language={language} />} />
+              <Route path="/reset-password" element={<ResetPasswordPage language={language} />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage onLogin={handleLogin} />} />
 
-              <Route 
-                path="/register" 
-                element={user ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleLogin} language={language} />}
-              />
+              {/* Docs Routes - Nested structure for Outlet */}
+              <Route path="/docs" element={<DocsLayout language={language} setLanguage={setLanguage} />}>
+                <Route index element={<Navigate to="manifesto" replace />} />
+                <Route path="manifesto" element={<Manifesto />} />
+                <Route path="mandala-merit" element={<MandalaMerit />} />
+                <Route path="merit-tokenomics" element={<MeritTokenomics />} />
+                <Route path="path-of-unraveling" element={<PathOfUnraveling />} />
+                <Route path="tech-stack" element={<TechStack />} />
+                <Route path="overview" element={<Overview />} />
+                <Route path="models" element={<AgentModels />} />
+                <Route path="quick-start" element={<QuickStart />} />
+                <Route path="pricing" element={<TokenPricing />} />
+              </Route>
+
+              {/* Admin Route (must be before dynamic slug routes) */}
+              <Route path="/:spaceSlug/admin/:section?" element={
+                <ProtectedRoute user={user}>
+                  {user && <AdminPage 
+                    user={user} 
+                    onLogout={handleLogout} 
+                    language={language} 
+                    setLanguage={setLanguage} 
+                    systemConfig={systemConfig} 
+                    onSystemConfigUpdate={handleSystemConfigUpdate} 
+                    onUserUpdate={handleUserUpdate} 
+                  />}
+                </ProtectedRoute>
+              } />
+
+              {/* Content Routes */}
+              <Route path="/:spaceSlug/library/:id" element={<DocumentDetailPage user={user} />} />
               
-              <Route 
-                path="*" 
-                element={
-                  <ChatPage
-                      user={user}
-                      systemConfig={systemConfig}
-                      onLogout={handleLogout}
-                      onGoToLogin={handleGoToLogin}
-                      language={language}
-                      setLanguage={setLanguage}
-                      onUserUpdate={handleUserUpdate}
-                  />
-                } 
-              />
+              {/* Dynamic Slug-based Routes (Order is important) */}
+              <Route path="/:spaceSlug/:view" element={
+                 <ProtectedRoute user={user}>
+                    {user && <PracticeSpacePage
+                        user={user}
+                        systemConfig={systemConfig}
+                        onLogout={handleLogout}
+                        onGoToLogin={handleGoToLogin}
+                        language={language}
+                        setLanguage={setLanguage}
+                        onUserUpdate={handleUserUpdate}
+                    />}
+                </ProtectedRoute>
+              } />
+              <Route path="/:spaceSlug" element={
+                  <SpaceDetailPage user={user} onUserUpdate={handleUserUpdate} />
+              } />
+
+              {/* Home and Fallback */}
+              <Route path="/" element={<HomePage user={user} language={language} setLanguage={setLanguage} systemConfig={systemConfig} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           ) : (
             <div className="page-loader">Loading configuration...</div>

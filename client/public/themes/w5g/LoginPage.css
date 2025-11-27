@@ -1,0 +1,99 @@
+/* client/public/themes/w5g/LoginPage.css */
+
+.login-page-grid {
+  display: grid;
+  height: 100%;
+  overflow: hidden;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .login-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.login-form-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8rem 2rem 2rem;
+  background-color: var(--color-background-panel);
+  overflow-y: auto;
+}
+
+.login-logo-container {
+  display: none; /* Hidden on mobile */
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background-main);
+  padding: 0;
+}
+
+@media (min-width: 1024px) {
+  .login-logo-container {
+    display: flex;
+  }
+}
+
+.login-input, .auth-input-white {
+  display: block;
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border-color);
+  background-color: var(--color-background-panel);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.login-input:focus, .auth-input-white:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.login-divider {
+    display: flex;
+    align-items: center;
+    margin: 2rem 0;
+}
+.login-divider span:first-child, .login-divider span:last-child {
+    flex-grow: 1;
+    height: 1px;
+    background-color: var(--color-border-color);
+}
+.login-divider span:nth-child(2) {
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+}
+
+.social-login-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border-color);
+  color: var(--color-text-light);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  background-color: white;
+}
+.social-login-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+.social-login-btn svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-main);
+}
+.social-login-btn:hover svg {
+  color: var(--color-primary);
+}
