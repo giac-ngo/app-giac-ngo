@@ -8,6 +8,8 @@
 # Ignore env files in server
 server/.env
 server/ecosystem.config.cjs
+.env
+.env.local
 
 # Logs
 logs
