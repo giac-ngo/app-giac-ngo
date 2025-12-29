@@ -54,7 +54,7 @@ interface DocumentDetailPageProps {
 const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
     const language: 'vi' | 'en' = (localStorage.getItem('language') as 'vi' | 'en') || 'vi';
     const t = translations[language];
-    const { id } = useParams<{ id: string }>();
+    const { id, spaceSlug } = useParams<{ id: string; spaceSlug?: string }>();
     const { showToast } = useToast();
 
     const [document, setDocument] = useState<Document | null>(null);
@@ -109,11 +109,13 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
     const nextLabel = document.type === 'Kệ' ? t.nextVerse : t.nextStory;
     const prevTitle = language === 'en' && document.prevTitleEn ? document.prevTitleEn : document.prevTitle;
     const nextTitle = language === 'en' && document.nextTitleEn ? document.nextTitleEn : document.nextTitle;
+    
+    const effectiveSpaceSlug = spaceSlug || document.spaceSlug || 'giac-ngo';
 
     return (
         <div className="document-detail-page">
             <div className="document-detail-container">
-                <Link to="/giac-ngo/library" className="back-link">
+                <Link to={`/${effectiveSpaceSlug}/library`} className="back-link">
                     <ChevronLeftIcon className="w-5 h-5"/> {t.backToList}
                 </Link>
                 
@@ -121,7 +123,7 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
                     {document.thumbnailUrl && <img src={document.thumbnailUrl} alt={title} className="document-thumbnail" />}
                     <h1 className="document-title">{title}</h1>
                     <div className="document-meta">
-                        <span><UserIcon className="w-5 h-5" /> {t.author}: {document.author}</span>
+                        <span><UserIcon className="w-5 h-5" /> {t.author}: {language === 'en' && document.authorEn ? document.authorEn : document.author}</span>
                         <span><CalendarIcon className="w-5 h-5" /> {t.createdAt}: {new Date(document.createdAt).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')}</span>
                         <span><EyeIcon className="w-5 h-5" /> {document.views || 0} {t.views}</span>
                         <button onClick={handleLike} disabled={isLiking} className="like-button">
@@ -152,7 +154,7 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
                 {(document.prevId || document.nextId) && (
                     <nav className="document-navigation">
                         {document.prevId && prevTitle ? (
-                            <Link to={`/library/${document.prevId}`} className="nav-link prev">
+                            <Link to={`/${effectiveSpaceSlug}/library/${document.prevId}`} className="nav-link prev">
                                 <ChevronLeftIcon className="w-6 h-6 nav-arrow" />
                                 <div className="nav-text">
                                     <span className="nav-label">{prevLabel}</span>
@@ -161,7 +163,7 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
                             </Link>
                         ) : <div />}
                         {document.nextId && nextTitle ? (
-                            <Link to={`/library/${document.nextId}`} className="nav-link next">
+                            <Link to={`/${effectiveSpaceSlug}/library/${document.nextId}`} className="nav-link next">
                                 <div className="nav-text">
                                     <span className="nav-label">{nextLabel}</span>
                                     <span className="nav-title">{nextTitle}</span>

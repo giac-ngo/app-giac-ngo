@@ -1,13 +1,14 @@
 // client/src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AIConfig, User, Space, SystemConfig, DashboardStats } from '../types';
+import { AIConfig, User, Space, SystemConfig, DashboardStats, Document, OfferingPlan } from '../types';
 import { apiService } from '../services/apiService';
 import { useToast } from '../components/ToastProvider';
-import { SearchIcon, StarIcon, UsersIcon, MapPinIcon, BuildingLibraryIcon, LandmarkIcon, MeditationIcon, ClockIcon, BellIcon, HeartIcon, WandIcon, SparkleIcon, CheckIcon, RadioIcon, XIcon, MicIcon, HandIcon, MessageCircleIcon, Share2Icon, EyeIcon } from '../components/Icons';
+import { SearchIcon, StarIcon, UsersIcon, MapPinIcon, BuildingLibraryIcon, LandmarkIcon, MeditationIcon, ClockIcon, BellIcon, HeartIcon, WandIcon, SparkleIcon,  RadioIcon, XIcon, MicIcon, HandIcon, MessageCircleIcon, Share2Icon, EyeIcon } from '../components/Icons';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import SocialFeed from '../components/SocialFeed';
+import { MeritPaymentModal } from '../components/MeritPaymentModal';
 
 
 const translations = {
@@ -44,13 +45,6 @@ const translations = {
             title: 'Thư Viện',
             description: 'Khám phá kinh sách, kệ và các câu chuyện truyền cảm hứng tu tập.',
             viewAll: 'Vào thư viện',
-            sampleItems: [
-                { id: 1, title: 'Kinh Lăng Nghiêm', author: 'Hòa thượng Thích Thanh Từ', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '1.2K', likes: '345', rating: '4.8' },
-                { id: 2, title: 'Kinh Pháp Hoa', author: 'Hòa thượng Thích Trí Quảng', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '2.5K', likes: '789', rating: '4.9' },
-                { id: 3, title: 'Kinh A Di Đà', author: 'Hòa thượng Thích Trí Tịnh', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '3.1K', likes: '912', rating: '4.7' },
-                { id: 4, title: 'Kinh Địa Tạng', author: 'Hòa thượng Thích Trí Tịnh', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '980', likes: '250', rating: '4.6' },
-                { id: 5, title: 'Hướng Dẫn Thiền Định', author: 'Nhiều tác giả', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '850', likes: '190', rating: '4.5' }
-            ]
         },
         statsAgents: 'Buddhist AI Agents',
         statsConversations: 'Conversations',
@@ -65,44 +59,46 @@ const translations = {
         free: 'Miễn phí',
         claimSuccess: 'Đã thêm gói AI miễn phí vào tài khoản của bạn!',
         claimError: 'Không thể nhận gói AI miễn phí: {message}',
+        loginRequired: 'Vui lòng đăng nhập để thực hiện cúng dường.',
         pricing: {
-            title: 'Bảng Giá',
-            subtitle: 'Lựa chọn gói phù hợp với hành trình tu tập của bạn',
-            popular: 'Phổ biến nhất',
-            perMonth: '/tháng',
-            startNow: 'Bắt đầu ngay',
-            registerNow: 'Đăng ký ngay',
-            contactUs: 'Liên hệ',
+            title: 'Hồi Hướng Công Đức',
+            subtitle: 'The Act of Returning: Dedicating Merit to All Beings',
+            desc: 'Cúng dường tuỳ tâm — This is more than a donation. It is a practice of selfless offering.',
             plans: [
                 {
-                    id: 'cu-si',
-                    name: 'Cư Sĩ',
-                    subtitle: 'Lay Practitioner',
-                    priceAmount: 'Free',
-                    priceSuffix: '',
-                    features: [ '100 tin nhắn/tháng','Truy cập cơ bản vào các Agent', 'Tạo Info Space' ,'Thư viện kinh cơ bản', 'Tham gia cộng đồng' ],
-                    buttonTextKey: 'startNow',
+                    id: 'gieo-duyen',
+                    name: 'Gieo Duyên',
+                    headerSubtitle: 'Planting the Seed',
+                    subtitle: 'Tuỳ Tâm',
+                    subtext: 'As your heart guides',
+                    features: [ 'Hỗ trợ nuôi dưỡng Tăng Đoàn', 'Gieo duyên với Chánh Pháp', 'Hồi hướng công đức cho chúng sinh' ],
+                    buttonTextKey: 'offering',
+                    suggestedAmount: 5 // $5 suggested
                 },
                 {
-                    id: 'hanh-gia',
-                    name: 'Hành Giả',
-                    subtitle: 'Devoted Practitioner',
-                    priceAmount: '$19',
-                    priceSuffix: '/tháng',
+                    id: 'phat-su',
+                    name: 'Phật Sự',
+                    headerSubtitle: 'The Work of Awakening',
+                    subtitle: 'Tuỳ Tâm',
+                    subtext: 'As your heart guides',
                     isPopular: true,
-                    features: [ '1000 tin nhắn/tháng', 'Tạo 3 Ai Agent cá nhân', 'Hỗ trợ tạo Info Space', 'Thư viện kinh điển, pháp thoại đầy đủ', 'Tham gia cộng đồng','Custom prompt nâng cao', 'Ưu tiên hỗ trợ','Cho thuê AI Agent – phí nền tảng 15%' ],
-                    buttonTextKey: 'registerNow',
+                    topLabel: 'Hoằng Pháp Lợi Sinh',
+                    features: [ 'Hoằng truyền Chánh Pháp', 'Phát triển tài liệu & giáo lý', 'Duy trì không gian tu tập', 'Hướng dẫn người tìm đường' ],
+                    buttonTextKey: 'offering',
+                    suggestedAmount: 20 // $20 suggested
                 },
                 {
-                    id: 'tang-doan',
-                    name: 'Tăng Đoàn',
-                    subtitle: 'Sangha Community',
-                    priceAmount: '$99',
-                    priceSuffix: '/tháng',
-                    features: [ '1000 tin nhắn/ tháng', 'Không giới hạn Ai Agent', 'Hỗ trợ tạo Info Space', 'Thư viện kinh điển, pháp thoại đầy đủ', 'Tham gia cộng đồng', 'API tùy chỉnh','White-label (logo + theme riêng)', 'Đào tạo Agent riêng', 'Tư vấn chuyên sâu','Phí giao dịch khi cho thuê Agent chỉ 5%' ],
-                    buttonTextKey: 'contactUs',
+                    id: 'tu-bi-hanh',
+                    name: 'Từ Bi Hạnh',
+                    headerSubtitle: 'Acts of True Compassion',
+                    subtitle: 'Tuỳ Tâm',
+                    subtext: 'As your heart guides',
+                    features: [ 'Cứu giúp người khổ nạn', 'Hỗ trợ người tu tập', 'Dẫn dắt chúng sinh thoát khổ', 'Lan toả ánh sáng giác ngộ' ],
+                    buttonTextKey: 'offering',
+                    suggestedAmount: 50 // $50 suggested
                 }
-            ]
+            ] as OfferingPlan[],
+            footerText: '100% of your offering directly supports the continuation of the Dharma: sustaining the Sangha, spreading the teachings, maintaining sacred space, and enabling acts of true compassion.'
         }
     },
     en: {
@@ -138,13 +134,6 @@ const translations = {
             title: 'Library',
             description: 'Explore scriptures, verses, and inspiring stories for your practice.',
             viewAll: 'Go to Library',
-            sampleItems: [
-                { id: 1, title: 'Lankavatara Sutra', author: 'Master Thich Thanh Tu', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '1.2K', likes: '345', rating: '4.8' },
-                { id: 2, title: 'Lotus Sutra', author: 'Master Thich Tri Quang', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '2.5K', likes: '789', rating: '4.9' },
-                { id: 3, title: 'Amitabha Sutra', author: 'Master Thich Tri Tinh', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '3.1K', likes: '912', rating: '4.7' },
-                { id: 4, title: 'Ksitigarbha Sutra', author: 'Master Thich Tri Tinh', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '980', likes: '250', rating: '4.6' },
-                { id: 5, title: 'Meditation Guide', author: 'Various Authors', image: 'https://app.giac.ngo/themes/giacngo/5.png', views: '850', likes: '190', rating: '4.5' }
-            ]
         },
         statsAgents: 'Buddhist AI Agents',
         statsConversations: 'Conversations',
@@ -159,44 +148,46 @@ const translations = {
         free: 'Free',
         claimSuccess: 'Free AI pack added to your account!',
         claimError: 'Could not claim free AI pack: {message}',
+        loginRequired: 'Please login to make an offering.',
         pricing: {
-            title: 'Pricing',
-            subtitle: 'Choose the right plan for your practice journey',
-            popular: 'Most Popular',
-            perMonth: '/month',
-            startNow: 'Start Now',
-            registerNow: 'Register Now',
-            contactUs: 'Contact Us',
+            title: 'Dedication of Merit',
+            subtitle: 'The Act of Returning: Dedicating Merit to All Beings',
+            desc: 'Cúng dường tuỳ tâm — This is more than a donation. It is a practice of selfless offering.',
             plans: [
-                {
-                    id: 'cu-si',
-                    name: 'Lay Practitioner',
-                    subtitle: 'Basic access for newcomers',
-                    priceAmount: 'Free',
-                    priceSuffix: '',
-                    features: [ 'Basic access to Agents', '100 messages/month', 'Community access', 'Basic scripture library' ],
-                    buttonTextKey: 'startNow',
+                 {
+                    id: 'gieo-duyen',
+                    name: 'Planting the Seed',
+                    headerSubtitle: 'Gieo Duyên',
+                    subtitle: 'Custom Offering',
+                    subtext: 'As your heart guides',
+                    features: [ 'Supporting the Sangha', 'Connecting with Dharma', 'Dedicating merit to all beings' ],
+                    buttonTextKey: 'offering',
+                    suggestedAmount: 5
                 },
                 {
-                    id: 'hanh-gia',
-                    name: 'Devoted Practitioner',
-                    subtitle: 'For the dedicated learner',
-                    priceAmount: '$19',
-                    priceSuffix: '/month',
+                    id: 'phat-su',
+                    name: 'The Work of Awakening',
+                    headerSubtitle: 'Phật Sự',
+                    subtitle: 'Custom Offering',
+                    subtext: 'As your heart guides',
                     isPopular: true,
-                    features: [ 'Unlimited messages', 'Access to all Agents', 'Priority support', 'Full scripture library', 'Create personal Agents' ],
-                    buttonTextKey: 'registerNow',
+                    topLabel: 'Spreading the Dharma',
+                    features: [ 'Propagating the True Dharma', 'Developing materials & teachings', 'Maintaining practice spaces', 'Guiding seekers' ],
+                    buttonTextKey: 'offering',
+                    suggestedAmount: 20
                 },
                 {
-                    id: 'tang-doan',
-                    name: 'Sangha Community',
-                    subtitle: 'For organizations and groups',
-                    priceAmount: '$99',
-                    priceSuffix: '/month',
-                    features: [ 'All Devoted Practitioner features', 'Support for multiple members', 'Custom API access', 'Private Agent training', 'In-depth consultation' ],
-                    buttonTextKey: 'contactUs',
+                    id: 'tu-bi-hanh',
+                    name: 'Acts of Compassion',
+                    headerSubtitle: 'Từ Bi Hạnh',
+                    subtitle: 'Custom Offering',
+                    subtext: 'As your heart guides',
+                    features: [ 'Helping the suffering', 'Supporting practitioners', 'Guiding beings from suffering', 'Spreading the light of enlightenment' ],
+                    buttonTextKey: 'offering',
+                    suggestedAmount: 50
                 }
-            ]
+            ] as OfferingPlan[],
+            footerText: '100% of your offering directly supports the continuation of the Dharma: sustaining the Sangha, spreading the teachings, maintaining sacred space, and enabling acts of true compassion.'
         }
     }
 };
@@ -460,7 +451,15 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
     
     const [isRadioModalOpen, setIsRadioModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<DharmaSession | null>(null);
+
+    const [libraryItems, setLibraryItems] = useState<Document[]>([]);
+    const [isLoadingLibrary, setIsLoadingLibrary] = useState(true);
     
+    // Merit Payment Modal State
+    const [isMeritModalOpen, setIsMeritModalOpen] = useState(false);
+    const [selectedPlanDetails, setSelectedPlanDetails] = useState<{ title: string, amount: number } | null>(null);
+
+
     const dharmaRadioData = language === 'vi' ? dharmaRadioDataVi : dharmaRadioDataEn;
 
     useEffect(() => {
@@ -474,7 +473,9 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
                 const publicAis = ais.filter(ai => ai.isPublic);
                 setAiConfigs(publicAis.sort((a,b) => (b.views || 0) - (a.views || 0)));
                 
-                setSpaces(fetchedSpaces?.sort((a,b) => a.rank - b.rank) || []);
+                // Explicitly sort spaces by spaceSort on the client side to ensure order
+                const sortedSpaces = (fetchedSpaces || []).sort((a, b) => (a.spaceSort || 0) - (b.spaceSort || 0));
+                setSpaces(sortedSpaces);
 
                 // Manually construct a partial stats object for the homepage display.
                 setStats({
@@ -489,6 +490,41 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
         };
         fetchData();
     }, [t.loadError, showToast]);
+
+     useEffect(() => {
+        const fetchLibraryItems = async () => {
+            setIsLoadingLibrary(true);
+            try {
+                // Use backend specific recommendation function as requested
+                // This usually returns a curated list (e.g., top Ke and top Truyen)
+                const recommended = await apiService.getLibraryRecommended();
+                // Flatten the results if it returns an object with arrays, or use directly if array
+                // Based on apiService types: { topKe: Document[], topTruyen: Document[] }
+                const combined = [
+                    ...(recommended.topKe || []), 
+                    ...(recommended.topTruyen || [])
+                ];
+                setLibraryItems(combined.slice(0, 5)); // Limit to 5 items
+            } catch (error) {
+                console.error("Failed to load library items:", error);
+                // Fallback to generic fetch if recommended endpoint fails or is empty
+                try {
+                     const { data } = await apiService.getDocuments({ 
+                        isLibrary: true,
+                        limit: 5, // Explicitly request 5
+                        sortBy: 'views', 
+                        sortOrder: 'DESC'
+                    });
+                    setLibraryItems(data);
+                } catch (e) {
+                    console.error("Fallback library fetch failed", e);
+                }
+            } finally {
+                setIsLoadingLibrary(false);
+            }
+        };
+        fetchLibraryItems();
+    }, []);
     
     useEffect(() => {
         const handleSmoothScroll = (event: MouseEvent) => {
@@ -536,35 +572,41 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
         }
 
         const defaultSpaceSlug = 'giac-ngo';
-        const aiConfig = aiConfigs.find(ai => ai.id === aiId) || aiConfigs.find(ai => ai.name === 'Giác Ngộ');
-        const spaceSlug = spaces.find(s => s.id === aiConfig?.spaceId)?.slug || defaultSpaceSlug;
-
-
-        localStorage.setItem('lastSelectedAiId', String(aiConfig?.id || ''));
-        localStorage.removeItem('promptPurchaseAiId');
         
-        if (!user) {
-            navigate('/login', { state: { from: { pathname: `/${spaceSlug}/chat` } } });
-            return;
-        }
-        
+        // Try to find the AI config if data is loaded
+        const aiConfig = aiId 
+            ? aiConfigs.find(ai => ai.id === aiId) 
+            : aiConfigs.find(ai => ai.name === 'Giác Ngộ') || aiConfigs.find(ai => ai.id == 7) || aiConfigs[0];
+
+        // If we found a config, use its space. If not (data loading), use default 'giac-ngo'.
+        const spaceSlug = aiConfig ? spaces.find(s => s.id === aiConfig.spaceId)?.slug || defaultSpaceSlug : defaultSpaceSlug;
+
         if (aiConfig) {
-            const isFreeToOwn = !aiConfig.purchaseCost || aiConfig.purchaseCost <= 0;
-            const isOwned = user.ownedAis?.some(owned => owned.aiConfigId === aiConfig.id);
-    
-            if (isFreeToOwn && !isOwned) {
-                apiService.claimFreeAi(aiConfig.id, user.id as number)
-                    .then(({ updatedUser }) => {
-                        onUserUpdate(updatedUser);
-                        showToast(t.claimSuccess, 'success');
-                    })
-                    .catch(error => {
-                        showToast(t.claimError.replace('{message}', error.message), 'error');
-                    });
-            } 
-            else if (!isFreeToOwn && !isOwned) {
-                localStorage.setItem('promptPurchaseAiId', String(aiConfig.id));
+            localStorage.setItem('lastSelectedAiId', String(aiConfig.id));
+            
+            // Handle Purchase/Claim logic if user is logged in
+            if (user) {
+                const isFreeToOwn = !aiConfig.purchaseCost || aiConfig.purchaseCost <= 0;
+                const isOwned = user.ownedAis?.some(owned => owned.aiConfigId === aiConfig.id);
+        
+                if (isFreeToOwn && !isOwned) {
+                    apiService.claimFreeAi(aiConfig.id, user.id as number)
+                        .then(({ updatedUser }) => {
+                            onUserUpdate(updatedUser);
+                            showToast(t.claimSuccess, 'success');
+                        })
+                        .catch(error => {
+                            showToast(t.claimError.replace('{message}', error.message), 'error');
+                        });
+                } 
+                else if (!isFreeToOwn && !isOwned) {
+                    localStorage.setItem('promptPurchaseAiId', String(aiConfig.id));
+                }
             }
+        } else {
+            // Data hasn't loaded yet. We want "Giác Ngộ". 
+            // We clear the specific ID so PracticeSpacePage searches by name default.
+            localStorage.removeItem('lastSelectedAiId'); 
         }
         
         navigate(`/${spaceSlug}/chat`);
@@ -598,25 +640,25 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
       const sessionWithDetails: DharmaSession = {
         ...session,
         speakers: [
-          { name: 'Cô Thanh...', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-          { name: 'Anh Mi...', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
-          { name: 'Chị Hòn...', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-          { name: 'Anh Qu...', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-          { name: 'Chị Phư...', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
+          { name: 'Cô Thanh Hương', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
+          { name: 'Anh Minh Đức', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
+          { name: 'Chị Hồng Nhung', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
+          { name: 'Anh Quang Minh', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/The%20Beginner\'s%20Guide%20to%20Meditation%20for%20Men_1761842289235-CYkMJ34d.jpg' },
+          { name: 'Chị Phương Anh', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
         ],
         listeners: [
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-        { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(4)_1761842289234-BNNk7mTm.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/The%20Beginner\'s%20Guide%20to%20Meditation%20for%20Men_1761842289235-CYkMJ34d.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Meditation_1761842289236-DE-uea8o.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Forest%20Meditation%20Moment%20%E2%80%93%20Calm%20Mind%20Retreat%20Vibes_1761842289236-D340EJhb.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(2)_1761842289237-BT8SKPQR.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(1)_1761842289238-DTtc48SN.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download_1761842289238-CEtoAj6c.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/3bacb184-32f1-4538-91c4-375a56b5ea47_1761842289239-BsITZY_l.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
+          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg' },
         ],
 
       };
@@ -627,6 +669,19 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
     const closeRadioModal = () => {
       setIsRadioModalOpen(false);
       setSelectedSession(null);
+    };
+
+    const handleOpenDonation = (title?: string, amount?: number) => {
+        if (!user) {
+            showToast(t.loginRequired, 'error');
+            return;
+        }
+        if (title && amount) {
+            setSelectedPlanDetails({ title, amount });
+        } else {
+            setSelectedPlanDetails(null);
+        }
+        setIsMeritModalOpen(true);
     };
 
     return (
@@ -736,7 +791,7 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
           
 
             {/* Community Section */}
-             <section id="community-section" className="homepage-section community-section">
+             <section id="community-section" className="homepage-section community-section" style={{ display: 'none' }}>
                 <div className="container">
                     <h2 className="section-title">{t.communityTitle}</h2>
                     <p className="section-subtitle">{t.communitySubtitle}</p>
@@ -762,7 +817,7 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
                             {filteredSpaces.slice(0, displayedSpacesCount).map(space => (
                                 <a href={`/${space.slug}`} onClick={(e) => { e.preventDefault(); navigate(`/${space.slug}`); }} key={space.id} className="community-card-home">
                                     <div className="card-top" style={{ backgroundColor: space.spaceColor || '#e6f0ea' }}>
-                                        <div className="card-rank">#{space.rank}</div>
+                                        <div className="card-rank">#{space.spaceSort}</div>
                                         <div className="card-status">{language === 'en' && space.statusEn ? space.statusEn : space.status}</div>
                                         <div className="card-icon-wrapper" style={{ backgroundColor: space.spaceColor || '#e6f0ea', filter: 'brightness(90%)' }}>
                                             <div className="card-icon-compact">
@@ -803,7 +858,7 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
                 </div>
             </section>
 
-            <section id="social-feed-section" className="homepage-section">
+            <section id="social-feed-section" className="homepage-section" style={{ display: 'none' }}>
                 <SocialFeed language={language} />
             </section>
 
@@ -883,22 +938,39 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
                     <h2 className="section-title">{t.library.title}</h2>
                     <p className="section-subtitle">{t.library.description}</p>
                     <div className="library-grid">
-                        {t.library.sampleItems.map(item => (
-                            <Link to={`/giac-ngo/library/${item.id}`} key={item.id} className="library-card">
-                                <div className="library-card-thumb">
-                                    <img src={item.image} alt={item.title} />
-                                </div>
-                                <div className="library-card-content">
-                                    <h3 className="library-card-title">{item.title}</h3>
-                                    <p className="library-card-author">{item.author}</p>
-                                    <div className="library-card-stats">
-                                        <span><EyeIcon className="w-4 h-4" /> {item.views}</span>
-                                        <span><HeartIcon className="w-4 h-4 icon-heart" /> {item.likes}</span>
-                                        <span><StarIcon className="w-4 h-4 icon-star" /> {item.rating}</span>
+                        {isLoadingLibrary ? (
+                            Array.from({ length: 5 }).map((_, index) => (
+                                <div key={index} className="library-card">
+                                    <div className="library-card-thumb skeleton" style={{ aspectRatio: '1/1' }}></div>
+                                    <div className="library-card-content">
+                                        <div className="skeleton" style={{ height: '1.25rem', borderRadius: '4px', marginBottom: '0.5rem' }}></div>
+                                        <div className="skeleton" style={{ height: '0.875rem', width: '60%', borderRadius: '4px' }}></div>
+                                        <div className="library-card-stats" style={{ marginTop: 'auto' }}>
+                                            <div className="skeleton" style={{ width: '3rem', height: '1rem', borderRadius: '4px' }}></div>
+                                            <div className="skeleton" style={{ width: '3rem', height: '1rem', borderRadius: '4px' }}></div>
+                                            <div className="skeleton" style={{ width: '3rem', height: '1rem', borderRadius: '4px' }}></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </Link>
-                        ))}
+                            ))
+                        ) : (
+                            libraryItems.map(item => (
+                                <Link to={`/${item.spaceSlug || 'giac-ngo'}/library/${item.id}`} key={item.id} className="library-card">
+                                    <div className="library-card-thumb">
+                                        <img src={item.thumbnailUrl || 'https://app.giac.ngo/themes/giacngo/5.png'} alt={language === 'en' && item.titleEn ? item.titleEn : item.title} />
+                                    </div>
+                                    <div className="library-card-content">
+                                        <h3 className="library-card-title">{language === 'en' && item.titleEn ? item.titleEn : item.title}</h3>
+                                        <p className="library-card-author">{item.author}</p>
+                                        <div className="library-card-stats">
+                                            <span><EyeIcon className="w-4 h-4" /> {item.views ? formatCount(item.views) : '0'}</span>
+                                            <span><HeartIcon className="w-4 h-4 icon-heart" /> {item.likes ? formatCount(item.likes) : '0'}</span>
+                                            <span><StarIcon className="w-4 h-4 icon-star" /> {item.rating || '0.0'}</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))
+                        )}
                     </div>
                     <div className="view-more">
                         <Link to="/giac-ngo/library" onClick={() => localStorage.setItem('initialViewMode', 'library')} className="view-more-link">{t.library.viewAll}</Link>
@@ -906,36 +978,48 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
                 </div>
             </section>
                
-            {/* Pricing Section */}
+            {/* Pricing Section (Updated to 'Dedication of Merit') */}
             <section id="pricing-section" className="homepage-section pricing-section">
                 <div className="container">
                     <h2 className="section-title">{t.pricing.title}</h2>
                     <p className="section-subtitle">{t.pricing.subtitle}</p>
+                    <p className="text-center text-[#8c7b75] mb-8 font-serif italic max-w-2xl mx-auto">{t.pricing.desc}</p>
+                    
                     <div className="pricing-grid">
                         {t.pricing.plans.map((plan) => (
                             <div key={plan.id} className={`pricing-card ${plan.isPopular ? 'popular' : ''}`}>
                                 <div className="pricing-card-header">
-                                    {plan.isPopular && <div className="popular-badge">{t.pricing.popular}</div>}
-                                    <h3 className="pricing-card-title">{plan.name}</h3>
-                                    <p className="pricing-card-subtitle">{plan.subtitle}</p>
+                                    {plan.isPopular && <div className="popular-badge">{plan.topLabel}</div>}
+                                    <h3 className="pricing-card-title">{plan.headerSubtitle}</h3>
+                                    <p className="pricing-card-subtitle">{plan.name}</p>
                                 </div>
                                 <div className="pricing-card-body">
                                     <div className="pricing-card-price">
-                                        <span className="price-amount">{plan.priceAmount}</span>
-                                        {plan.priceSuffix && <span className="price-suffix">{plan.priceSuffix}</span>}
+                                        <span className="price-amount" style={{ fontSize: '2.5rem' }}>{plan.subtitle}</span>
                                     </div>
+                                     <p className="text-center text-[#a39e8c] font-sans font-medium mb-6 italic">{plan.subtext}</p>
                                     <ul className="pricing-card-features">
                                         {plan.features.map((feature, i) => (
-                                            <li key={i}><CheckIcon className="check-icon" /> <span>{feature}</span></li>
+                                            <li key={i}>
+                                                <HeartIcon className="w-5 h-5 text-[#991b1b] flex-shrink-0" />
+                                                <span>{feature}</span>
+                                            </li>
                                         ))}
                                     </ul>
-                                    <Link to={(plan.id === 'cu-si' && !user) ? '/register' : '/giac-ngo/chat'} className="btn solid">
-                                        {(t.pricing[plan.buttonTextKey as keyof typeof t.pricing]) as string}
-                                    </Link>
+                                    <button onClick={() => {
+                                         // Logic: Even if not logged in, trigger modal (which will prompt login if needed) 
+                                         // OR redirect to login. The current flow checks user inside.
+                                         handleOpenDonation(plan.name, plan.suggestedAmount);
+                                    }} className="btn solid">
+                                        {t.offering}
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
+                     <p className="text-center text-[#8c7b75] mt-12 text-sm max-w-3xl mx-auto leading-relaxed opacity-80">
+                        {t.pricing.footerText}
+                    </p>
                 </div>
             </section>                  
             <Footer language={language} />
@@ -946,6 +1030,21 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
                     onClose={closeRadioModal}
                     sessionData={selectedSession}
                     language={language}
+                />
+            )}
+             
+            {isMeritModalOpen && (
+                <MeritPaymentModal 
+                    isOpen={isMeritModalOpen} 
+                    onClose={() => {
+                        setIsMeritModalOpen(false);
+                        setSelectedPlanDetails(null);
+                    }} 
+                    user={user} 
+                    onPaymentSuccess={onUserUpdate} 
+                    language={language} 
+                    offeringTitle={selectedPlanDetails?.title}
+                    suggestedAmount={selectedPlanDetails?.amount}
                 />
             )}
         </div>

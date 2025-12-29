@@ -1,3 +1,14 @@
+# Ignore env files in root
+.env
+.env.*
+*.env
+
+# Ignore env files in client
+
+# Ignore env files in server
+server/.env
+server/ecosystem.config.cjs
+
 # Logs
 logs
 *.log
@@ -11,20 +22,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*env*
-.env
-server/.env
-# Env files (bỏ qua tất cả .env)
-server/.env.*
-.env
-.env.*
-*.env
-*env*
-server/.env
+
 # Local config
 *.local
 
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea

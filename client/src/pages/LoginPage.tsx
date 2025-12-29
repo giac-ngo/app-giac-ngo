@@ -142,7 +142,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
 
 
           <p className="mt-8 text-center text-sm text-text-light">
-            {t.noAccount} <Link to="/register" className="font-semibold text-primary hover:underline">{t.signUp}</Link>
+            {t.noAccount} <Link to="/register" state={{ from: (location.state as any)?.from }} className="font-semibold text-primary hover:underline">{t.signUp}</Link>
           </p>
 
            <p className="mt-8 text-center text-xs text-gray-400">
@@ -151,7 +151,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, language }) => {
         </div>
       </div>
       <div className="login-logo-container">
-        <img src="/themes/giacngo/giac-ngo-login.png" alt="Giác Ngộ AI Logo" className="w-full h-full object-contain" />
+        <img src="/themes/giacngo/giac-ngo-login1.png" alt="Giác Ngộ AI Logo" className="w-full h-full object-contain" />
       </div>
     </div>
     <ForgotPasswordModal 

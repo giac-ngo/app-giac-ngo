@@ -104,7 +104,6 @@ export default function ContactPage() {
     if (!formData.organizationName) newErrors.organizationName = t.validation.organizationName;
     if (!formData.role) newErrors.role = t.validation.role;
     if (!formData.organizationType) newErrors.organizationType = t.validation.organizationType;
-    if (!formData.communitySize) newErrors.communitySize = t.validation.communitySize;
     if (formData.message.length < 10) newErrors.message = t.validation.message;
     
     setErrors(newErrors);
@@ -202,35 +201,35 @@ export default function ContactPage() {
                 <form onSubmit={handleSubmit} noValidate>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-item">
-                            <label htmlFor="firstName">{t.firstName}</label>
-                            <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                            <label htmlFor="firstName">{t.firstName} <span className="text-red-500">*</span></label>
+                            <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required className={errors.firstName ? 'input-error' : ''} />
                             {errors.firstName && <p className="form-message">{errors.firstName}</p>}
                         </div>
                          <div className="form-item">
-                            <label htmlFor="lastName">{t.lastName}</label>
-                            <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                            <label htmlFor="lastName">{t.lastName} <span className="text-red-500">*</span></label>
+                            <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required className={errors.lastName ? 'input-error' : ''} />
                             {errors.lastName && <p className="form-message">{errors.lastName}</p>}
                         </div>
                     </div>
                     <div className="form-item">
-                        <label htmlFor="email">{t.email}</label>
-                        <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
+                        <label htmlFor="email">{t.email} <span className="text-red-500">*</span></label>
+                        <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required className={errors.email ? 'input-error' : ''} />
                         {errors.email && <p className="form-message">{errors.email}</p>}
                     </div>
                     <div className="form-item">
-                        <label htmlFor="organizationName">{t.organizationName}</label>
-                        <input type="text" id="organizationName" name="organizationName" value={formData.organizationName} onChange={handleChange} required />
+                        <label htmlFor="organizationName">{t.organizationName} <span className="text-red-500">*</span></label>
+                        <input type="text" id="organizationName" name="organizationName" value={formData.organizationName} onChange={handleChange} required className={errors.organizationName ? 'input-error' : ''} />
                         {errors.organizationName && <p className="form-message">{errors.organizationName}</p>}
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                         <div className="form-item">
-                            <label htmlFor="role">{t.role}</label>
-                            <input type="text" id="role" name="role" value={formData.role} onChange={handleChange} required />
+                            <label htmlFor="role">{t.role} <span className="text-red-500">*</span></label>
+                            <input type="text" id="role" name="role" value={formData.role} onChange={handleChange} required className={errors.role ? 'input-error' : ''} />
                             {errors.role && <p className="form-message">{errors.role}</p>}
                         </div>
                          <div className="form-item">
-                            <label htmlFor="organizationType">{t.organizationType}</label>
-                            <select id="organizationType" name="organizationType" value={formData.organizationType} onChange={handleChange} required>
+                            <label htmlFor="organizationType">{t.organizationType} <span className="text-red-500">*</span></label>
+                            <select id="organizationType" name="organizationType" value={formData.organizationType} onChange={handleChange} required className={errors.organizationType ? 'input-error' : ''}>
                                 <option value="">--</option>
                                 <option value="Temple">{language === 'vi' ? 'Chùa' : 'Temple'}</option>
                                 <option value="Meditation Center">{language === 'vi' ? 'Trung tâm Thiền' : 'Meditation Center'}</option>
@@ -240,7 +239,7 @@ export default function ContactPage() {
                         </div>
                          <div className="form-item">
                             <label htmlFor="communitySize">{t.communitySize}</label>
-                            <select id="communitySize" name="communitySize" value={formData.communitySize} onChange={handleChange} required>
+                            <select id="communitySize" name="communitySize" value={formData.communitySize} onChange={handleChange} className={errors.communitySize ? 'input-error' : ''}>
                                 <option value="">--</option>
                                 <option value="1-50">1-50</option>
                                 <option value="51-200">51-200</option>
@@ -251,8 +250,8 @@ export default function ContactPage() {
                         </div>
                     </div>
                     <div className="form-item">
-                        <label htmlFor="message">{t.howCanWeHelp}</label>
-                        <textarea id="message" name="message" value={formData.message} onChange={handleChange} required></textarea>
+                        <label htmlFor="message">{t.howCanWeHelp} <span className="text-red-500">*</span></label>
+                        <textarea id="message" name="message" value={formData.message} onChange={handleChange} required className={errors.message ? 'input-error' : ''}></textarea>
                         {errors.message && <p className="form-message">{errors.message}</p>}
                     </div>
 

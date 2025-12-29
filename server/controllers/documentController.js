@@ -1,3 +1,4 @@
+
 // server/controllers/documentController.js
 import { documentModel } from '../models/document.model.js';
 import { ocrService } from '../services/ocrService.js';
@@ -13,7 +14,8 @@ import { pool } from '../db.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(path.join(__filename, '..'));
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..', '..');
 
 const _deleteCategory = async (res, modelFunction, id) => {
     try {
@@ -44,12 +46,16 @@ const _createCategory = async (req, res, tableName, additionalData = {}) => {
 
 const _updateCategory = async (req, res, tableName) => {
     try {
-        const { name, nameEn, spaceId, typeId } = req.body;
+        const { name, nameEn, spaceId, typeId, authorId } = req.body;
         const dataToUpdate = {};
         if (name !== undefined) dataToUpdate.name = name;
         if (nameEn !== undefined) dataToUpdate.nameEn = nameEn;
         if (spaceId !== undefined) dataToUpdate.spaceId = spaceId || null;
-        if (typeId !== undefined && tableName === 'document_topics') dataToUpdate.typeId = typeId || null;
+        
+        if (tableName === 'document_topics') {
+            if (typeId !== undefined) dataToUpdate.typeId = typeId || null;
+            if (authorId !== undefined) dataToUpdate.authorId = authorId || null;
+        }
 
         if (Object.keys(dataToUpdate).length === 0) {
             return res.status(400).json({ message: 'No fields to update provided.' });
@@ -126,7 +132,10 @@ export const documentController = {
     // Document CRUD
     async getDocuments(req, res) {
         try {
-            const { title, authorId, typeId, topicId, tagId, spaceId } = req.query;
+            const { title, authorId, typeId, topicId, tagId, spaceId, page = '1', limit = '10' } = req.query;
+            const pageNum = parseInt(page, 10);
+            const limitNum = parseInt(limit, 10);
+
             const filters = {
                 title: title || undefined,
                 authorId: authorId ? parseInt(authorId, 10) : undefined,
@@ -134,6 +143,8 @@ export const documentController = {
                 topicId: topicId ? parseInt(topicId, 10) : undefined,
                 tagId: tagId ? parseInt(tagId, 10) : undefined,
                 spaceId: spaceId, // Pass string 'global' or number
+                limit: limitNum,
+                offset: (pageNum - 1) * limitNum,
             };
             res.json(await documentModel.find(filters));
         } catch (error) {
@@ -196,7 +207,7 @@ export const documentController = {
             const doc = await documentModel.findById(id);
             if (doc) {
                 const unlinkQuietly = async (filePath) => {
-                    if (filePath) try { await fs.unlink(path.join(__dirname, filePath)); } catch (e) { console.error(`Failed to delete file: ${e.message}`); }
+                    if (filePath) try { await fs.unlink(path.join(projectRoot, filePath)); } catch (e) { console.error(`Failed to delete file: ${e.message}`); }
                 };
                 await unlinkQuietly(doc.thumbnailUrl);
                 await unlinkQuietly(doc.audioUrl);
@@ -261,11 +272,11 @@ export const documentController = {
 
     async getDocumentTopics(req, res) { res.json(await documentModel._findCategory('document_topics', req.query.spaceId)); },
     async createDocumentTopic(req, res) {
-        const { typeId } = req.body;
-        if (typeId === undefined) {
-            return res.status(400).json({ message: 'typeId is required for topics.' });
+        const { typeId, authorId } = req.body;
+        if (typeId === undefined || authorId === undefined) {
+            return res.status(400).json({ message: 'typeId and authorId are required for topics.' });
         }
-        await _createCategory(req, res, 'document_topics', { typeId });
+        await _createCategory(req, res, 'document_topics', { typeId, authorId });
     },
     async updateDocumentTopic(req, res) { await _updateCategory(req, res, 'document_topics'); },
     async deleteDocumentTopic(req, res) { await _deleteCategory(res, documentModel._deleteCategory.bind(null, 'document_topics'), req.params.id); },

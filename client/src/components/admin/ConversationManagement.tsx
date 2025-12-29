@@ -47,6 +47,7 @@ const translations = {
         allAis: 'Tất cả AI',
         checkTrainedError: 'Không thể kiểm tra các cặp đã huấn luyện.',
         aiThought: 'Suy nghĩ của AI',
+        editableAnswer: 'Câu trả lời của AI (có thể chỉnh sửa)',
     },
     en: {
         title: 'User Conversation Management',
@@ -83,6 +84,7 @@ const translations = {
         allAis: 'All AIs',
         checkTrainedError: 'Could not check for already trained pairs.',
         aiThought: 'AI Thought',
+        editableAnswer: 'AI Answer (Editable)',
     }
 };
 
@@ -102,6 +104,7 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
     const [trainingPairIndex, setTrainingPairIndex] = useState<number | null>(null);
     const [successfullyTrainedIndices, setSuccessfullyTrainedIndices] = useState<Set<number>>(new Set());
     const [trainedPairsMap, setTrainedPairsMap] = useState<Map<number, Set<string>>>(new Map());
+    const [editableAnswers, setEditableAnswers] = useState<Record<number, string>>({});
 
     useEffect(() => {
         const fetchData = async () => {
@@ -160,6 +163,15 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
         setSelectedConversation(conv);
         setTrainingPairIndex(null);
 
+        // Initialize editable answers state for the modal
+        const initialAnswers: Record<number, string> = {};
+        conv.messages.forEach((msg, index) => {
+            if (msg.sender === 'ai') {
+                initialAnswers[index] = msg.text;
+            }
+        });
+        setEditableAnswers(initialAnswers);
+
         if (conv.aiConfigId) {
             try {
                 const trainedPairs = trainedPairsMap.get(conv.aiConfigId as number);
@@ -201,19 +213,20 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
         }
     
         const question = conversation.messages[aiMessageIndex - 1]?.text?.trim();
-        const answer = conversation.messages[aiMessageIndex]?.text?.trim();
         const thought = conversation.messages[aiMessageIndex]?.thought;
     
-        if (!question || !answer) return;
+        if (!question) return;
     
         const isAlreadyTrained = successfullyTrainedIndices.has(aiMessageIndex);
     
-        setTrainingPairIndex(aiMessageIndex); // Set loading state
+        setTrainingPairIndex(aiMessageIndex);
     
         if (isAlreadyTrained) {
-            // --- UN-TRAIN LOGIC ---
+            const originalAnswer = conversation.messages[aiMessageIndex]?.text?.trim();
+            if (originalAnswer === undefined) { setTrainingPairIndex(null); return; }
+
             try {
-                await apiService.deleteTrainingQaDataSource(Number(aiToTrain.id), question, answer);
+                await apiService.deleteTrainingQaDataSource(Number(aiToTrain.id), question, originalAnswer);
                 showToast(t.untrainSuccess, 'success');
     
                 const newTrainedIndices = new Set(successfullyTrainedIndices);
@@ -222,10 +235,8 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
     
                 setTrainedPairsMap(prevMap => {
                     const newMap = new Map(prevMap);
-                    // FIX: Cloning the set correctly before modification. The Set constructor handles undefined.
-                    // FIX: Ensure an iterable is passed to the Set constructor to avoid type errors. `|| []` handles the case where the key doesn't exist.
                     const pairsForAi = new Set<string>(newMap.get(aiToTrain.id as number) || []);
-                    pairsForAi.delete(`${question}|||${answer}`);
+                    pairsForAi.delete(`${question}|||${originalAnswer}`);
                     newMap.set(aiToTrain.id as number, pairsForAi);
                     return newMap;
                 });
@@ -238,7 +249,6 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
                         )
                     );
                 }
-    
             } catch (error: any) {
                 showToast(t.untrainError.replace('{error}', error.message), 'error');
             } finally {
@@ -246,9 +256,11 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
             }
     
         } else {
-            // --- TRAIN LOGIC ---
+            const editedAnswer = editableAnswers[aiMessageIndex]?.trim();
+            if (editedAnswer === undefined) { setTrainingPairIndex(null); return; }
+            
             try {
-                await apiService.createTrainingQaDataSource(Number(aiToTrain.id), question, answer, thought);
+                await apiService.createTrainingQaDataSource(Number(aiToTrain.id), question, editedAnswer, thought);
                 showToast(t.trainRequestSent.replace('{name}', aiToTrain.name), 'success');
     
                 await apiService.updateConversationTrainingStatus(conversation.id, true);
@@ -263,10 +275,8 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
     
                 setTrainedPairsMap(prevMap => {
                     const newMap = new Map(prevMap);
-                    // FIX: Cloning the set correctly before modification. The Set constructor handles undefined.
-                    // FIX: Ensure an iterable is passed to the Set constructor to avoid type errors. `|| []` handles the case where the key doesn't exist.
                     const pairsForAi = new Set<string>(newMap.get(aiToTrain.id as number) || []);
-                    pairsForAi.add(`${question}|||${answer}`);
+                    pairsForAi.add(`${question}|||${editedAnswer}`); // Use edited answer
                     newMap.set(aiToTrain.id as number, pairsForAi);
                     return newMap;
                 });
@@ -371,11 +381,24 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
 
                                 return (
                                 <div key={msg.id || index} className="group mb-4">
-                                    <div className={`p-3 rounded-lg ${msg.sender === 'user' ? 'bg-blue-50' : 'bg-green-50'}`}>
-                                        <p className={`text-sm ${msg.sender === 'user' ? 'text-blue-800' : 'text-green-800'}`}>
-                                            <strong className="font-semibold">{msg.sender === 'user' ? 'User:' : `${selectedConversation.aiName || 'AI'}:`}</strong> {msg.text}
-                                        </p>
-                                    </div>
+                                     {msg.sender === 'user' ? (
+                                        <div className="p-3 rounded-lg bg-blue-50">
+                                            <p className="text-sm text-blue-800">
+                                                <strong className="font-semibold">User:</strong> {msg.text}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-green-50 p-3 rounded-lg">
+                                            <label className="block text-xs font-semibold text-green-900 mb-1">{t.editableAnswer}</label>
+                                            <textarea
+                                                value={editableAnswers[index] || ''}
+                                                onChange={(e) => setEditableAnswers(prev => ({ ...prev, [index]: e.target.value }))}
+                                                className="w-full p-2 border rounded-md bg-white text-sm text-green-900 focus:ring-primary focus:border-primary"
+                                                rows={Math.max(4, (editableAnswers[index] || '').split('\n').length)}
+                                            />
+                                        </div>
+                                    )}
+
                                     {msg.sender === 'ai' && msg.thought && (
                                         <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-800">
                                             <p className="font-semibold">{t.aiThought}:</p>

@@ -1,3 +1,4 @@
+
 // server/services/weaviateService.js
 import weaviate from 'weaviate-ts-client';
 import 'dotenv/config';
@@ -10,12 +11,18 @@ import { fileParserService } from './fileParserService.js';
 
 const WEAVIATE_CLASSES = {
     gpt: 'TrainingData_gpt',
-    gemini: 'TrainingData_gemini',
+    gemini: 'TrainingData_gemini_studio', // Changed to distinguish from Vertex
+    vertex: 'TrainingData_gemini_vertex', 
 };
 
 const getClassNameForModel = (modelType) => {
     const className = WEAVIATE_CLASSES[modelType];
-    if (!className) throw new Error(`Unsupported modelType for Weaviate: ${modelType}`);
+    // Default fallback or error handling
+    if (!className) {
+        // If unknown (e.g. grok), we might not support vector search yet, or default to generic
+        console.warn(`Warning: No specific Weaviate class mapped for modelType '${modelType}'.`);
+        return null;
+    }
     return className;
 };
 
@@ -27,6 +34,9 @@ const generateUuid = (sourceId, type) => {
     // Format as UUID
     return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}`;
 };
+
+// Helper function to pause execution
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const weaviateService = {
     // Creates a temporary client with owner-specific API keys in the header using the v2 API
@@ -46,10 +56,17 @@ const weaviateService = {
         weaviateKey = weaviateKey.replace(/["']/g, "");
 
         const headers = {};
+        
         if (modelType === 'gpt' && apiKey) {
             headers['X-OpenAI-Api-Key'] = apiKey;
         } else if (modelType === 'gemini' && apiKey) {
-            headers['X-Google-Api-Key'] = apiKey;
+            // For Google AI Studio (Gemini), Weaviate's text2vec-palm module uses this header
+            headers['X-Palm-Api-Key'] = apiKey;
+            // Backup headers just in case specific Weaviate version behavior changes
+            headers['X-Goog-Api-Key'] = apiKey;
+        } else if (modelType === 'vertex' && apiKey) {
+            // Vertex typically needs more than just an API key (OAuth), but we pass it if configured
+            headers['X-Google-Api-Key'] = apiKey; 
         }
         
         try {
@@ -61,11 +78,6 @@ const weaviateService = {
                 headers,
             });
 
-            // A simple ready check
-            const isReady = await client.misc.readyChecker().do();
-            if (!isReady) {
-                throw new Error("Weaviate instance is not ready.");
-            }
             return client;
         } catch (err) {
             console.error("Failed to connect to Weaviate:", err);
@@ -74,8 +86,10 @@ const weaviateService = {
     },
 
     async ensureSchemaForModelType(modelType, apiKey) {
-        const client = await this._getScopedClient(modelType, apiKey);
         const className = getClassNameForModel(modelType);
+        if (!className) return;
+
+        const client = await this._getScopedClient(modelType, apiKey);
         
         try {
             const schema = await client.schema.getter().do();
@@ -100,8 +114,23 @@ const weaviateService = {
                     'properties': commonProperties,
                 };
             } else if (modelType === 'gemini') {
+                // Use text2vec-palm for Google AI Studio (API Key based)
+                classObj = {
+                    'class': className,
+                    'vectorizer': "text2vec-palm", // This targets generativelanguage.googleapis.com
+                     'moduleConfig': {
+                        'text2vec-palm': {
+                            'projectId': 'generative-language', // Dummy project ID often needed by module but unused for API key flow
+                            'apiEndpoint': 'generativelanguage.googleapis.com',
+                            'modelId': 'embedding-001' // Standard stable embedding model for AI Studio
+                        },
+                    },
+                    'properties': commonProperties,
+                };
+            } else if (modelType === 'vertex') {
+                // Vertex AI configuration
                 if (!process.env.GOOGLE_PROJECT_ID) {
-                    throw new Error('GOOGLE_PROJECT_ID environment variable is not set. It is required for the text2vec-google module in Weaviate.');
+                    throw new Error('GOOGLE_PROJECT_ID environment variable is not set. It is required for Vertex AI.');
                 }
                 classObj = {
                     'class': className,
@@ -109,13 +138,14 @@ const weaviateService = {
                      'moduleConfig': {
                         'text2vec-google': {
                             'projectId': process.env.GOOGLE_PROJECT_ID,
-                            'vectorizeClassName': false
+                            'vectorizeClassName': false,
+                            'modelId': 'text-embedding-004'
                         },
                     },
                     'properties': commonProperties,
                 };
             } else {
-                return; // Should not happen
+                return; 
             }
 
             await client.schema.classCreator().withClass(classObj).do();
@@ -123,7 +153,6 @@ const weaviateService = {
 
         } catch (error) {
             console.error(`Error during Weaviate schema setup for ${modelType}:`, error.message);
-            // Re-throw the error so the sync process knows it failed.
             throw error;
         }
     },
@@ -149,43 +178,31 @@ const weaviateService = {
         }
 
         const ownerKeys = owner.apiKeys || {};
-        const ownerGptKey = ownerKeys.gpt;
-        const ownerGeminiKey = ownerKeys.gemini;
         const dataSources = await trainingDataModel.findByAiId(aiConfigId);
         
         console.log(`Found ${dataSources.length} data sources to sync for AI ${aiConfigId}.`);
 
-        // --- GPT Sync Process ---
-        if (!ownerGptKey) {
-            console.log(`Skipping Weaviate sync for GPT (AI ID: ${aiConfigId}): Owner's GPT key is missing.`);
-        } else {
-            try {
-                console.log(`Ensuring schema exists for GPT (AI ID: ${aiConfigId})...`);
-                await this.ensureSchemaForModelType('gpt', ownerGptKey);
-                console.log(`Starting Weaviate sync for GPT (AI ID: ${aiConfigId})...`);
-                await this.indexData('gpt', dataSources, ownerGptKey, aiConfigId);
-            } catch (error) {
-                 console.error(`Error during Weaviate sync for GPT (AI ID: ${aiConfigId}):`, error.message);
-                // Re-throw to make it clear the process failed
-                throw new Error(`Error during Weaviate sync for GPT (AI ID: ${aiConfigId}): ${error.message}`);
-            }
+        const targetModelType = aiConfig.modelType;
+        const ownerKey = ownerKeys[targetModelType];
+
+        if (!ownerKey) {
+             throw new Error(`Cannot sync: Owner's ${targetModelType.toUpperCase()} API Key is missing.`);
         }
 
-        // --- Gemini Sync Process ---
-        if (!ownerGeminiKey) {
-            console.log(`Skipping Weaviate sync for Gemini (AI ID: ${aiConfigId}): Owner's Gemini key is missing.`);
-        } else if (!process.env.GOOGLE_PROJECT_ID) {
-            console.log(`Skipping Weaviate sync for Gemini (AI ID: ${aiConfigId}): GOOGLE_PROJECT_ID is not set.`);
-        } else {
-            try {
-                console.log(`Ensuring schema exists for Gemini (AI ID: ${aiConfigId})...`);
-                await this.ensureSchemaForModelType('gemini', ownerGeminiKey);
-                console.log(`Starting Weaviate sync for Gemini (AI ID: ${aiConfigId})...`);
-                await this.indexData('gemini', dataSources, ownerGeminiKey, aiConfigId);
-            } catch (error) {
-                 console.error(`Error during Weaviate sync for Gemini (AI ID: ${aiConfigId}):`, error.message);
-                 throw new Error(`Error during Weaviate sync for Gemini (AI ID: ${aiConfigId}): ${error.message}`);
-            }
+        // Specific checks for Vertex
+        if (targetModelType === 'vertex' && !process.env.GOOGLE_PROJECT_ID) {
+             throw new Error(`Cannot sync Vertex: GOOGLE_PROJECT_ID server environment variable is not set.`);
+        }
+
+        try {
+            console.log(`Ensuring schema exists for ${targetModelType} (AI ID: ${aiConfigId})...`);
+            await this.ensureSchemaForModelType(targetModelType, ownerKey);
+            
+            console.log(`Starting Weaviate sync for ${targetModelType} (AI ID: ${aiConfigId})...`);
+            await this.indexData(targetModelType, dataSources, ownerKey, aiConfigId);
+        } catch (error) {
+             console.error(`Error during Weaviate sync for ${targetModelType} (AI ID: ${aiConfigId}):`, error.message);
+             throw new Error(`Error during Weaviate sync: ${error.message}`);
         }
     },
 
@@ -196,16 +213,18 @@ const weaviateService = {
             
             let batcher = client.batch.objectsBatcher();
             let counter = 0;
-            const batchSize = 100;
-    
+            
+            // Reduced batch size to avoid Rate Limits (429) from Google API
+            const batchSize = 5;
+            
             for (const source of dataSources) {
-                if (source.isIndexed) continue;
+                // Skip if already indexed for this specific model type
+                if (source.indexedProviders && source.indexedProviders.includes(modelType)) continue;
     
                 let content = null;
                 if (source.type === 'qa' && source.question && source.answer) {
                     content = `Question: ${source.question}\nAnswer: ${source.answer}`;
                 } else if (source.type === 'file' && source.fileUrl && source.fileName) {
-                    // **UPDATED LOGIC**: Prioritize summary. If not available, use full file content.
                     if (source.summary) {
                         content = source.summary;
                     } else {
@@ -216,6 +235,8 @@ const weaviateService = {
                             continue;
                         }
                     }
+                } else if (source.type === 'document' && source.summary) {
+                    content = source.summary;
                 }
     
                 if (content) {
@@ -237,18 +258,22 @@ const weaviateService = {
     
                 if (counter >= batchSize) {
                     const results = await batcher.do();
-                    results.forEach(item => {
-                        if (item.result?.errors) {
+                    for (const item of results) {
+                         if (item.result?.errors) {
                              console.error(`Weaviate batch import failed for object.`, JSON.stringify(item.result.errors, null, 2));
-                        }
-                    });
+                         }
+                    }
                     console.log(`Indexed a batch of ${results.length} objects to ${className}.`);
-                    
-                    batcher = client.batch.objectsBatcher(); // Reset for next batch
+                    batcher = client.batch.objectsBatcher();
                     counter = 0;
+                    
+                    // Add delay to prevent hitting API rate limits (Google Free Tier)
+                    console.log("Sleeping for 2 seconds to respect rate limits...");
+                    await sleep(2000);
                 }
                 
-                await trainingDataModel.updateIndexedStatus(source.id, true);
+                // Update specific provider status in DB
+                await trainingDataModel.addIndexedProvider(source.id, modelType);
             }
     
             if (counter > 0) {
@@ -269,30 +294,51 @@ const weaviateService = {
     },
 
     async search(modelType, aiConfigId, query, apiKey, limit = 5) {
-        const client = await this._getScopedClient(modelType, apiKey);
-        const className = getClassNameForModel(modelType);
-        
-        const res = await client.graphql
-            .get()
-            .withClassName(className)
-            .withFields('content sourceType sourceId')
-            .withNearText({ concepts: [query] })
-            .withWhere({
-                operator: 'Equal',
-                path: ['aiConfigId'],
-                valueInt: aiConfigId,
-            })
-            .withLimit(limit)
-            .do();
-        
-        return res.data.Get[className];
+        try {
+            const client = await this._getScopedClient(modelType, apiKey);
+            const className = getClassNameForModel(modelType);
+            if (!className) return [];
+            
+            // Safe check: Ensure the class actually exists in Weaviate before querying
+            const schema = await client.schema.getter().do();
+            const classExists = schema.classes?.some(c => c.class === className);
+
+            if (!classExists) {
+                console.warn(`Weaviate class ${className} does not exist. Skipping RAG search.`);
+                return []; 
+            }
+
+            const res = await client.graphql
+                .get()
+                .withClassName(className)
+                .withFields('content sourceType sourceId')
+                .withNearText({ concepts: [query] })
+                .withWhere({
+                    operator: 'Equal',
+                    path: ['aiConfigId'],
+                    valueInt: aiConfigId,
+                })
+                .withLimit(limit)
+                .do();
+            
+            return res.data.Get[className] || [];
+        } catch (error) {
+            // Gracefully handle search errors so chat doesn't crash completely
+            console.error(`Weaviate search failed for ${modelType}:`, error.message);
+            return [];
+        }
     },
 
     async deleteDataByAiConfigId(modelType, aiConfigId, apiKey) {
         try {
             const client = await this._getScopedClient(modelType, apiKey);
             const className = getClassNameForModel(modelType);
+            if (!className) return;
             
+            // Check existence before delete to avoid error
+            const schema = await client.schema.getter().do();
+            if (!schema.classes?.some(c => c.class === className)) return;
+
             const result = await client.batch.deleter()
                 .withClassName(className)
                 .withWhere({ operator: 'Equal', path: ['aiConfigId'], valueInt: aiConfigId })
@@ -310,6 +356,12 @@ const weaviateService = {
          try {
             const client = await this._getScopedClient(modelType, apiKey);
             const className = getClassNameForModel(modelType);
+            if (!className) return;
+            
+            // Check existence before delete
+            const schema = await client.schema.getter().do();
+            if (!schema.classes?.some(c => c.class === className)) return;
+
             const uuid = generateUuid(sourceId, sourceType);
 
             const exists = await client.data.checker().withClassName(className).withId(uuid).do();

@@ -4,17 +4,41 @@ import { userModel } from '../models/user.model.js';
 import { pool } from '../db.js';
 
 export const conversationController = {
-    async getConversationsByUserId(req, res) {
-        const { userId } = req.query;
+    async getConversations(req, res) {
+        const { userId, aiConfigId, page = '1', limit = '15' } = req.query;
+
         if (!userId) {
-            return res.json([]);
+            // Though we check on the frontend, a server-side check is good practice.
+            return res.status(400).json({ message: 'User ID is required.' });
         }
+        
         try {
-            const userIdString = Array.isArray(userId) ? userId[0] : userId;
-            const conversations = await conversationModel.findByUserId(parseInt(userIdString, 10));
-            res.json(conversations);
+            const userIdNum = parseInt(userId, 10);
+
+            if (aiConfigId) {
+                // Paginated fetch for a specific AI
+                const aiConfigIdNum = parseInt(aiConfigId, 10);
+                const pageNum = parseInt(page, 10);
+                const limitNum = parseInt(limit, 10);
+
+                if (isNaN(userIdNum) || isNaN(aiConfigIdNum) || isNaN(pageNum) || isNaN(limitNum)) {
+                    return res.status(400).json({ message: 'Invalid query parameters.' });
+                }
+
+                const data = await conversationModel.findPaginatedForUserAndAi({
+                    userId: userIdNum,
+                    aiConfigId: aiConfigIdNum,
+                    limit: limitNum,
+                    offset: (pageNum - 1) * limitNum
+                });
+                res.json(data);
+            } else {
+                // Fetch all conversations for a user (maintains old behavior if needed)
+                const conversations = await conversationModel.findAllByUserId(userIdNum);
+                res.json(conversations);
+            }
         } catch (error) {
-            console.error("Error fetching conversations by user ID:", error);
+            console.error("Error fetching conversations:", error);
             res.status(500).json({ message: 'Không thể tải lịch sử hội thoại.' });
         }
     },
@@ -156,7 +180,6 @@ export const conversationController = {
                 messages[messageIndex].feedback = feedback;
             }
 
-            // FIX: This line was missing. It saves the updated messages array back to the database.
             await client.query('UPDATE conversations SET messages = $1 WHERE id = $2', [JSON.stringify(messages), conversationId]);
 
             await client.query('COMMIT');

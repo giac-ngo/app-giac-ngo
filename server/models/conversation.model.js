@@ -2,9 +2,28 @@
 import { pool, mapRowToCamelCase } from '../db.js';
 
 export const conversationModel = {
-    async findByUserId(userId) {
+    async findAllByUserId(userId) {
         const res = await pool.query('SELECT * FROM conversations WHERE user_id = $1 ORDER BY start_time DESC', [userId]);
         return res.rows.map(mapRowToCamelCase);
+    },
+
+    async findPaginatedForUserAndAi({ userId, aiConfigId, limit, offset }) {
+        const countQuery = 'SELECT COUNT(*) FROM conversations WHERE user_id = $1 AND ai_config_id = $2';
+        const dataQuery = `
+            SELECT * FROM conversations 
+            WHERE user_id = $1 AND ai_config_id = $2
+            ORDER BY start_time DESC
+            LIMIT $3 OFFSET $4
+        `;
+        const [countRes, dataRes] = await Promise.all([
+            pool.query(countQuery, [userId, aiConfigId]),
+            pool.query(dataQuery, [userId, aiConfigId, limit, offset])
+        ]);
+
+        const total = parseInt(countRes.rows[0].count, 10);
+        const data = dataRes.rows.map(mapRowToCamelCase);
+        
+        return { data, total };
     },
 
     async findTrainedByAiId(aiId) {

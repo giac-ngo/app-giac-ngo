@@ -29,6 +29,10 @@ router.get('/stripe/payment-methods', isAuthenticated, billingController.getEnab
 router.post('/stripe/create-payment-intent', isAuthenticated, billingController.createStripePaymentIntent);
 router.post('/stripe/confirm-payment', isAuthenticated, billingController.confirmStripePayment);
 
+// New Stripe Checkout Routes
+router.post('/stripe/create-checkout-session', isAuthenticated, billingController.createCheckoutSession);
+router.post('/stripe/verify-checkout-session', isAuthenticated, billingController.verifyCheckoutSession);
+
 // Withdrawal Requests
 router.get('/admin/withdrawals', checkPermission('manual-billing'), billingController.getWithdrawalRequests);
 router.put('/admin/withdrawals/:id/process', checkPermission('manual-billing'), billingController.processWithdrawalRequest);

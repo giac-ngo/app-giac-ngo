@@ -1,4 +1,5 @@
-// client/types.ts
+
+// client/src/types.ts
 
 export type ViewMode = 'chat' | 'meditationtimer' | 'community' | 'dharmatalks' | 'library' | 'about';
 
@@ -24,7 +25,7 @@ export interface Message {
   feedback?: 'liked' | 'disliked' | null;
 }
 
-export type ModelType = 'gemini' | 'gpt' | 'grok';
+export type ModelType = 'gemini' | 'gpt' | 'grok' | 'vertex';
 
 export interface AIConfig {
   id: string | number;
@@ -42,7 +43,7 @@ export interface AIConfig {
   tags: string[];
   isPublic: boolean;
   isContactForAccess?: boolean;
-  purchaseCost?: number; // One-time cost to buy the AI
+  purchaseCost?: number;
   oldPurchaseCost?: number;
   isOnSale?: boolean;
   requestsGrantedOnPurchase?: number;
@@ -51,7 +52,6 @@ export interface AIConfig {
   rating?: number;
   maxOutputTokens?: number;
   thinkingBudget?: number;
-  // Deprecated properties, kept for now to avoid breaking old components immediately
   isTrialAllowed: boolean;
   requiresSubscription: boolean;
   ownerId?: number;
@@ -65,7 +65,7 @@ export interface User {
   name:string;
   avatarUrl: string;
   isActive: boolean;
-  merits: number | null; // null for unlimited
+  merits: number | null;
   ownedAis?: { aiConfigId: number; requestsRemaining: number; }[];
   grantedAiConfigIds?: number[];
   apiToken?: string;
@@ -73,6 +73,7 @@ export interface User {
     gemini?: string;
     gpt?: string;
     grok?: string;
+    vertex?: string;
   };
   requestsRemaining: number;
   roleIds?: number[];
@@ -110,11 +111,6 @@ export type TemplateName = 'w5g' | 'giacngo';
 
 export interface SystemConfig {
     guestMessageLimit: number;
-    systemKeys: {
-        gemini?: string;
-        gpt?: string;
-        grok?: string;
-    };
     template: TemplateName;
     templateSettings: {
         [key in TemplateName]: {
@@ -125,7 +121,7 @@ export interface SystemConfig {
 
 export interface Conversation {
     id: number;
-    userId: number | null; // null for guest
+    userId: number | null;
     userName: string;
     aiConfigId: string | number;
     aiName?: string;
@@ -211,10 +207,10 @@ export interface TrainingDataSource {
     description?: string;
     createdAt?: string;
     isTrained?: boolean;
-    isIndexed?: boolean;
+    indexedProviders?: string[]; // Changed from isIndexed to support multiple providers
+    isIndexed?: boolean; // Keep for backward compatibility or generic logic
     lastExportedAt?: string;
     aiName?: string;
-    // For linked documents
     documentId?: number; 
     documentName?: string;
 }
@@ -250,6 +246,7 @@ export interface DocumentTopic {
     name: string;
     typeId: number | null;
     spaceId?: number | null;
+    authorId?: number | null;
 }
 
 export interface Document {
@@ -259,10 +256,13 @@ export interface Document {
   summary?: string;
   summaryEn?: string;
   author: string;
+  authorEn?: string;
   authorId: number;
   type: string;
+  typeEn?: string;
   typeId: number;
   topic: string;
+  topicEn?: string;
   topicId: number;
   spaceId?: number | null;
   spaceName?: string | null;
@@ -278,8 +278,7 @@ export interface Document {
   views?: number;
   likes?: number;
   rating?: number;
-  comments?: Comment[]; // For getDocumentDetail
-  // For navigation
+  comments?: Comment[];
   prevId?: number | null;
   nextId?: number | null;
   prevTitle?: string | null;
@@ -319,7 +318,7 @@ export interface Comment {
   userId: number;
   userName: string;
   userAvatarUrl?: string;
-  commentType: 'document' | string; // Allow for future types
+  commentType: 'document' | string;
   sourceId: string;
   sourceTitle?: string;
   parentId?: number | null;
@@ -338,7 +337,7 @@ export interface SpaceType {
 export interface Space {
   id: number | 'new';
   userId: number | null;
-  rank: number;
+  spaceSort?: number;
   slug: string;
   name: string;
   nameEn?: string;
@@ -373,9 +372,10 @@ export interface DharmaTalk {
   titleEn?: string;
   subtitle?: string;
   speaker?: string;
+  speakerAvatarUrl?: string;
   url?: string;
-  duration?: number; // in seconds
-  date?: string; // ISO date string
+  duration?: number;
+  date?: string;
   views?: number;
   likes?: number;
   rating?: number;
@@ -384,6 +384,7 @@ export interface DharmaTalk {
   status?: string;
   statusEn?: string;
   notifications?: number;
+  createdAt?: string;
 }
 
 export interface WithdrawalRequest {
@@ -402,4 +403,17 @@ export interface SpaceOwnerData {
     ownedSpaces: { id: number; name: string }[];
     revenueHistory: Transaction[];
     withdrawalHistory: WithdrawalRequest[];
+}
+
+export interface OfferingPlan {
+    id: string;
+    name: string;
+    headerSubtitle: string;
+    subtitle: string;
+    subtext: string;
+    features: string[];
+    buttonTextKey: string;
+    isPopular?: boolean;
+    topLabel?: string;
+    suggestedAmount?: number;
 }

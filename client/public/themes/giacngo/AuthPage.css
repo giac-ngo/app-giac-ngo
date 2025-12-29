@@ -2,8 +2,7 @@
 
 html[data-theme="giacngo"] .login-page-grid {
   display: grid;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100vh;
   grid-template-columns: 1fr;
   background-color: var(--color-background-main);
 }
@@ -16,12 +15,12 @@ html[data-theme="giacngo"] .login-page-grid {
 
 html[data-theme="giacngo"] .login-form-container {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   justify-content: center;
-  padding: 8rem 2rem 2rem;
+  align-items: center;
+  padding: 2rem;
   background-color: var(--color-background-panel);
   overflow-y: auto;
-  font-family: "Libre Baskerville", "Lora", "Merriweather", Georgia, serif;
 }
 
 html[data-theme="giacngo"] .login-form-container h1,
@@ -34,7 +33,7 @@ html[data-theme="giacngo"] .login-logo-container {
   align-items: center;
   justify-content: center;
   background-color: var(--color-background-main);
-  padding: 0;
+  padding: 2rem;
 }
 
 @media (min-width: 1024px) {

@@ -1,8 +1,10 @@
+
+// client/src/components/admin/AiManagement.tsx
 import React, { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import { AIConfig, Message, User, TrainingDataSource, KoiiTask, Conversation, Document, Tag, Space } from '../../types';
+import { AIConfig, Message, User, TrainingDataSource, KoiiTask, Conversation, Document, Tag, Space, ModelType } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
-import { ExpandIcon, PaperclipIcon, BrainwaveIcon, KoiiIcon, TrashIcon, InfoIcon, BookOpenIcon } from '../Icons';
+import { ExpandIcon, PaperclipIcon, BrainwaveIcon, KoiiIcon, TrashIcon, InfoIcon, BookOpenIcon, PlusIcon, SpinnerIcon } from '../Icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { normalizePostgresArray } from '../../utils/arrayUtils';
@@ -72,6 +74,7 @@ const translations = {
         deleteTrainingDataSuccess: 'Đã xóa dữ liệu huấn luyện.',
         deleteTrainingDataError: 'Xóa dữ liệu huấn luyện thất bại: {message}',
         uploadError: 'Tải file thất bại.',
+        uploadTimeout: 'Tải file quá lâu, vui lòng thử file nhỏ hơn hoặc kiểm tra kết nối.',
         trialAllowed: 'Cho phép dùng thử',
         trialAllowedDesc: 'Người dùng có gói Dùng thử có thể thấy AI này.',
         requiresSub: 'Yêu cầu gói',
@@ -144,7 +147,7 @@ const translations = {
         largeFileWarning: 'Tệp này chưa được tóm tắt. Lập chỉ mục toàn bộ nội dung có thể tốn nhiều tài nguyên và có thể gặp giới hạn. Bạn nên tạo bản tóm tắt.',
         unsavedChangesTitle: 'Thay đổi chưa được lưu',
         unsavedChangesBody: 'Bạn có thay đổi chưa lưu. Bạn có chắc muốn hủy bỏ chúng không?',
-        aiThought: 'Suy nghĩ của AI',
+        aiThought: 'AI đang suy nghĩ...',
         loadingTestHistory: 'Đang tải lịch sử thử nghiệm...',
         noTestHistory: 'Không có lịch sử thử nghiệm. Bắt đầu chat để tạo dữ liệu.',
         tokenEstimation: 'Ước tính Token (~1 token / 4 chars)',
@@ -175,9 +178,12 @@ const translations = {
             cancel: 'Hủy',
         },
         space: 'Không gian',
+        selectPlaceholder: '-- Chọn --',
         tabConfiguration: 'Cấu Hình',
         tabTraining: 'Huấn luyện',
         tabTagsAndSuggestions: 'Tag & Gợi ý',
+        uploadFile: 'Tải Tệp',
+        manualInput: 'Nhập Tay',
     },
     en: {
         aiList: 'AI List',
@@ -235,6 +241,7 @@ const translations = {
         deleteTrainingDataSuccess: 'Training data deleted.',
         deleteTrainingDataError: 'Failed to delete training data: {message}',
         uploadError: 'File upload failed.',
+        uploadTimeout: 'File upload timed out, please try a smaller file.',
         trialAllowed: 'Allow Trial',
         trialAllowedDesc: 'Users on the Trial plan can see this AI.',
         requiresSub: 'Requires Subscription',
@@ -307,7 +314,7 @@ const translations = {
         largeFileWarning: 'This file has not been summarized. Indexing the full content may be resource-intensive and hit limits. It is recommended to generate a summary.',
         unsavedChangesTitle: 'Unsaved Changes',
         unsavedChangesBody: 'You have unsaved changes. Are you sure you want to discard them?',
-        aiThought: 'AI Thought',
+        aiThought: 'AI is thinking...',
         loadingTestHistory: 'Loading test history...',
         noTestHistory: 'No test history. Start chatting to create data.',
         tokenEstimation: 'Token Estimation (~1 token / 4 chars)',
@@ -323,7 +330,7 @@ const translations = {
         maxOutputTokensLabel: 'Max Output Tokens',
         maxOutputTokensDesc: 'Limit the maximum number of tokens for the response to avoid rate limit errors.',
         thinkingBudgetLabel: 'Thinking Budget',
-        thinkingBudgetDesc: 'Number of tokens for Gemini to "think". Required if Max Tokens is set.',
+        thinkingBudgetDesc: 'Number of tokens for Gemini to \"think\". Required if Max Tokens is set.',
         selectFromLibrary: 'Select from Library',
         linkedDocuments: 'Linked Documents',
         unlinkSuccess: 'Unlinked document successfully.',
@@ -333,19 +340,29 @@ const translations = {
             description: 'Choose documents you want to link to this AI. Summarized documents will provide the best context.',
             addSelected: 'Add Selected Documents',
             adding: 'Adding...',
-            noDocsAvailable: 'No documents available to link. Please upload documents in the "Files & Documents" section first.',
+            noDocsAvailable: 'No documents available to link. Please upload documents in the \"Files & Documents\" section first.',
             searchPlaceholder: 'Search documents...',
             cancel: 'Cancel',
         },
         space: 'Space',
+        selectPlaceholder: '-- Select --',
         tabConfiguration: 'Configuration',
         tabTraining: 'Training',
         tabTagsAndSuggestions: 'Tags & Suggestions',
+        uploadFile: 'Upload File',
+        manualInput: 'Manual Input',
     }
 };
 
 const INITIAL_MESSAGES_COUNT = 10;
 const MESSAGE_BATCH_SIZE = 10;
+
+const isQaFile = (fileName?: string): boolean => {
+    if (!fileName) return false;
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    // These files are ingested as QA pairs, not as single documents.
+    return ['xlsx', 'xls', 'csv', 'jsonl'].includes(extension || '');
+};
 
 const KoiiTaskStatusDisplay: React.FC<{ status: KoiiTask | null, language: 'vi' | 'en' }> = ({ status, language }) => {
     const t = translations[language];
@@ -471,7 +488,7 @@ const TrainingDataModal: React.FC<{
                                     {type === 'file' && (
                                          <div className="flex items-center gap-2">
                                             <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold" title={item.fileName}>{item.fileName}</a>
-                                            {!item.summary && (
+                                            {!item.summary && !isQaFile(item.fileName) && (
                                                 <div className="text-yellow-500 cursor-help" title={t.largeFileWarning}>
                                                     <InfoIcon className="w-4 h-4" />
                                                 </div>
@@ -488,7 +505,7 @@ const TrainingDataModal: React.FC<{
                                         {item.summary}
                                     </p>
                                 </div>
-                            ) : type === 'file' && typeof item.id === 'number' && !isFormDisabled && onSummarize && (
+                            ) : type === 'file' && typeof item.id === 'number' && !isFormDisabled && onSummarize && !isQaFile(item.fileName) && (
                                 <div className="mt-2 pt-2 border-t border-border-color w-full">
                                     <button
                                         onClick={() => onSummarize(item.id as number)}
@@ -718,6 +735,8 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const [isSubmittingToKoii, setIsSubmittingToKoii] = useState(false);
     const [trainingPairIndex, setTrainingPairIndex] = useState<number | null>(null);
     const [trainedPairs, setTrainedPairs] = useState<Set<string>>(new Set());
+    const [isManualQAOpen, setIsManualQAOpen] = useState(false);
+    const [manualQA, setManualQA] = useState({ question: '', answer: '' });
 
 
     const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -747,9 +766,10 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const canEdit = user.permissions?.includes('roles') || isOwner;
     const isApiKeyMissing = !!selectedAi && !user.apiKeys?.[selectedAi.modelType];
     const isFormDisabled = !canEdit || isApiKeyMissing;
+    const isSuperAdmin = user.permissions?.includes('roles');
 
     const filesNeedingSummaryCount = useMemo(() => {
-        return trainingData.filter(d => d.type === 'file' && !d.summary && typeof d.id === 'number').length;
+        return trainingData.filter(d => d.type === 'file' && !d.summary && typeof d.id === 'number' && !isQaFile(d.fileName)).length;
     }, [trainingData]);
 
     const manageableSpaces = useMemo(() => {
@@ -763,7 +783,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         if (!selectedAi || !pristineAi) return false;
         if (stagedFiles.length > 0) return true;
         
-        // Deep compare the two AI config states
         const normalizedPristine = { ...pristineAi, suggestedQuestions: normalizePostgresArray(pristineAi.suggestedQuestions), suggestedQuestionsEn: normalizePostgresArray(pristineAi.suggestedQuestionsEn) };
         const normalizedSelected = { ...selectedAi, suggestedQuestions: normalizePostgresArray(selectedAi.suggestedQuestions), suggestedQuestionsEn: normalizePostgresArray(selectedAi.suggestedQuestionsEn) };
         
@@ -794,7 +813,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         }
     };
     
-    // Polling logic for Koii task status
     useEffect(() => {
         stopPolling();
 
@@ -808,14 +826,12 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 }
             } catch (error) {
                 console.error('Polling for Koii task status failed:', error);
-                // We don't show toast here as it's a background task. 
-                // The API service now handles 404s gracefully.
             }
         };
 
         if (selectedAi && typeof selectedAi.id === 'number') {
-            pollStatus(); // Initial poll
-            pollingIntervalRef.current = window.setInterval(pollStatus, 5000); // Poll every 5 seconds
+            pollStatus();
+            pollingIntervalRef.current = window.setInterval(pollStatus, 5000);
         }
 
         return () => stopPolling();
@@ -883,12 +899,9 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         let fullHistory: Message[] = [];
                         let latestConversationId: number | null = null;
                         if (conversations && conversations.length > 0) {
-                            // Merge all test conversations into a single chronological timeline
                             fullHistory = conversations.flatMap(c => c.messages);
                             fullHistory.sort((a, b) => a.timestamp - b.timestamp);
                             
-                            // The `testConversationId` should be the ID of the most recent conversation
-                            // so that new messages are appended to it.
                             const latestConversation = conversations.sort((a,b) => b.startTime - a.startTime)[0];
                             if (latestConversation) {
                                 latestConversationId = latestConversation.id;
@@ -926,11 +939,12 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
         const provider = selectedAi.modelType;
         setModelsError(null);
-        setIsModelsLoading(false);
+        setIsModelsLoading(true);
         setAvailableModels([]);
 
         const userApiKey = user.apiKeys?.[provider];
         if (!userApiKey) {
+            setIsModelsLoading(false);
             setModelsError(t.addKeyForProvider.replace('{provider}', provider.toUpperCase()));
             if (selectedAi.modelName !== '') {
                 setSelectedAi(prev => prev ? { ...prev, modelName: '' } : null);
@@ -938,28 +952,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             return;
         }
 
-        if (provider === 'gemini') {
-            setAvailableModels(['gemini-2.5-flash', 'gemini-2.5-pro']);
-        } else if (provider === 'grok') {
-            setAvailableModels(['grok-1-mock']);
-        } else if (provider === 'gpt') {
-            const fetchGptModels = async () => {
-                setIsModelsLoading(true);
-                try {
-                    if (typeof user.id !== 'number') throw new Error("Invalid user ID.");
-                    const models = await apiService.getAvailableModels('gpt', user.id);
-                    setAvailableModels(models);
-                    if (selectedAi.modelName && !models.includes(selectedAi.modelName)) {
-                         setSelectedAi(prev => prev ? { ...prev, modelName: '' } : null);
-                    }
-                } catch (error: any) {
-                    setModelsError(error.message || t.modelLoadError);
-                } finally {
-                    setIsModelsLoading(false);
-                }
-            };
-            fetchGptModels();
-        }
+        const fetchModelsFromServer = async () => {
+            try {
+                if (typeof user.id !== 'number') throw new Error("Invalid user ID.");
+                const models = await apiService.getAvailableModels(provider, user.id);
+                setAvailableModels(models);
+            } catch (error: any) {
+                setModelsError(error.message || t.modelLoadError);
+            } finally {
+                setIsModelsLoading(false);
+            }
+        };
+        
+        fetchModelsFromServer();
     }, [selectedAi?.id, selectedAi?.modelType, user.apiKeys, language, user.id, t.addKeyForProvider, t.modelLoadError]);
 
     useEffect(() => {
@@ -1006,7 +1011,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         };
     }, [language]);
     
-    // Client-side token calculation
     useEffect(() => {
         if (!selectedAi) {
             setEstimatedChars(null);
@@ -1014,35 +1018,15 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         }
 
         const systemChars = selectedAi.trainingContent?.length || 0;
-        
-        const qaChars = trainingData
-            .filter(d => d.type === 'qa')
-            .reduce((acc, d) => acc + (d.question?.length || 0) + (d.answer?.length || 0), 0);
-
-        const fileChars = trainingData
-            .filter(d => d.type === 'file')
-            .reduce((acc, d) => acc + (d.summary?.length || 0), 0); // Use summary length
-
-        const documentChars = trainingData
-            .filter(d => d.type === 'document')
-            .reduce((acc, d) => acc + (d.summary?.length || 0), 0); // Use summary length
-
+        const qaChars = trainingData.filter(d => d.type === 'qa').reduce((acc, d) => acc + (d.question?.length || 0) + (d.answer?.length || 0), 0);
+        const fileChars = trainingData.filter(d => d.type === 'file').reduce((acc, d) => acc + (d.summary?.length || 0), 0);
+        const documentChars = trainingData.filter(d => d.type === 'document').reduce((acc, d) => acc + (d.summary?.length || 0), 0);
         const recentHistory = allMessages.slice(-8);
         const historyChars = recentHistory.reduce((acc, msg) => acc + (msg.text?.length || 0), 0);
-
         const currentMessageChars = newMessage.length;
-
         const totalChars = systemChars + qaChars + fileChars + documentChars + historyChars + currentMessageChars;
 
-        setEstimatedChars({
-            system: systemChars,
-            qa: qaChars,
-            file: fileChars,
-            document: documentChars,
-            history: historyChars,
-            currentMessage: currentMessageChars,
-            total: totalChars,
-        });
+        setEstimatedChars({ system: systemChars, qa: qaChars, file: fileChars, document: documentChars, history: historyChars, currentMessage: currentMessageChars, total: totalChars });
         
     }, [newMessage, selectedAi, trainingData, allMessages]);
 
@@ -1054,7 +1038,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 setIsLoadingMore(true);
                 prevScrollHeightRef.current = container.scrollHeight;
     
-                // Use a timeout to give the UI time to show the loading indicator
                 setTimeout(() => {
                     const newCount = displayedMessages.length + MESSAGE_BATCH_SIZE;
                     setDisplayedMessages(allMessages.slice(-newCount));
@@ -1089,25 +1072,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             }
     
             const newAi: AIConfig = {
-                id: `new-${Date.now()}`,
-                name: t.newAi,
-                nameEn: 'New AI',
-                description: "",
-                descriptionEn: "",
-                avatarUrl: "",
-                trainingContent: "",
-                suggestedQuestions: [],
-                suggestedQuestionsEn: [],
-                tags: [],
-                modelType: 'gemini',
-                modelName: 'gemini-2.5-flash',
-                ownerId: user.id as number,
-                isPublic: false,
-                isTrialAllowed: false,
-                requiresSubscription: false,
-                maxOutputTokens: 8000,
-                thinkingBudget: 2000,
-                spaceId: (manageableSpaces[0]?.id as number) || null,
+                id: `new-${Date.now()}`, name: t.newAi, nameEn: 'New AI', description: "", descriptionEn: "", avatarUrl: "", trainingContent: "", suggestedQuestions: [], suggestedQuestionsEn: [], tags: [], modelType: 'gemini', modelName: 'gemini-3-flash-preview', ownerId: user.id as number, isPublic: false, isTrialAllowed: false, requiresSubscription: false, maxOutputTokens: 8000, thinkingBudget: 2000, spaceId: (manageableSpaces[0]?.id as number) || null,
             };
             setAiList([...aiList, newAi]);
             setSelectedAi(newAi);
@@ -1262,7 +1227,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             reader.readAsDataURL(file);
         } else {
             const formData = new FormData();
-            formData.append('trainingFiles', file); // The endpoint expects this key
+            formData.append('trainingFiles', file);
             try {
                 showToast(t.uploading, 'info');
                 const response = await apiService.uploadFiles(formData);
@@ -1406,7 +1371,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         if (!selectedAi || isSummarizingAll || isFormDisabled) return;
 
         const filesToSummarize = trainingData.filter(
-            d => d.type === 'file' && !d.summary && typeof d.id === 'number'
+            d => d.type === 'file' && !d.summary && typeof d.id === 'number' && !isQaFile(d.fileName)
         );
     
         if (filesToSummarize.length === 0) {
@@ -1478,7 +1443,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const handleDeleteLinkedDocument = async (documentId: number) => {
         if (!selectedAi || typeof selectedAi.id !== 'number' || typeof documentId !== 'number') return;
         
-        const internalId = -documentId; // Linked docs have negative IDs in local state
+        const internalId = -documentId;
         setDeletingIds(prev => new Set(prev).add(internalId));
         try {
             await apiService.unlinkDocumentFromAi(selectedAi.id, documentId);
@@ -1522,16 +1487,56 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         formData.append('type', 'file');
 
         setIsUploading(true);
+        
+        // Timeout promise to reject if upload takes too long (e.g. 60s)
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Upload timed out')), 60000)
+        );
+
         try {
-            const newDataSource = await apiService.createTrainingDataSourceForAI(selectedAi.id, formData);
-            setTrainingData(prev => [newDataSource, ...prev]);
-        } catch (error) { 
-            showToast(t.uploadError, 'error'); 
+            // Race the API call against the timeout
+            const res = await Promise.race([
+                apiService.createTrainingDataSourceForAI(selectedAi.id, formData),
+                timeoutPromise
+            ]) as any;
+
+            if (res.message && res.count) {
+                showToast(res.message, 'success');
+                const freshData = await apiService.getTrainingDataForAI(selectedAi.id);
+                setTrainingData(freshData);
+            } else {
+                setTrainingData(prev => [res, ...prev]);
+                showToast(t.addedToTraining, 'success');
+            }
+        } catch (error: any) { 
+            console.error("Upload error:", error);
+            if (error.message === 'Upload timed out') {
+                showToast(t.uploadTimeout || 'File upload timed out.', 'error');
+            } else {
+                showToast(t.uploadError, 'error'); 
+            }
         } finally { 
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
+    
+    const handleManualQASubmit = async () => {
+        if (!selectedAi || typeof selectedAi.id !== 'number' || !manualQA.question.trim() || !manualQA.answer.trim()) return;
+        setIsSaving(true);
+        try {
+            const newSource = await apiService.createTrainingQaDataSource(Number(selectedAi.id), manualQA.question.trim(), manualQA.answer.trim());
+            setTrainingData(prev => [newSource, ...prev]);
+            setManualQA({ question: '', answer: '' });
+            setIsManualQAOpen(false);
+            showToast(t.addedToTraining, 'success');
+        } catch (error: any) {
+            showToast(`Save failed: ${error.message}`, 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     const handleSubmitToKoii = useCallback(async () => {
         if (!selectedAi || typeof selectedAi.id !== 'number') return;
@@ -1589,10 +1594,13 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const getOwnerName = (ownerId?: number) => allUsers.find(u => u.id === ownerId)?.name || 'Không rõ';
 
     const getStatusIcon = (item: TrainingDataSource) => {
-        if (item.isIndexed) {
-            return <div className="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0" title="Indexed"></div>;
+        const currentProvider = selectedAi?.modelType;
+        const isIndexedForProvider = currentProvider && item.indexedProviders?.includes(currentProvider);
+
+        if (isIndexedForProvider) {
+            return <div className="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0" title={`Indexed for ${currentProvider}`}></div>;
         }
-        return <div className="w-2.5 h-2.5 bg-gray-300 rounded-full flex-shrink-0" title="Not Indexed"></div>;
+        return <div className="w-2.5 h-2.5 bg-gray-300 rounded-full flex-shrink-0" title={`Not Indexed for ${currentProvider}`}></div>;
     }
 
     const inputClasses = "mt-1 block w-full px-3 py-2 bg-background-panel border border-border-color rounded-md shadow-sm focus:ring-primary focus:border-primary disabled:bg-background-light disabled:cursor-not-allowed h-10";
@@ -1600,16 +1608,18 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
     const filteredTrainingData = useMemo(() => {
         const data = trainingData || [];
+        const currentProvider = selectedAi?.modelType;
+
         switch (trainingFilter) {
             case 'indexed':
-                return data.filter(d => d.isIndexed);
+                return data.filter(d => currentProvider && d.indexedProviders?.includes(currentProvider));
             case 'not_indexed':
-                return data.filter(d => !d.isIndexed);
+                return data.filter(d => !currentProvider || !d.indexedProviders?.includes(currentProvider));
             case 'all':
             default:
                 return data;
         }
-    }, [trainingData, trainingFilter]);
+    }, [trainingData, trainingFilter, selectedAi?.modelType]);
 
     const qaTrainingData = useMemo(() => filteredTrainingData.filter(d => d.type === 'qa'), [filteredTrainingData]);
     const fileTrainingData = useMemo(() => filteredTrainingData.filter(d => d.type === 'file'), [filteredTrainingData]);
@@ -1635,7 +1645,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {aiList.sort((a, b) => a.name.localeCompare(b.name)).map(ai => (
-                        <div key={ai.id} onClick={() => handleSelectAi(ai)} className={`flex items-start p-3 cursor-pointer hover:bg-background-light border-b border-border-color ${selectedAi?.id === ai.id ? 'bg-primary-light' : ''}`}>
+                        <div key={ai.id} onClick={() => handleSelectAi(ai)} className={`flex items-start p-3 cursor-pointer hover:bg-background-light border-b border-border-color ${selectedAi?.id === ai.id ? 'bg-primary-light' : 'hover:bg-background-light'}`}>
                             <img src={ai.avatarUrl} alt={ai.name} className="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover" />
                             <div className="flex-grow overflow-hidden">
                                 <p className="font-semibold truncate">{ai.name}</p>
@@ -1662,7 +1672,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         {(!canEdit && !isApiKeyMissing) && <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-10 flex items-center justify-center"><p className="p-4 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-200">{t.readOnly}</p></div>}
                         
                         <div className="flex-grow overflow-y-auto p-6">
-                            {/* Identity Section */}
                             <div className="flex items-start space-x-6">
                                 <div className="flex-shrink-0 flex flex-col items-center space-y-2">
                                     {selectedAi.avatarUrl ? (
@@ -1713,7 +1722,10 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                         <div>
                                             <label className="block text-sm font-medium text-text-main">{t.provider}</label>
                                             <select name="modelType" value={selectedAi.modelType} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses}>
-                                                <option value="gemini">Gemini</option><option value="gpt">GPT</option><option value="grok">Grok</option>
+                                                <option value="gemini">Gemini</option>
+                                                <option value="gpt">GPT</option>
+                                                <option value="vertex">Vertex AI</option>
+                                                <option value="grok">Grok</option>
                                             </select>
                                         </div>
                                         <div>
@@ -1727,21 +1739,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-text-main">{t.space}</label>
-                                            <select name="spaceId" value={selectedAi.spaceId ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses}>
-                                                <option value="">-- No Space --</option>
-                                                {manageableSpaces.map(space => (
-                                                    <option key={space.id as number} value={space.id as number}>{space.name}</option>
-                                                ))}
+                                            <select name="spaceId" value={selectedAi.spaceId ?? ''} onChange={handleInputChange} disabled={!isSuperAdmin} className="w-full p-2 border rounded-md text-sm bg-gray-50 disabled:cursor-not-allowed">
+                                                <option value="">{t.selectPlaceholder}</option>
+                                                {allSpaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}
                                             </select>
                                         </div>
-                                        {(selectedAi.modelType === 'gemini' || selectedAi.modelType === 'gpt') && (
+                                        {(selectedAi.modelType === 'gemini' || selectedAi.modelType === 'gpt' || selectedAi.modelType === 'vertex') && (
                                             <>
                                                 <div>
                                                     <label className="block text-sm font-medium text-text-main">{t.maxOutputTokensLabel}</label>
                                                     <input type="number" name="maxOutputTokens" value={selectedAi.maxOutputTokens ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses} placeholder="e.g. 4096"/>
                                                     <p className="text-xs text-text-light mt-1">{t.maxOutputTokensDesc}</p>
                                                 </div>
-                                                {selectedAi.modelType === 'gemini' && (
+                                                {(selectedAi.modelType === 'gemini' || selectedAi.modelType === 'vertex') && (
                                                     <div>
                                                         <label className="block text-sm font-medium text-text-main">{t.thinkingBudgetLabel}</label>
                                                         <input type="number" name="thinkingBudget" value={selectedAi.thinkingBudget ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses} placeholder="e.g. 2000"/>
@@ -1760,15 +1770,38 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
                             {activeTab === 'training' && (
                                 <div className="space-y-6">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-md font-semibold text-text-main">{t.trainingDataSources}</h3>
-                                        <div className="flex items-center space-x-2">
-                                            <button type="button" onClick={() => setIsDocModalOpen(true)} disabled={isFormDisabled || typeof selectedAi.id !== 'number'} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-text-main bg-background-panel border border-border-color rounded-md shadow-sm hover:bg-background-light disabled:opacity-50"><BookOpenIcon className="w-4 h-4" /><span>{t.selectFromLibrary}</span></button>
-                                            <span className="text-xs text-text-light">{t.filterByStatus}:</span>
-                                            <button onClick={() => setTrainingFilter('all')} className={`px-2 py-0.5 rounded-full ${trainingFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{t.statusAll}</button>
-                                            <button onClick={() => setTrainingFilter('indexed')} className={`px-2 py-0.5 rounded-full ${trainingFilter === 'indexed' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{t.statusIndexed}</button>
-                                            <button onClick={() => setTrainingFilter('not_indexed')} className={`px-2 py-0.5 rounded-full ${trainingFilter === 'not_indexed' ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{t.statusNotIndexed}</button>
+                                    <div className="flex justify-between items-center bg-[#efe0bd] p-4 -m-4 mb-2 rounded-lg">
+                                        <h3 className="font-bold text-lg text-[#991b1b]">{t.trainingDataSources}</h3>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => fileInputRef.current?.click()} disabled={isUploading || isFormDisabled} className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#dcd5bc] bg-white rounded-full hover:bg-white/50 disabled:opacity-50">
+                                                {isUploading ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : <PaperclipIcon className="w-4 h-4"/>}
+                                                {t.uploadFile}
+                                            </button>
+                                            <div className="relative">
+                                                <button onClick={() => setIsManualQAOpen(p => !p)} disabled={isFormDisabled} className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#dcd5bc] bg-white rounded-full hover:bg-white/50 disabled:opacity-50">
+                                                    <PlusIcon className="w-4 h-4"/>
+                                                    {t.manualInput}
+                                                </button>
+                                                {isManualQAOpen && (
+                                                    <div className="absolute top-full right-0 mt-2 w-96 bg-white border border-[#dcd5bc] rounded-xl shadow-2xl z-50 p-4 animate-fade-in">
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Nhập tay Q&A</p>
+                                                        <input placeholder="Câu hỏi..." className="w-full p-2.5 text-base border border-border-color rounded-md mb-2" value={manualQA.question} onChange={e => setManualQA(p => ({...p, question: e.target.value}))}/>
+                                                        <textarea placeholder="Câu trả lời..." className="w-full p-2.5 text-base border border-border-color rounded-md mb-2" rows={5} value={manualQA.answer} onChange={e => setManualQA(p => ({...p, answer: e.target.value}))}/>
+                                                        <button onClick={handleManualQASubmit} disabled={isSaving} className="w-full py-2 bg-[#991b1b] text-white rounded-lg text-sm font-bold disabled:opacity-50">
+                                                            {isSaving ? t.saving : t.save}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div className="flex justify-end items-center space-x-2">
+                                        <button type="button" onClick={() => setIsDocModalOpen(true)} disabled={isFormDisabled || typeof selectedAi.id !== 'number'} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-text-main bg-background-panel border border-border-color rounded-md shadow-sm hover:bg-background-light disabled:opacity-50"><BookOpenIcon className="w-4 h-4" /><span>{t.selectFromLibrary}</span></button>
+                                        <span className="text-xs text-text-light">{t.filterByStatus}:</span>
+                                        <button onClick={() => setTrainingFilter('all')} className={`px-2 py-0.5 text-xs rounded-full ${trainingFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{t.statusAll}</button>
+                                        <button onClick={() => setTrainingFilter('indexed')} className={`px-2 py-0.5 text-xs rounded-full ${trainingFilter === 'indexed' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{t.statusIndexed}</button>
+                                        <button onClick={() => setTrainingFilter('not_indexed')} className={`px-2 py-0.5 text-xs rounded-full ${trainingFilter === 'not_indexed' ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{t.statusNotIndexed}</button>
                                     </div>
                                     <div>
                                         <div className="flex items-center justify-between"><label className="block text-sm font-medium text-text-main">{t.additionalTrainingContent}</label><button onClick={() => setIsQaModalOpen(true)} title={t.expand} className="p-1 text-text-light hover:text-primary"><ExpandIcon className="w-4 h-4" /></button></div>
@@ -1777,11 +1810,11 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="flex justify-between items-center mb-1"><label className="block text-sm font-medium text-text-main">{t.attachedFiles}</label><div className="flex items-center space-x-2"><button type="button" onClick={handleSummarizeAll} disabled={isFormDisabled || isSummarizingAll || filesNeedingSummaryCount === 0} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-text-main bg-background-panel border border-border-color rounded-md shadow-sm hover:bg-background-light disabled:opacity-50 disabled:cursor-not-allowed" title={t.summarizeAllFiles}>{isSummarizingAll ? (<><div className="w-3 h-3 border-2 border-dashed rounded-full animate-spin border-primary"></div><span>{t.summarizingAll}</span></>) : (<><BrainwaveIcon className="w-4 h-4" /><span>{`${t.summarizeAllFiles} (${filesNeedingSummaryCount})`}</span></>)}</button><input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" /><button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading || isFormDisabled} className="p-1.5 rounded-md hover:bg-background-light text-text-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={t.attachFile}>{isUploading ? <div className="w-5 h-5 border-2 border-dashed rounded-full animate-spin border-primary"></div> : <PaperclipIcon className="w-5 h-5" />}</button><button onClick={() => setIsTrainingDataModalOpen(true)} title={t.expand} className="p-1 text-text-light hover:text-primary"><ExpandIcon className="w-4 h-4" /></button></div></div>
+                                        <div className="flex justify-between items-center mb-1"><label className="block text-sm font-medium text-text-main">{t.attachedFiles}</label><div className="flex items-center space-x-2"><button type="button" onClick={handleSummarizeAll} disabled={isFormDisabled || isSummarizingAll || filesNeedingSummaryCount === 0} className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-text-main bg-background-panel border border-border-color rounded-md shadow-sm hover:bg-background-light disabled:opacity-50 disabled:cursor-not-allowed" title={t.summarizeAllFiles}>{isSummarizingAll ? (<><div className="w-3 h-3 border-2 border-dashed rounded-full animate-spin border-primary"></div><span>{t.summarizingAll}</span></>) : (<><BrainwaveIcon className="w-4 h-4" /><span>{`${t.summarizeAllFiles} (${filesNeedingSummaryCount})`}</span></>)}</button><button onClick={() => setIsTrainingDataModalOpen(true)} title={t.expand} className="p-1 text-text-light hover:text-primary"><ExpandIcon className="w-4 h-4" /></button></div></div>
                                         <div className="border border-border-color rounded-lg p-2 h-40 flex flex-col mt-1">
                                             <div className="flex-grow min-h-0 overflow-y-auto space-y-1 pr-1">
                                                 {stagedFiles.map((file, index) => (<div key={index} className="flex justify-between items-center bg-blue-50 border border-blue-200 px-2 py-1 rounded-md text-sm"><span className="text-blue-800 truncate" title={file.name}>{file.name}</span><div className='flex items-center'><span className="text-xs text-blue-600 mr-2">{t.pendingUpload}</span><button onClick={() => handleRemoveStagedFile(index)} className="text-blue-700 hover:text-accent-red-hover flex-shrink-0 text-lg leading-none">&times;</button></div></div>))}
-                                                {fileTrainingData.map((item) => (<div key={item.id} className="flex flex-col items-start bg-background-light px-2 py-2 rounded-md text-sm group"><div className="flex justify-between items-center w-full"><div className="flex items-center gap-2 flex-1 overflow-hidden">{getStatusIcon(item)}<a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate font-medium" title={item.fileName}>{item.fileName}</a>{!item.summary && (<div className="text-yellow-500 cursor-help" title={t.largeFileWarning}><InfoIcon className="w-4 h-4" /></div>)}</div>{!isFormDisabled && (<button onClick={() => handleDeleteTrainingData(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="ml-2 text-text-light hover:text-accent-red flex-shrink-0 leading-none disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity" title={t.delete}><TrashIcon className="w-4 h-4" /></button>)}</div>{item.summary ? (<div className="mt-2 pt-2 border-t border-border-color w-full"><p className="text-xs font-semibold text-text-light mb-1">{t.aiSummary}</p><p className="text-xs text-gray-600 italic">{item.summary.length > 100 ? `${item.summary.substring(0, 100)}...` : item.summary}</p></div>) : (typeof item.id === 'number' && !isFormDisabled && (<div className="mt-2 pt-2 border-t border-border-color w-full"><button onClick={() => handleGenerateSummary(item.id as number)} disabled={summarizingId === item.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait">{summarizingId === item.id ? t.generatingSummary : t.generateSummary}</button></div>))}</div>))}
+                                                {fileTrainingData.map((item) => (<div key={item.id} className="flex flex-col items-start bg-background-light px-2 py-2 rounded-md text-sm group"><div className="flex justify-between items-center w-full"><div className="flex items-center gap-2 flex-1 overflow-hidden">{getStatusIcon(item)}<a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate font-medium" title={item.fileName}>{item.fileName}</a>{!item.summary && !isQaFile(item.fileName) && (<div className="text-yellow-500 cursor-help" title={t.largeFileWarning}><InfoIcon className="w-4 h-4" /></div>)}</div>{!isFormDisabled && (<button onClick={() => handleDeleteTrainingData(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="ml-2 text-text-light hover:text-accent-red flex-shrink-0 leading-none disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity" title={t.delete}><TrashIcon className="w-4 h-4"/></button>)}</div>{item.summary ? (<div className="mt-2 pt-2 border-t border-border-color w-full"><p className="text-xs font-semibold text-text-light mb-1">{t.aiSummary}</p><p className="text-xs text-gray-600 italic">{item.summary.length > 100 ? `${item.summary.substring(0, 100)}...` : item.summary}</p></div>) : (typeof item.id === 'number' && !isFormDisabled && !isQaFile(item.fileName) && (<div className="mt-2 pt-2 border-t border-border-color w-full"><button onClick={() => handleGenerateSummary(item.id as number)} disabled={summarizingId === item.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait">{summarizingId === item.id ? t.generatingSummary : t.generateSummary}</button></div>))}</div>))}
                                                 {fileTrainingData.length === 0 && stagedFiles.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-xs text-center text-text-light">{t.noFiles}</p></div>}
                                             </div>
                                         </div>
@@ -1903,7 +1936,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         </div>
                     </div>
 
-                    {/* Test Chat Window */}
                     <div className={`relative flex flex-col transition-all duration-300 ease-in-out ${isChatExpanded ? 'w-2/3' : 'w-2/5'}`}>
                         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-l border-border-color">
                             <h3 className="text-lg font-semibold">{t.testChat}</h3>
@@ -1967,7 +1999,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                     <button type="submit" disabled={isTyping || (!newMessage.trim() && !imagePreview && !fileAttachment) || isFormDisabled} className="chat-send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11Z"></path></svg></button>
                                 </div>
                             </form>
-                            <input ref={testChatFileInputRef} type="file" className="hidden" accept="image/*,.doc,.docx,.pdf" onChange={handleTestChatFileSelect}/>
+                            <input ref={testChatFileInputRef} type="file" className="hidden" accept="image/*,.doc,.docx,.pdf,.txt" onChange={handleTestChatFileSelect}/>
                         </div>
                     </div>
                 </div>
@@ -1975,7 +2007,6 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 <div className="flex-1 flex items-center justify-center text-text-light">{t.selectOrCreate}</div>
             )}
 
-            {/* Modals */}
             {selectedAi && (
                 <>
                     <TrainingDataModal 
@@ -2016,7 +2047,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         onClose={() => setIsDocModalOpen(false)}
                         onAdd={(newDocs) => {
                             const newTrainingSources = newDocs.map(d => ({
-                                id: -(d.id as number), // Use negative ID for local state to avoid conflicts
+                                id: -(d.id as number),
                                 aiConfigId: selectedAi.id,
                                 type: 'document',
                                 documentId: d.id as number,
@@ -2044,6 +2075,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                     </div>
                 </div>
             )}
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,.jsonl" />
         </div>
     );
 };

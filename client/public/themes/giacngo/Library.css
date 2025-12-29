@@ -14,15 +14,44 @@ html[data-theme="giacngo"] .library-search-bar .search-icon { position: absolute
 html[data-theme="giacngo"] .library-search-bar input { width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border-radius: 0.5rem; border: 1px solid var(--color-border-color); background-color: var(--color-background-panel); font-size: 1rem; }
 html[data-theme="giacngo"] .library-search-bar input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-light); }
 html[data-theme="giacngo"] .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
-html[data-theme="giacngo"] .doc-card { background-color: var(--color-background-panel); border: 1px solid var(--color-border-color); border-radius: 0.75rem; overflow: hidden; text-decoration: none; color: inherit; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+html[data-theme="giacngo"] .doc-card { 
+    background-color: var(--color-background-panel); 
+    border: 1px solid var(--color-border-color); 
+    border-radius: 0.75rem; 
+    overflow: hidden; 
+    text-decoration: none; 
+    color: inherit; 
+    transition: all 0.2s ease; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+    display: flex;
+    flex-direction: column;
+}
 html[data-theme="giacngo"] .doc-card:hover { transform: translateY(-4px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); border-color: var(--color-primary); }
 html[data-theme="giacngo"] .doc-card-thumb { width: 100%; aspect-ratio: 4 / 3; background-color: var(--color-background-light); display: flex; align-items: center; justify-content: center; color: var(--color-text-light); }
 html[data-theme="giacngo"] .doc-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
 html[data-theme="giacngo"] .doc-card-thumb svg { width: 3rem; height: 3rem; }
-html[data-theme="giacngo"] .doc-card-content { padding: 1rem; }
+html[data-theme="giacngo"] .doc-card-content { 
+    padding: 1rem; 
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
 html[data-theme="giacngo"] .doc-card-type { font-size: 0.75rem; font-weight: 600; color: var(--color-primary); text-transform: uppercase; }
 html[data-theme="giacngo"] .doc-card-title { font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem; color: var(--color-text-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;  overflow: hidden; }
 html[data-theme="giacngo"] .doc-card-author { font-size: 0.875rem; color: var(--color-text-light); margin-top: 0.5rem; }
+html[data-theme="giacngo"] .doc-card-summary {
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: calc(1.5em * 2); /* Reserve space for 2 lines */
+}
 html[data-theme="giacngo"] .no-results-message { grid-column: 1 / -1; text-align: center; padding: 4rem 0; color: var(--color-text-light); }
 
 html[data-theme="giacngo"] .doc-card-stats {
@@ -30,9 +59,9 @@ html[data-theme="giacngo"] .doc-card-stats {
     gap: 0.75rem;
     font-size: 0.75rem;
     color: var(--color-text-light);
-    margin-top: 0.75rem;
+    margin-top: auto; /* Pushes to the bottom */
+    padding-top: 0.75rem;
     border-top: 1px solid var(--color-border-color);
-    padding-top: 0.5rem;
 }
 html[data-theme="giacngo"] .doc-card-stats span {
     display: flex;
@@ -171,7 +200,6 @@ html[data-theme="giacngo"] .document-detail-page {
     background-color: var(--color-background-main);
     padding: 2rem 1.5rem;
     min-height: 100vh;
-    font-family: "Libre Baskerville", "Lora", "Merriweather", Georgia, serif;
 }
 
 html[data-theme="giacngo"] .document-detail-container {
@@ -184,6 +212,9 @@ html[data-theme="giacngo"] .document-content-card {
     border: 1px solid var(--color-border-color);
     border-radius: 0.75rem;
     padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 html[data-theme="giacngo"] .document-thumbnail {
@@ -195,11 +226,13 @@ html[data-theme="giacngo"] .document-thumbnail {
 }
 
 html[data-theme="giacngo"] .document-title {
+    font-family: 'EB Garamond', serif;
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--color-text-main);
     margin-bottom: 1rem;
     line-height: 1.2;
+    text-align: center;
 }
 
 html[data-theme="giacngo"] .document-meta {
@@ -207,10 +240,12 @@ html[data-theme="giacngo"] .document-meta {
     flex-wrap: wrap;
     gap: 1.5rem;
     align-items: center;
+    justify-content: center;
     color: var(--color-text-light);
     margin-bottom: 2rem;
     border-bottom: 1px solid var(--color-border-color);
     padding-bottom: 1.5rem;
+    width: 100%;
 }
 html[data-theme="giacngo"] .document-meta span {
     display: flex;
@@ -218,13 +253,47 @@ html[data-theme="giacngo"] .document-meta span {
     gap: 0.5rem;
 }
 
+html[data-theme="giacngo"] .document-audio-player {
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+html[data-theme="giacngo"] .audio-control {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+html[data-theme="giacngo"] .audio-control label {
+    font-weight: 600;
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+}
+
+html[data-theme="giacngo"] .audio-control audio {
+    width: 100%;
+}
+
+
 html[data-theme="giacngo"] .document-body.prose {
     line-height: 1.8;
     color: var(--color-text-main);
+    text-align: center;
+    width: 100%;
 }
 html[data-theme="giacngo"] .document-body.prose h1,
 html[data-theme="giacngo"] .document-body.prose h2,
 html[data-theme="giacngo"] .document-body.prose h3 {
+    font-family: 'EB Garamond', serif;
     color: var(--color-text-main);
     margin-top: 1.5em;
     margin-bottom: 0.5em;
@@ -302,43 +371,36 @@ html[data-theme="giacngo"] .nav-title {
     overflow: hidden;
     text-overflow: ellipsis;
     margin-top: 0.25rem;
+    font-family: 'EB Garamond', serif;
 }
 html[data-theme="giacngo"] .nav-arrow {
     flex-shrink: 0;
     color: var(--color-primary);
 }
 
-.library-load-more {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* Load More Button */
+html[data-theme="giacngo"] .library-load-more {
+    text-align: center;
     margin-top: 2rem;
-    margin-bottom: 2rem;
 }
-
-.btn-load-more {
+html[data-theme="giacngo"] .btn-load-more {
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    color: var(--color-text-on-primary);
     padding: 0.75rem 2rem;
-    background-color: #991b1b; /* màu đỏ như hình */
-    color: white;
-    border: none; /* bỏ border */
-    border-radius: 25px; /* bo tròn */
-    font-size: 1rem;
+    border-radius: 9999px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-
-.btn-load-more:hover:not(:disabled) {
-    background-color: #6b2c2c;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+html[data-theme="giacngo"] .btn-load-more:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
 }
-
-.btn-load-more:active:not(:disabled) {
-    transform: translateY(0);
-}
-
-.btn-load-more:disabled {
-    opacity: 0.6;
+html[data-theme="giacngo"] .btn-load-more:disabled {
+    opacity: 0.7;
     cursor: not-allowed;
 }

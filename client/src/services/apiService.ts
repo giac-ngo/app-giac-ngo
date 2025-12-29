@@ -4,7 +4,7 @@ import { User, AIConfig, SystemConfig, Conversation, Message, ModelType, Pricing
 
 const getAuthToken = (): string | null => {
     try {
-        const userStr = sessionStorage.getItem('user');
+        const userStr = localStorage.getItem('user'); // Changed from sessionStorage to localStorage to be consistent with App.tsx
         if (userStr) {
             const user: User = JSON.parse(userStr);
             return user.apiToken || null;
@@ -88,19 +88,22 @@ interface StreamCallbacks {
 }
 
 export const apiService = {
+    getHomePageData: (): Promise<{ aiConfigs: AIConfig[], spaces: Space[], libraryRecommended: { topKe: Document[], topTruyen: Document[] }, socialFeed: SocialFeedPost[] }> => {
+        return authedFetch('/api/homepage-data').then(handleResponse);
+    },
     getAllDharmaTalks: (): Promise<DharmaTalk[]> => {
         return authedFetch('/api/dharma-talks').then(handleResponse);
     },
-    createDharmaTalk: (talk: Partial<DharmaTalk>): Promise<DharmaTalk> => {
+    createDharmaTalk: (formData: FormData): Promise<DharmaTalk> => {
         return authedFetch('/api/dharma-talks', {
             method: 'POST',
-            body: JSON.stringify(talk),
+            body: formData,
         }).then(handleResponse);
     },
-    updateDharmaTalk: (talk: DharmaTalk): Promise<DharmaTalk> => {
-        return authedFetch(`/api/dharma-talks/${talk.id}`, {
+    updateDharmaTalk: (id: number, formData: FormData): Promise<DharmaTalk> => {
+        return authedFetch(`/api/dharma-talks/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(talk),
+            body: formData,
         }).then(handleResponse);
     },
     deleteDharmaTalk: (id: number): Promise<void> => {
@@ -248,11 +251,9 @@ export const apiService = {
             return handleResponse(res);
         });
     },
-    getConversations: (user: User): Promise<Conversation[]> => {
-        if (!user || typeof user.id !== 'number') {
-            return Promise.resolve([]);
-        }
-        return authedFetch(`/api/conversations?userId=${user.id}`).then(handleResponse);
+    getConversations: (filters: { userId: number; aiConfigId: number | string; page: number; limit: number; }): Promise<{ data: Conversation[], total: number }> => {
+        const query = createSearchParams(filters as any).toString();
+        return authedFetch(`/api/conversations?${query}`).then(handleResponse);
     },
     getTrainedConversationsForAI: (aiConfigId: number | string): Promise<Conversation[]> => {
         return authedFetch(`/api/ai-configs/${aiConfigId}/trained-conversations`).then(handleResponse);
@@ -315,13 +316,23 @@ export const apiService = {
         callbacks: StreamCallbacks,
         isTestChat: boolean = false,
         language: 'vi' | 'en',
-        clientAiMessageId?: string | number
+        clientAiMessageId?: string | number,
+        guestMessageCount?: number
     ): Promise<void> => {
         let fullResponseText = '';
         let hasEnded = false;
 
         try {
-            const bodyPayload = { aiConfig, messages, userId: user?.id, conversationId, isTestChat, language, clientAiMessageId };
+            const bodyPayload = { 
+                aiConfig, 
+                messages, 
+                userId: user?.id, 
+                conversationId, 
+                isTestChat, 
+                language, 
+                clientAiMessageId,
+                guestTurnCount: guestMessageCount
+            };
             const response = await authedFetch('/api/conversations/chat/stream', {
                 method: 'POST',
                 body: JSON.stringify(bodyPayload),
@@ -468,12 +479,6 @@ export const apiService = {
             body: JSON.stringify({ userId, transactionId }),
         }).then(handleResponse);
     },
-    getStripeConfig: (): Promise<{ publishableKey: string }> => {
-        return authedFetch('/api/stripe/config').then(handleResponse);
-    },
-    getEnabledPaymentMethods: (): Promise<string[]> => {
-        return authedFetch('/api/stripe/payment-methods').then(handleResponse);
-    },
     initiateStripePurchase: (userId: number, merits: number): Promise<{ clientSecret: string, paymentIntentId: string }> => {
         return authedFetch('/api/stripe/create-payment-intent', {
             method: 'POST',
@@ -486,6 +491,22 @@ export const apiService = {
             body: JSON.stringify({ paymentIntentId }),
         }).then(handleResponse);
     },
+    
+    // New methods for Stripe Checkout
+    createCheckoutSession: (amount: number, userId: number, message?: string): Promise<{ url: string }> => {
+        return authedFetch('/api/stripe/create-checkout-session', {
+            method: 'POST',
+            body: JSON.stringify({ amount, userId, message }),
+        }).then(handleResponse);
+    },
+
+    verifyCheckoutSession: (sessionId: string): Promise<User> => {
+        return authedFetch('/api/stripe/verify-checkout-session', {
+            method: 'POST',
+            body: JSON.stringify({ sessionId }),
+        }).then(handleResponse);
+    },
+    
     createWithdrawalRequest: (userId: number, amount: number): Promise<WithdrawalRequest> => {
         return authedFetch('/api/withdrawals', {
             method: 'POST',
@@ -525,13 +546,13 @@ export const apiService = {
         return authedFetch(`/api/documents/types/${id}`, { method: 'DELETE' }).then(handleResponse);
     },
     getDocumentTopics: (spaceId?: string): Promise<DocumentTopic[]> => authedFetch(`/api/documents/topics${spaceId ? `?spaceId=${spaceId}` : ''}`).then(handleResponse),
-    createDocumentTopic: (data: { name: string; spaceId: number | null }): Promise<DocumentTopic> => {
+    createDocumentTopic: (data: { name: string; spaceId: number | null; typeId: number; authorId: number; nameEn?: string; }): Promise<DocumentTopic> => {
         return authedFetch('/api/documents/topics', {
             method: 'POST',
             body: JSON.stringify(data),
         }).then(handleResponse);
     },
-    updateDocumentTopic: (id: number, data: { name?: string; spaceId?: number | null }): Promise<DocumentTopic> => {
+    updateDocumentTopic: (id: number, data: { name?: string; spaceId?: number | null; typeId?: number; authorId?: number; nameEn?: string; }): Promise<DocumentTopic> => {
         return authedFetch(`/api/documents/topics/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
@@ -565,28 +586,28 @@ export const apiService = {
     },
     getLibraryRecommended: (): Promise<{ topKe: Document[], topTruyen: Document[] }> => authedFetch('/api/library/recommended').then(handleResponse),
     getLibrarySidebarData: (): Promise<any> => authedFetch('/api/library/sidebar').then(handleResponse),
-    getLibraryFilters: (spaceId?: number | null, filters?: any): Promise<any> => {
-        const params: Record<string, any> = { spaceId, ...filters };
+    getLibraryFilters: (spaceId?: number | null, filters?: { typeId?: number; authorId?: number; topicsPage?: number; topicsLimit?: number; }): Promise<any> => {
+        const params: Record<string, any> = {
+            spaceId: spaceId,
+            ...(filters || {}),
+        };
         const query = createSearchParams(params).toString();
         return authedFetch(`/api/library/filters?${query}`).then(handleResponse);
     },
-    getLibraryDocuments: async (params: any = {}): Promise<{ data: Document[], total: number }> => {
-        const { signal, ...rest } = params || {};
-        const q = new URLSearchParams(
-            Object.entries(rest)
-                .filter(([_, v]) => v !== undefined && v !== null && v !== 0 && v !== '')
-                .map(([k, v]) => [k, String(v)])
-        ).toString();
+    /**
+     * Get paginated library documents with support for pagination and Abort signal.
+     * Hàm sẽ trả về object chứa { data, page, limit, total } hoặc mảng nếu backend trả mảng.
+     */
+    getLibraryDocuments: async (params: any = {}) => {
+         const { signal, page = 1, limit = 6, ...rest } = params || {};
+         const q = new URLSearchParams(
+             Object.entries({ ...rest, page: String(page), limit: String(limit) })
+                 .filter(([_, v]) => v !== undefined && v !== null)
+                 .map(([k, v]) => [k, String(v)])
+         ).toString();
+
         const response = await authedFetch(`/api/library/documents?${q}`, { signal });
-        const result = await handleResponse(response);
-        
-        if (result && typeof result === 'object' && 'data' in result && 'total' in result) {
-            return result;
-        }
-        if (Array.isArray(result)) {
-            return { data: result, total: result.length };
-        }
-        return { data: [], total: 0 };
+        return handleResponse(response);
     },
     getDocumentDetail: (id: number): Promise<Document> => authedFetch(`/api/library/documents/${id}`).then(handleResponse),
     postComment: (data: any): Promise<Comment> => {
@@ -737,14 +758,23 @@ export const apiService = {
     unlinkDocumentFromAi: (aiConfigId: number, documentId: number): Promise<void> => {
         return authedFetch(`/api/ai-configs/${aiConfigId}/documents/${documentId}`, { method: 'DELETE' }).then(handleResponse);
     },
+    /**
+     * Get paginated topics for library with support for infinite scroll
+     */
     getLibraryTopics: async (params: any = {}) => {
-        const { signal, page = 1, limit = 16, spaceId } = params || {};
-        const q = new URLSearchParams(
-            Object.entries({ spaceId, page: String(page), limit: String(limit) })
-                .filter(([_, v]) => v !== undefined && v !== null)
-                .map(([k, v]) => [k, String(v)])
-        ).toString();
+         const { signal, page = 1, limit = 16, spaceId } = params || {};
+         const q = new URLSearchParams(
+             Object.entries({ spaceId, page: String(page), limit: String(limit) })
+                 .filter(([_, v]) => v !== undefined && v !== null)
+                 .map(([k, v]) => [k, String(v)])
+         ).toString();
         const response = await authedFetch(`/api/library/topics?${q}`, { signal });
         return handleResponse(response);
     },
+    getEnabledPaymentMethods: (): Promise<string[]> => {
+        return authedFetch('/api/stripe/payment-methods').then(handleResponse);
+    },
+    getStripeConfig: (): Promise<{ publishableKey: string }> => {
+        return authedFetch('/api/stripe/config').then(handleResponse);
+    }
 };

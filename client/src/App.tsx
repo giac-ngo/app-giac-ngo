@@ -1,4 +1,4 @@
-
+// client/src/App.tsx
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
@@ -19,6 +19,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import CareerPage from './pages/CareerPage';
 import { DonationPage } from './pages/DonationPage';
+import { DonationSuccessPage } from './pages/DonationSuccessPage';
 import { DocsLayout } from './layouts/DocsLayout';
 import Manifesto from './pages/docs/Manifesto';
 import MandalaMerit from './pages/docs/MandalaMerit';
@@ -42,7 +43,7 @@ const ProtectedRoute: React.FC<{ user: User | null; children: React.ReactNode }>
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => {
     try {
-      const savedUser = sessionStorage.getItem('user');
+      const savedUser = localStorage.getItem('user');
       return savedUser ? JSON.parse(savedUser) : null;
     } catch {
       return null;
@@ -77,11 +78,7 @@ const App: React.FC = () => {
     const themeToApply = user?.template || systemConfig.template || 'w5g';
     document.documentElement.setAttribute('data-theme', themeToApply);
     
-    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (favicon && systemConfig) {
-        favicon.href = systemConfig.templateSettings[themeToApply].logoUrl;
-    }
-
+    // Logic to dynamically update favicon removed to keep static favicon from index.html
   }, [user, systemConfig]);
 
   useEffect(() => {
@@ -102,13 +99,17 @@ const App: React.FC = () => {
   
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
-    sessionStorage.setItem('user', JSON.stringify(loggedInUser));
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
   };
 
   const handleLogout = () => {
     setUser(null);
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleGoToLogin = () => {
+    navigate('/login', { state: { from: location } });
   };
   
   const handleSystemConfigUpdate = (newConfig: SystemConfig) => {
@@ -119,15 +120,11 @@ const App: React.FC = () => {
     setUser(currentUser => {
         if (!currentUser) return null;
         const newUser = { ...currentUser, ...updatedData };
-        sessionStorage.setItem('user', JSON.stringify(newUser));
+        localStorage.setItem('user', JSON.stringify(newUser));
         return newUser;
     });
   };
   
-  const handleGoToLogin = () => {
-    navigate('/login');
-  };
-
   if (isLoading) {
     return <div className="page-loader">Loading application...</div>;
   }
@@ -148,6 +145,7 @@ const App: React.FC = () => {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/career" element={<CareerPage />} />
               <Route path="/donation" element={<DonationPage user={user} onUserUpdate={handleUserUpdate} />} />
+              <Route path="/donation/success" element={<DonationSuccessPage onUserUpdate={handleUserUpdate} />} />
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} language={language} />} />
               <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleLogin} language={language} />} />
               <Route path="/reset-password" element={<ResetPasswordPage language={language} />} />
@@ -155,7 +153,7 @@ const App: React.FC = () => {
 
               {/* Docs Routes - Nested structure for Outlet */}
               <Route path="/docs" element={<DocsLayout language={language} setLanguage={setLanguage} />}>
-                <Route index element={<Navigate to="manifesto" replace />} />
+                <Route index element={<Navigate to="quick-start" replace />} />
                 <Route path="manifesto" element={<Manifesto />} />
                 <Route path="mandala-merit" element={<MandalaMerit />} />
                 <Route path="merit-tokenomics" element={<MeritTokenomics />} />
@@ -187,17 +185,16 @@ const App: React.FC = () => {
               
               {/* Dynamic Slug-based Routes (Order is important) */}
               <Route path="/:spaceSlug/:view" element={
-                 <ProtectedRoute user={user}>
-                    {user && <PracticeSpacePage
-                        user={user}
-                        systemConfig={systemConfig}
-                        onLogout={handleLogout}
-                        onGoToLogin={handleGoToLogin}
-                        language={language}
-                        setLanguage={setLanguage}
-                        onUserUpdate={handleUserUpdate}
-                    />}
-                </ProtectedRoute>
+                 <PracticeSpacePage
+                    user={user}
+                    systemConfig={systemConfig}
+                    onLogout={handleLogout}
+                    // FIX: Pass the `handleGoToLogin` function to the `onGoToLogin` prop of `PracticeSpacePage` to resolve the 'Cannot find name' error.
+                    onGoToLogin={handleGoToLogin}
+                    language={language}
+                    setLanguage={setLanguage}
+                    onUserUpdate={handleUserUpdate}
+                />
               } />
               <Route path="/:spaceSlug" element={
                   <SpaceDetailPage user={user} onUserUpdate={handleUserUpdate} />

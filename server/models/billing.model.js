@@ -63,7 +63,7 @@ export const billingModel = {
         return res.rows.map(mapRowToCamelCase);
     },
     
-    async addMerits(userId, merits, adminId, type = 'manual', stripeChargeId = null) {
+    async addMerits(userId, merits, adminId, type = 'manual', stripeChargeId = null, details = null) {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
@@ -72,8 +72,8 @@ export const billingModel = {
                 [merits, userId]
             );
             await client.query(
-                'INSERT INTO transactions (user_id, merits, admin_id, type, stripe_charge_id) VALUES ($1, $2, $3, $4, $5)',
-                [userId, merits, adminId, type, stripeChargeId]
+                'INSERT INTO transactions (user_id, merits, admin_id, type, stripe_charge_id, details) VALUES ($1, $2, $3, $4, $5, $6)',
+                [userId, merits, adminId, type, stripeChargeId, details]
             );
             await client.query('COMMIT');
             return enrichUserWithPermissions(mapRowToCamelCase(res.rows[0]));

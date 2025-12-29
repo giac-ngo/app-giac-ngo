@@ -127,7 +127,9 @@ export const systemController = {
                 if (!apiKey) return res.status(400).json({ message: `Vui lòng thêm API key cá nhân cho ${provider.toUpperCase()} trong Cài đặt.` });
                 res.json(await gptService.listModels(apiKey));
             } else if (provider === 'gemini') {
-                res.json(['gemini-2.5-flash', 'gemini-2.5-pro']);
+                res.json(['gemini-2.5-flash', 'gemini-2.5-pro']);}
+            else if (provider === 'vertex') {
+                res.json(['projects/343195597322/locations/us-central1/endpoints/6040161629629317120']);
             } else if (provider === 'grok') {
                 res.json(['grok-1-mock']);
             } else {

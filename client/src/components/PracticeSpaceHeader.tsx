@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { AIConfig } from '../types';
+// FIX: Imported missing MenuIcon and XIcon components.
 import { ChevronDownIcon, ChevronLeftIcon, MenuIcon, XIcon } from './Icons';
 import { ViewMode } from '../types';
 
@@ -19,6 +20,7 @@ interface PracticeSpaceHeaderProps {
     handleSelectAi: (ai: AIConfig) => void;
     setIsMarketplaceModalOpen: (isOpen: boolean) => void;
     setViewMode: (mode: ViewMode) => void;
+    viewMode: ViewMode;
 }
 
 export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
@@ -39,19 +41,27 @@ export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
         <header className="chat-main-header">
             <div className="header-content-wrapper">
                 <div className="header-left-group">
-                    <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                        {isMobileMenuOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
-                    </button>
-                    <Link to="/" className="back-link-desktop hidden items-center gap-3 text-text-light hover:text-text-main">
+                    {/* HIDDEN FOR NOW: Mobile Menu Toggle */}
+                    {false && (
+                        <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                            {isMobileMenuOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+                        </button>
+                    )}
+                    <Link to="/" className="back-link-desktop flex items-center gap-3 text-text-light hover:text-text-main">
                         <ChevronLeftIcon className="w-6 h-6" />
                     </Link>
                 </div>
-                <nav className={`header-center-group ${isMobileMenuOpen ? 'is-open' : ''}`}>                    
-                    <button onClick={() => { setViewMode('about'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.sutra}</button>
-                    <button onClick={() => { setViewMode('community'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.community}</button>
-                    <button onClick={() => { setViewMode('library'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.library}</button>
-                    <button onClick={() => { setIsMobileMenuOpen(false); }} className="header-nav-item opacity-50 cursor-not-allowed" title={t.comingSoon}>{t.donation}</button>
-                </nav>
+                
+                {/* HIDDEN FOR NOW: Center Navigation */}
+                {false && (
+                    <nav className={`header-center-group ${isMobileMenuOpen ? 'is-open' : ''}`}>                    
+                        <button onClick={() => { setViewMode('about'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.sutra}</button>
+                        <button onClick={() => { setViewMode('community'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.community}</button>
+                        <button onClick={() => { setViewMode('library'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.library}</button>
+                        <button onClick={() => { setIsMobileMenuOpen(false); }} className="header-nav-item opacity-50 cursor-not-allowed" title={t.comingSoon}>{t.donation}</button>
+                    </nav>
+                )}
+
                 <div className="header-right-group">
                     <div ref={aiSelectorRef} className="relative">
                         {currentAiConfig ? (
@@ -82,7 +92,7 @@ export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
                         )}
                     </div>
                     <button onClick={() => setIsMarketplaceModalOpen(true)} className="marketplace-button">
-                        {language === 'vi' ? 'Marketplace AI' : 'AI Marketplace'}
+                        {t.marketplace}
                     </button>
                 </div>
             </div>

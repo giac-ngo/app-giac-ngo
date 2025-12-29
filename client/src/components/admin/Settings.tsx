@@ -1,61 +1,53 @@
-// ...existing code...
+
+// client/src/components/admin/Settings.tsx
 import React, { useState, useEffect } from 'react';
 import { SystemConfig, User } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
-import { EyeIcon, EyeOffIcon } from '../Icons';
+// FIX: Added missing UsersIcon and KeyIcon to the imports.
+import { EyeIcon, EyeOffIcon, SpinnerIcon, CopyIcon, UsersIcon, KeyIcon } from '../Icons';
 
 const translations = {
     vi: {
         title: 'Cài đặt',
-        systemSettingsTab: 'Cài đặt Hệ thống',
-        personalKeysTab: 'Cài đặt cá nhân',
         guestSettings: 'Cài đặt Khách',
         guestMessageLimit: 'Giới hạn tin nhắn cho khách',
         guestMessageLimitDesc: 'Số lượng tin nhắn một khách có thể gửi trước khi được yêu cầu đăng nhập.',
-        systemApiKeys: 'Khóa API Hệ thống',
-        systemApiKeysDesc: 'Các khóa này sẽ được sử dụng nếu người dùng không có khóa riêng. Ưu tiên khóa của người dùng.',
         personalApiKeys: 'Khóa API Cá nhân',
-        personalApiKeysDesc: 'Các khóa này chỉ áp dụng cho tài khoản của bạn và sẽ ghi đè lên khóa hệ thống.',
+        personalApiKeysDesc: 'Các khóa này được sử dụng riêng cho tài khoản của bạn để thực hiện yêu cầu AI.',
         personalAccessToken: 'Personal Access Token',
         personalAccessTokenDesc: 'Sử dụng token này để xác thực các yêu cầu API từ ứng dụng bên ngoài.',
-        geminiKey: 'Gemini API Key',
+        aiStudioKey: 'AiStudio API Key',
+        vertexKey: 'Vertex API Key',
         gptKey: 'GPT API Key',
         grokKey: 'Grok API Key',
-        save: 'Lưu Cài đặt',
+        saveAll: 'Lưu Cài đặt',
         saving: 'Đang lưu...',
-        saveSuccess: 'Cài đặt đã được lưu!',
-        saveError: 'Lưu cài đặt thất bại: {message}',
+        saveSuccess: 'Cài đặt đã được cập nhật thành công!',
+        saveError: 'Lỗi khi lưu cài đặt: {message}',
         show: 'Hiển thị',
         hide: 'Ẩn',
         copy: 'Sao chép',
         copied: 'Đã sao chép!',
         regenerateToken: 'Tạo token mới',
         regenerateTokenConfirm: 'Bạn có chắc muốn tạo token mới không? Token cũ sẽ bị vô hiệu hóa ngay lập tức.',
-        tokenRegenerated: 'Token mới đã được tạo!',
-        personalAppearance: 'Giao diện cá nhân',
-        personalAppearanceDesc: 'Chọn giao diện bạn muốn sử dụng cho tài khoản này.',
-        templateLabel: 'Giao diện',
     },
     en: {
         title: 'Settings',
-        systemSettingsTab: 'System Settings',
-        personalKeysTab: 'Personal Settings',
         guestSettings: 'Guest Settings',
         guestMessageLimit: 'Guest Message Limit',
         guestMessageLimitDesc: 'The number of messages a guest can send before being prompted to log in.',
-        systemApiKeys: 'System API Keys',
-        systemApiKeysDesc: 'These keys will be used if a user does not have their own key. User keys take precedence.',
         personalApiKeys: 'Personal API Keys',
-        personalApiKeysDesc: 'These keys apply only to your account and will override system keys.',
+        personalApiKeysDesc: 'These keys are used specifically for your account to perform AI requests.',
         personalAccessToken: 'Personal Access Token',
         personalAccessTokenDesc: 'Use this token to authenticate API requests from external applications.',
-        geminiKey: 'Gemini API Key',
+        aiStudioKey: 'AiStudio API Key',
+        vertexKey: 'Vertex API Key',
         gptKey: 'GPT API Key',
         grokKey: 'Grok API Key',
-        save: 'Save Settings',
+        saveAll: 'Save Settings',
         saving: 'Saving...',
-        saveSuccess: 'Settings saved successfully!',
+        saveSuccess: 'Settings updated successfully!',
         saveError: 'Failed to save settings: {message}',
         show: 'Show',
         hide: 'Hide',
@@ -63,10 +55,6 @@ const translations = {
         copied: 'Copied!',
         regenerateToken: 'Regenerate Token',
         regenerateTokenConfirm: 'Are you sure you want to regenerate your token? The old token will be invalidated immediately.',
-        tokenRegenerated: 'New token generated!',
-        personalAppearance: 'Personal Appearance',
-        personalAppearanceDesc: 'Choose the theme you want to use for this account.',
-        templateLabel: 'Theme',
     }
 };
 
@@ -81,305 +69,173 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ user, language, systemConfig, onSystemConfigUpdate, onUserUpdate }) => {
     const t = translations[language];
     const { showToast } = useToast();
-    const canSeeSystemSettings = user.permissions?.includes('roles');
-    const [activeTab, setActiveTab] = useState<'system' | 'personal'>(canSeeSystemSettings ? 'system' : 'personal');
     
     const [localSystemConfig, setLocalSystemConfig] = useState<SystemConfig>(systemConfig);
-    const [isSavingSystem, setIsSavingSystem] = useState(false);
-
     const [localUser, setLocalUser] = useState<User>(user);
-    const [isSavingPersonal, setIsSavingPersonal] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [showToken, setShowToken] = useState(false);
-    
-    const [showSystemKeys, setShowSystemKeys] = useState({ gemini: false, gpt: false, grok: false });
-    const [showPersonalKeys, setShowPersonalKeys] = useState({ gemini: false, gpt: false, grok: false });
+    const [showKeys, setShowKeys] = useState<Record<string, boolean>>({ gemini: false, vertex: false, gpt: false, grok: false });
 
-    useEffect(() => {
-        setLocalSystemConfig(systemConfig);
-    }, [systemConfig]);
+    useEffect(() => { setLocalSystemConfig(systemConfig); }, [systemConfig]);
+    useEffect(() => { setLocalUser(user); }, [user]);
 
-    useEffect(() => {
-        setLocalUser(user);
-    }, [user]);
-
-    const handleSystemConfigChange = <K extends keyof SystemConfig>(key: K, value: SystemConfig[K]) => {
-        setLocalSystemConfig(prev => ({ ...prev, [key]: value }));
+    const handleSystemChange = (value: number) => {
+        setLocalSystemConfig(prev => ({ ...prev, guestMessageLimit: value }));
     };
     
-    const handleSystemKeyChange = (keyName: 'gemini' | 'gpt' | 'grok', value: string) => {
-        setLocalSystemConfig(prev => ({
-            ...prev,
-            systemKeys: { ...(prev.systemKeys || {}), [keyName]: value }
-        }));
-    };
-    
-    const handlePersonalApiKeyChange = (keyName: 'gemini' | 'gpt' | 'grok', value: string) => {
+    const handleKeyChange = (keyName: string, value: string) => {
         setLocalUser(prev => ({
             ...prev,
             apiKeys: { ...(prev.apiKeys || {}), [keyName]: value }
         }));
     };
 
-    const handleSaveSystem = async () => {
-        setIsSavingSystem(true);
+    const handleSaveAll = async () => {
+        setIsSaving(true);
         try {
-            const updatedConfig = await apiService.updateSystemConfig(localSystemConfig);
-            onSystemConfigUpdate(updatedConfig);
-            showToast(t.saveSuccess, 'success');
-        } catch (error: any) {
-            showToast(t.saveError.replace('{message}', error?.message || String(error)), 'error');
-        } finally {
-            setIsSavingSystem(false);
-        }
-    };
+            const promises = [];
+            
+            // 1. Cập nhật System Config (nếu là admin)
+            if (user.permissions?.includes('settings')) {
+                promises.push(apiService.updateSystemConfig(localSystemConfig).then(onSystemConfigUpdate));
+            }
 
-    const handleSavePersonal = async () => {
-        setIsSavingPersonal(true);
-        try {
-            const payload: Partial<User> = {
+            // 2. Cập nhật User Keys
+            const userPayload: Partial<User> = {
                 id: localUser.id,
                 apiKeys: localUser.apiKeys || {},
             };
-            const updatedUser = await apiService.updateUser(payload);
-            onUserUpdate(updatedUser);
+            promises.push(apiService.updateUser(userPayload).then(onUserUpdate));
+
+            await Promise.all(promises);
             showToast(t.saveSuccess, 'success');
         } catch (error: any) {
             showToast(t.saveError.replace('{message}', error?.message || String(error)), 'error');
         } finally {
-            setIsSavingPersonal(false);
+            setIsSaving(false);
         }
     };
 
     const handleRegenerateToken = async () => {
         if (!window.confirm(t.regenerateTokenConfirm)) return;
-        setIsSavingPersonal(true);
         try {
             const updatedUser = await apiService.regenerateApiToken(user.id as number);
             setLocalUser(updatedUser);
             onUserUpdate(updatedUser);
-            showToast(t.tokenRegenerated, 'success');
+            showToast(t.copied, 'success');
         } catch (error: any) {
              showToast(error?.message || String(error), 'error');
-        } finally {
-            setIsSavingPersonal(false);
         }
     };
     
     const handleCopy = async (text: string) => {
         if(!text) return;
-        try {
-            await navigator.clipboard.writeText(text);
-            showToast(t.copied, 'info');
-        } catch (err: any) {
-            showToast(err?.message || 'Copy failed', 'error');
-        }
+        await navigator.clipboard.writeText(text);
+        showToast(t.copied, 'info');
     };
 
-    const renderSystemSettings = () => (
-         <div className="space-y-8">
-            <div>
-                <h2 className="text-xl font-semibold mb-1">{t.guestSettings}</h2>
-                <div>
-                    <label htmlFor="guestMessageLimit" className="block text-sm font-medium text-text-main">{t.guestMessageLimit}</label>
-                    <input
-                        type="number"
-                        id="guestMessageLimit"
-                        value={localSystemConfig.guestMessageLimit ?? ''}
-                        onChange={e => {
-                            const v = e.target.value;
-                            handleSystemConfigChange('guestMessageLimit', v === '' ? 0 : Number(v) as any);
-                        }}
-                        className="mt-1 w-full max-w-xs p-2 border border-border-color rounded-md"
-                    />
-                    <p className="text-xs text-text-light mt-1">{t.guestMessageLimitDesc}</p>
-                </div>
-            </div>
+    const isAdmin = user.permissions?.includes('settings');
 
-            <div className="border-t border-border-color pt-6">
-                <h2 className="text-xl font-semibold mb-1">{t.systemApiKeys}</h2>
-                <p className="text-sm text-text-light mb-4">{t.systemApiKeysDesc}</p>
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="geminiKey" className="block text-sm font-medium text-text-main">{t.geminiKey}</label>
-                        <div className="relative mt-1">
+    return (
+        <div className="p-8 max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold mb-8 font-serif text-primary">{t.title}</h1>
+            
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+                {/* Guest Settings Card */}
+                {isAdmin && (
+                    <div className="bg-background-panel shadow-md rounded-xl p-6 border border-border-color">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <UsersIcon className="w-5 h-5 text-primary" />
+                            {t.guestSettings}
+                        </h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main mb-1">{t.guestMessageLimit}</label>
+                                <input
+                                    type="number"
+                                    value={localSystemConfig.guestMessageLimit ?? 0}
+                                    onChange={e => handleSystemChange(parseInt(e.target.value) || 0)}
+                                    className="w-full p-2.5 bg-background-light border border-border-color rounded-lg focus:ring-2 focus:ring-primary/20"
+                                />
+                                <p className="text-xs text-text-light mt-2 italic">{t.guestMessageLimitDesc}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Personal Token Card */}
+                <div className="bg-background-panel shadow-md rounded-xl p-6 border border-border-color">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <KeyIcon className="w-5 h-5 text-primary" />
+                        {t.personalAccessToken}
+                    </h2>
+                    <p className="text-sm text-text-light mb-4">{t.personalAccessTokenDesc}</p>
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-grow">
                             <input
-                                type={showSystemKeys.gemini ? 'text' : 'password'}
-                                id="geminiKey"
-                                value={localSystemConfig.systemKeys?.gemini || ''}
-                                onChange={e => handleSystemKeyChange('gemini', e.target.value)}
-                                className="w-full p-2 border border-border-color rounded-md pr-10"
+                                type={showToken ? 'text' : 'password'}
+                                readOnly
+                                value={localUser.apiToken || ''}
+                                className="w-full p-2.5 bg-background-light border border-border-color rounded-lg pr-12 font-mono text-sm"
                             />
                             <button 
-                                type="button"
-                                onClick={() => setShowSystemKeys(prev => ({...prev, gemini: !prev.gemini}))} 
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                                title={showSystemKeys.gemini ? t.hide : t.show}
+                                onClick={() => setShowToken(!showToken)} 
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-light hover:text-primary"
                             >
-                                {showSystemKeys.gemini ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                {showToken ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
                             </button>
                         </div>
-                    </div>
-                    <div>
-                        <label htmlFor="gptKey" className="block text-sm font-medium text-text-main">{t.gptKey}</label>
-                        <div className="relative mt-1">
-                            <input
-                                type={showSystemKeys.gpt ? 'text' : 'password'}
-                                id="gptKey"
-                                value={localSystemConfig.systemKeys?.gpt || ''}
-                                onChange={e => handleSystemKeyChange('gpt', e.target.value)}
-                                className="w-full p-2 border border-border-color rounded-md pr-10"
-                            />
-                             <button 
-                                type="button"
-                                onClick={() => setShowSystemKeys(prev => ({...prev, gpt: !prev.gpt}))} 
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                                title={showSystemKeys.gpt ? t.hide : t.show}
-                            >
-                                {showSystemKeys.gpt ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="grokKey" className="block text-sm font-medium text-text-main">{t.grokKey}</label>
-                        <div className="relative mt-1">
-                            <input
-                                type={showSystemKeys.grok ? 'text' : 'password'}
-                                id="grokKey"
-                                value={localSystemConfig.systemKeys?.grok || ''}
-                                onChange={e => handleSystemKeyChange('grok', e.target.value)}
-                                className="w-full p-2 border border-border-color rounded-md pr-10"
-                            />
-                            <button 
-                                type="button"
-                                onClick={() => setShowSystemKeys(prev => ({...prev, grok: !prev.grok}))} 
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                                title={showSystemKeys.grok ? t.hide : t.show}
-                            >
-                                {showSystemKeys.grok ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <div className="flex justify-end items-center pt-6 border-t border-border-color">
-                <button onClick={handleSaveSystem} disabled={isSavingSystem} className="px-6 py-2 bg-primary text-text-on-primary rounded-md hover:bg-primary-hover disabled:opacity-70">{isSavingSystem ? t.saving : t.save}</button>
-            </div>
-        </div>
-    );
-    
-    const renderPersonalSettings = () => (
-        <div className="space-y-8">
-             <div>
-                <h2 className="text-xl font-semibold mb-1">{t.personalAccessToken}</h2>
-                <p className="text-sm text-text-light mb-4">{t.personalAccessTokenDesc}</p>
-                 <div className="flex items-center space-x-2">
-                    <div className="relative flex-grow">
-                        <input
-                            type={showToken ? 'text' : 'password'}
-                            readOnly
-                            value={localUser.apiToken || 'No token generated'}
-                            className="w-full p-2 border border-border-color rounded-md bg-background-light pr-10"
-                        />
-                         <button 
-                            type="button"
-                            onClick={() => setShowToken(!showToken)} 
-                            className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                            title={showToken ? t.hide : t.show}
-                        >
-                            {showToken ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                        <button onClick={() => handleCopy(localUser.apiToken || '')} className="p-2.5 border border-border-color rounded-lg hover:bg-background-light transition-colors" title={t.copy}>
+                            <CopyIcon className="w-5 h-5" />
                         </button>
                     </div>
-                    <button onClick={() => handleCopy(localUser.apiToken || '')} className="px-3 py-2 text-sm border rounded-md">{t.copy}</button>
-                </div>
-                 <button onClick={handleRegenerateToken} className="mt-3 text-sm text-primary hover:underline" disabled={isSavingPersonal}>{t.regenerateToken}</button>
-            </div>
-
-            <div className="border-t border-border-color pt-6">
-                <h2 className="text-xl font-semibold mb-1">{t.personalApiKeys}</h2>
-                <p className="text-sm text-text-light mb-4">{t.personalApiKeysDesc}</p>
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="p-geminiKey" className="block text-sm font-medium text-text-main">{t.geminiKey}</label>
-                        <div className="relative mt-1">
-                            <input
-                                type={showPersonalKeys.gemini ? 'text' : 'password'}
-                                id="p-geminiKey"
-                                value={localUser.apiKeys?.gemini || ''}
-                                onChange={e => handlePersonalApiKeyChange('gemini', e.target.value)}
-                                className="w-full p-2 border border-border-color rounded-md pr-10"
-                            />
-                            <button 
-                                type="button"
-                                onClick={() => setShowPersonalKeys(prev => ({...prev, gemini: !prev.gemini}))} 
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                                title={showPersonalKeys.gemini ? t.hide : t.show}
-                            >
-                                {showPersonalKeys.gemini ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="p-gptKey" className="block text-sm font-medium text-text-main">{t.gptKey}</label>
-                        <div className="relative mt-1">
-                            <input
-                                type={showPersonalKeys.gpt ? 'text' : 'password'}
-                                id="p-gptKey"
-                                value={localUser.apiKeys?.gpt || ''}
-                                onChange={e => handlePersonalApiKeyChange('gpt', e.target.value)}
-                                className="w-full p-2 border border-border-color rounded-md pr-10"
-                            />
-                            <button 
-                                type="button"
-                                onClick={() => setShowPersonalKeys(prev => ({...prev, gpt: !prev.gpt}))} 
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                                title={showPersonalKeys.gpt ? t.hide : t.show}
-                            >
-                                {showPersonalKeys.gpt ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="p-grokKey" className="block text-sm font-medium text-text-main">{t.grokKey}</label>
-                        <div className="relative mt-1">
-                            <input
-                                type={showPersonalKeys.grok ? 'text' : 'password'}
-                                id="p-grokKey"
-                                value={localUser.apiKeys?.grok || ''}
-                                onChange={e => handlePersonalApiKeyChange('grok', e.target.value)}
-                                className="w-full p-2 border border-border-color rounded-md pr-10"
-                            />
-                            <button 
-                                type="button"
-                                onClick={() => setShowPersonalKeys(prev => ({...prev, grok: !prev.grok}))} 
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-light hover:text-text-main"
-                                title={showPersonalKeys.grok ? t.hide : t.show}
-                            >
-                                {showPersonalKeys.grok ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <div className="flex justify-end items-center pt-6 border-t border-border-color">
-                <button onClick={handleSavePersonal} disabled={isSavingPersonal} className="px-6 py-2 bg-primary text-text-on-primary rounded-md hover:bg-primary-hover disabled:opacity-70">{isSavingPersonal ? t.saving : t.save}</button>
-            </div>
-        </div>
-    );
-    
-    return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold mb-6">{t.title}</h1>
-            <div className="bg-background-panel shadow-md rounded-lg p-6 max-w-3xl">
-                 <div className="border-b border-border-color mb-6">
-                    <nav className="-mb-px flex space-x-6">
-                        {canSeeSystemSettings && (
-                            <button onClick={() => setActiveTab('system')} className={`py-3 px-1 font-medium border-b-2 ${activeTab === 'system' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.systemSettingsTab}</button>
-                        )}
-                        <button onClick={() => setActiveTab('personal')} className={`py-3 px-1 font-medium border-b-2 ${activeTab === 'personal' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.personalKeysTab}</button>
-                    </nav>
+                    <button onClick={handleRegenerateToken} className="mt-4 text-xs font-bold text-accent-red hover:underline uppercase tracking-wider">{t.regenerateToken}</button>
                 </div>
 
-                {activeTab === 'system' && canSeeSystemSettings ? renderSystemSettings() : renderPersonalSettings()}
+                {/* Personal API Keys Card */}
+                <div className="bg-background-panel shadow-md rounded-xl p-6 border border-border-color xl:col-span-2">
+                    <h2 className="text-xl font-bold mb-2">{t.personalApiKeys}</h2>
+                    <p className="text-sm text-text-light mb-8 italic">{t.personalApiKeysDesc}</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {[
+                            { id: 'gemini', label: t.aiStudioKey },
+                            { id: 'vertex', label: t.vertexKey },
+                            { id: 'gpt', label: t.gptKey },
+                            { id: 'grok', label: t.grokKey }
+                        ].map(key => (
+                            <div key={key.id}>
+                                <label className="block text-sm font-bold text-text-main mb-1.5">{key.label}</label>
+                                <div className="relative">
+                                    <input
+                                        type={showKeys[key.id] ? 'text' : 'password'}
+                                        value={(localUser.apiKeys as any)?.[key.id] || ''}
+                                        onChange={e => handleKeyChange(key.id, e.target.value)}
+                                        className="w-full p-2.5 bg-background-light border border-border-color rounded-lg pr-12 font-mono text-sm focus:ring-2 focus:ring-primary/20"
+                                    />
+                                    <button 
+                                        onClick={() => setShowKeys(prev => ({ ...prev, [key.id]: !prev[key.id] }))} 
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-light hover:text-primary"
+                                    >
+                                        {showKeys[key.id] ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Single Save Button at Bottom Right */}
+            <div className="flex justify-end sticky bottom-8 z-20">
+                <button 
+                    onClick={handleSaveAll} 
+                    disabled={isSaving} 
+                    className="flex items-center gap-2 px-10 py-3.5 bg-primary text-text-on-primary rounded-full font-bold shadow-2xl hover:bg-primary-hover transform transition-all active:scale-95 disabled:opacity-70"
+                >
+                    {isSaving ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : null}
+                    {isSaving ? t.saving : t.saveAll}
+                </button>
             </div>
         </div>
     );

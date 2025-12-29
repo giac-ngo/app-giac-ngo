@@ -16,6 +16,7 @@ interface LibraryMenuProps {
     language: 'vi' | 'en';
     isSidebarCollapsed: boolean;
     spaceId?: number | 'new' | null;
+    spaceSlug?: string;
 }
 
 const translations = {
@@ -43,7 +44,7 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
     const [isLoading, setIsLoading] = useState(true);
     const [isTopicLoading, setIsTopicLoading] = useState(false);
     
-    const observer = useRef<IntersectionObserver>();
+    const observer = useRef<IntersectionObserver | null>(null);
     const lastTopicElementRef = useCallback((node: HTMLButtonElement | null) => {
         if (isTopicLoading) return;
         if (observer.current) observer.current.disconnect();
@@ -55,13 +56,12 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
         if (node) observer.current.observe(node);
     }, [isTopicLoading, hasMoreTopics]);
 
-    // Effect 1: Load independent filters (types, authors) when spaceId changes.
     useEffect(() => {
         setIsLoading(true);
         setTopics([]); // Reset topics
         setTopicsPage(1);
         setHasMoreTopics(true);
-        const numericSpaceId = typeof spaceId === 'number' ? spaceId : undefined;
+        const numericSpaceId = typeof spaceId === 'number' ? spaceId : null;
         
         apiService.getLibraryFilters(numericSpaceId)
             .then(data => {
@@ -70,26 +70,34 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
                 setTypes(fetchedTypes);
                 setAuthors(fetchedAuthors);
 
-                // If no type is selected, default to the first one
-                if (fetchedTypes.length > 0 && !filters.typeId) {
-                    onSetFilters(prev => ({ ...prev, typeId: fetchedTypes[0].id }));
-                }
+                onSetFilters(prevFilters => {
+                    const newFilters = { ...prevFilters };
+                    let changed = false;
+                    if (fetchedTypes.length > 0 && !prevFilters.typeId) {
+                        newFilters.typeId = fetchedTypes[0].id;
+                        changed = true;
+                    }
+                    if (fetchedAuthors.length > 0 && !prevFilters.authorId) {
+                        newFilters.authorId = fetchedAuthors[0].id;
+                        changed = true;
+                    }
+                    return changed ? newFilters : prevFilters;
+                });
             })
             .catch(err => console.error("Failed to load initial filters:", err))
             .finally(() => setIsLoading(false));
-    // FIX: Removed `filters` from dependency array to prevent re-fetching on filter selection.
     }, [spaceId, onSetFilters]); 
 
-    // Effect 2: Load dependent filters (topics) when typeId or topicsPage changes.
     useEffect(() => {
-        if (!filters.typeId) {
+        if (!filters.typeId || !filters.authorId) {
             setTopics([]);
+            setHasMoreTopics(false);
             return;
         }
 
         setIsTopicLoading(true);
-        const numericSpaceId = typeof spaceId === 'number' ? spaceId : undefined;
-        apiService.getLibraryFilters(numericSpaceId, { typeId: filters.typeId, topicsPage, topicsLimit: TOPICS_PER_PAGE })
+        const numericSpaceId = typeof spaceId === 'number' ? spaceId : null;
+        apiService.getLibraryFilters(numericSpaceId, { typeId: filters.typeId, authorId: filters.authorId, topicsPage, topicsLimit: TOPICS_PER_PAGE })
             .then(data => {
                 const newTopics = data.topics || [];
                 setHasMoreTopics(newTopics.length === TOPICS_PER_PAGE);
@@ -97,10 +105,10 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
             })
             .catch(err => console.error("Failed to load topics:", err))
             .finally(() => setIsTopicLoading(false));
-    }, [spaceId, filters.typeId, topicsPage]);
+    }, [spaceId, filters.typeId, filters.authorId, topicsPage]);
     
     const handleTypeChange = (typeId: number) => {
-        onSetFilters(prev => ({ ...prev, typeId, authorId: undefined, topicId: undefined }));
+        onSetFilters(prev => ({ ...prev, typeId, topicId: undefined }));
         setTopics([]);
         setTopicsPage(1);
         setHasMoreTopics(true);
@@ -108,6 +116,9 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
     
     const handleAuthorChange = (authorId: number | undefined) => {
         onSetFilters(prev => ({ ...prev, authorId, topicId: undefined }));
+        setTopics([]);
+        setTopicsPage(1);
+        setHasMoreTopics(true);
     }
     
     const handleTopicChange = (topicId: number | undefined) => {
@@ -143,12 +154,6 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
             {authors.length > 0 && (
                 <div className="library-menu-section">
                     <div className="library-menu-toggles">
-                        <button
-                            onClick={() => handleAuthorChange(undefined)}
-                            className={!filters.authorId ? 'active' : ''}
-                        >
-                            {t.all}
-                        </button>
                         {authors.map(author => (
                              <button
                                 key={author.id}
@@ -164,7 +169,6 @@ export const LibraryMenu: React.FC<LibraryMenuProps> = ({ filters, onSetFilters,
             
             <div className="library-menu-section">
                 <div className="library-topic-list">
-                    {/* All topics button */}
                      <button
                         onClick={() => handleTopicChange(undefined)}
                         className={!filters.topicId ? 'active' : ''}

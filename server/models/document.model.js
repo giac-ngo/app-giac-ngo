@@ -28,8 +28,11 @@ export const documentModel = {
                 s.name as space_name,
                 s.slug as space_slug,
                 da.name AS author,
+                da.name_en AS author_en,
                 dt.name AS type,
+                dt.name_en AS type_en,
                 d_topics.name as topic,
+                d_topics.name_en AS topic_en,
                 (
                     SELECT COALESCE(json_agg(t.name ORDER BY t.name), '[]')
                     FROM document_tags d_tags
@@ -81,7 +84,13 @@ export const documentModel = {
         let dataQuery = selectClause + fromClause + whereClauseString + ` GROUP BY d.id, s.id, da.id, dt.id, d_topics.id`;
         
         if (sortBy && sortOrder) {
-            dataQuery += ` ORDER BY d.${sortBy} ${sortOrder}`;
+            if (sortBy === 'views') { // Special case for homepage library, sort by multiple criteria
+                dataQuery += ` ORDER BY d.views DESC, d.likes DESC, d.rating DESC`;
+            } else {
+                const safeSortBy = sortBy.replace(/[^a-zA-Z0-9_]/g, ''); // Basic sanitization
+                const safeSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+                dataQuery += ` ORDER BY d.${safeSortBy} ${safeSortOrder}`;
+            }
         } else {
             dataQuery += ' ORDER BY d.created_at DESC';
         }
@@ -161,7 +170,27 @@ export const documentModel = {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            const { id: docId, author, type, topic, createdAt, spaceName, ...fieldsToUpdate } = docData;
+            const { 
+                id: docId, 
+                author,
+                authorEn, 
+                type,
+                typeEn,
+                topic,
+                topicEn,
+                createdAt, 
+                spaceName, 
+                spaceSlug,
+                comments,
+                prevId,
+                nextId,
+                prevTitle,
+                nextTitle,
+                prevTitleEn,
+                nextTitleEn,
+                updatedAt,
+                ...fieldsToUpdate 
+            } = docData;
 
             if (Object.keys(fieldsToUpdate).length > 0) {
                 const setClauses = Object.keys(fieldsToUpdate).map((key, i) => {
@@ -299,7 +328,20 @@ export const documentModel = {
         return mapRowToCamelCase(res.rows[0]);
     },
     async _deleteCategory(tableName, id) {
-        const documentTableColumn = tableName === 'document_authors' ? 'author_id' : (tableName.slice(0, -1) + '_id');
+        let documentTableColumn;
+        switch (tableName) {
+            case 'document_authors':
+                documentTableColumn = 'author_id';
+                break;
+            case 'document_types':
+                documentTableColumn = 'type_id';
+                break;
+            case 'document_topics':
+                documentTableColumn = 'topic_id';
+                break;
+            default:
+                throw new Error(`Unknown category table: ${tableName}`);
+        }
         const checkRes = await pool.query(`SELECT 1 FROM documents WHERE ${documentTableColumn} = $1 LIMIT 1`, [id]);
         if (checkRes.rows.length > 0) {
             throw new Error(`Cannot delete this item because it is currently used by one or more documents.`);
@@ -340,5 +382,5 @@ export const documentModel = {
         `;
         const res = await pool.query(query, [translationProvider, translationModel, ttsProvider, ttsModel, ttsVoice]);
         return mapRowToCamelCase(res.rows[0]);
-    },
+    }
 };

@@ -93,26 +93,12 @@ export const gptService = {
         const additionalTrainingText = await fileParserService.prepareAdditionalTrainingText(aiConfig);
         const languageName = language === 'vi' ? 'Vietnamese' : 'English';
 
-        const thoughtInstruction = `
-**FINAL MANDATORY INSTRUCTION**
-
-Your response MUST always begin with a <thought> block.  
-Inside it, explain your reasoning, analysis, or internal monologue step by step.  
-If the user's request is simple, still include a short thought like:  
-<thought>The question is simple. I will answer directly.</thought>  
-
-Then after </thought>, continue with your final answer, **formatted in Markdown**. This includes using line breaks for lists (e.g., "1. ... \\n2. ..."), bolding, etc.  
-
-Never skip or hide the <thought> block.  
-Never wrap it in markdown or code fences (\`\`\`).  
-Respond only in ${languageName}.
-`;
-
+        // Simplified instructions - No more thought blocks
         const systemPrompt = [
             retrievedContext,
             aiConfig.trainingContent,
             additionalTrainingText,
-            thoughtInstruction
+            `**SYSTEM INSTRUCTION:** You are a helpful AI assistant. Respond in ${languageName}. Use Markdown for formatting.`
         ].filter(Boolean).join('\n\n---\n\n');
 
         const messages = toGptMessages(history, systemPrompt);
@@ -150,30 +136,8 @@ Respond only in ${languageName}.
                 }
             }
 
-            // ========== FIX SECTION ==========
-            fullResponseText = fullResponseText.replace(/```/g, '').trim();
-
-            // Auto-close if tag not closed
-            if (fullResponseText.includes('<thought>') && !fullResponseText.includes('</thought>')) {
-                fullResponseText += '</thought>';
-            }
-
-            // Extract thought block
-            const match = fullResponseText.match(/<thought>([\s\S]*?)<\/thought>/i);
-            let thought = null;
-            let finalAnswer = fullResponseText;
-
-            if (match && match[1]) {
-                thought = match[1].trim();
-                finalAnswer = fullResponseText.replace(/<thought>[\s\S]*?<\/thought>/i, '').trim();
-            } else {
-                console.warn("⚠️ Model skipped <thought> block. Full output:\n", fullResponseText);
-                // fallback: first 200 chars as pseudo-thought
-                thought = fullResponseText.slice(0, 200) + (fullResponseText.length > 200 ? '…' : '');
-            }
-
-            console.log("✅ Final thought received on server:", thought);
-            callbacks.onEnd({ text: finalAnswer, thought });
+            // No thought parsing needed
+            callbacks.onEnd({ text: fullResponseText.replace(/```/g, '').trim(), thought: null });
 
         } catch (err) {
             console.error("Error in GPT Stream service:", err);

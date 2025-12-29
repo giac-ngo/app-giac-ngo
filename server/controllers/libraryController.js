@@ -17,7 +17,7 @@ export const libraryController = {
     
     async getLibraryFilters(req, res) {
         try {
-            const { spaceId, typeId, topicsPage, topicsLimit } = req.query;
+            const { spaceId, typeId, authorId, topicsPage, topicsLimit } = req.query;
             
             let finalSpaceId;
             if (spaceId === 'global') {
@@ -31,6 +31,7 @@ export const libraryController = {
 
             const modelFilters = {
                 typeId: typeId ? parseInt(typeId, 10) : undefined,
+                authorId: authorId ? parseInt(authorId, 10) : undefined,
                 topicsPage: topicsPage ? parseInt(topicsPage, 10) : 1,
                 topicsLimit: topicsLimit ? parseInt(topicsLimit, 10) : 15,
             };

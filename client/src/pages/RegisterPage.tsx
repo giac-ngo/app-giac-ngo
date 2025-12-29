@@ -176,7 +176,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, language
                 </div>
             </div>
             <div className="login-logo-container">
-                <img src="/themes/giacngo/giac-ngo-login.png" alt="Giác Ngộ AI Logo" className="w-full h-full object-contain" />
+                <img src="/themes/giacngo/giac-ngo-login1.png" alt="Giác Ngộ AI Logo" className="w-full h-full object-contain" />
             </div>
         </div>
     );

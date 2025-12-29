@@ -3,6 +3,57 @@ import { dharmaTalkModel } from '../models/dharmaTalk.model.js';
 import { spaceModel } from '../models/space.model.js';
 import { pool } from '../db.js';
 
+
+const parseAndProcessTalkData = (req) => {
+    const data = { ...req.body };
+    const files = req.files;
+    const spaceIdSubDir = data.spaceId || 'global';
+
+    if (files) {
+        if (files.avatarFile) {
+            data.speakerAvatarUrl = `/uploads/${spaceIdSubDir}/dharmatalks/${files.avatarFile[0].filename}`;
+        }
+        if (files.audioFile) {
+            data.url = `/uploads/${spaceIdSubDir}/dharmatalks/${files.audioFile[0].filename}`;
+        }
+    }
+
+    // FIX: Properly handle empty strings for array fields to prevent DB errors.
+    // An empty string from FormData should be converted to an empty array for PostgreSQL.
+    if (typeof data.tags === 'string') {
+        data.tags = data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    }
+    if (typeof data.tagsEn === 'string') {
+        data.tagsEn = data.tagsEn ? data.tagsEn.split(',').map(t => t.trim()).filter(Boolean) : [];
+    }
+
+    // Handle numeric fields that might be strings, converting empty values to null
+    ['spaceId', 'duration', 'notifications', 'views', 'likes'].forEach(field => {
+        if (data[field] === '' || data[field] === null || data[field] === undefined) {
+            data[field] = null;
+        } else {
+            const num = Number(data[field]);
+            data[field] = isNaN(num) ? null : num;
+        }
+    });
+
+    // Handle floating point numbers
+    if (data.rating === '' || data.rating === null || data.rating === undefined) {
+        data.rating = null;
+    } else {
+        const num = parseFloat(data.rating);
+        data.rating = isNaN(num) ? null : num;
+    }
+    
+    // Handle empty date string
+    if (data.date === '' || data.date === 'null') {
+        data.date = null;
+    }
+    
+    return data;
+}
+
+
 export const dharmaTalksController = {
     async getAllDharmaTalks(req, res) {
         try {
@@ -16,22 +67,14 @@ export const dharmaTalksController = {
 
     async createDharmaTalk(req, res) {
         try {
-            const { spaceId } = req.body;
-            // Super admin can assign to any space.
-            if (!req.user.permissions.includes('roles')) {
-                // Content Manager must assign to a space they own.
+            const talkData = parseAndProcessTalkData(req);
+            const { spaceId } = talkData;
+            
+            if (!req.user.permissions.includes('roles') && spaceId) {
                 const spaceRes = await pool.query('SELECT user_id FROM spaces WHERE id = $1', [spaceId]);
                 if (spaceRes.rows.length === 0 || spaceRes.rows[0].user_id !== req.user.id) {
                     return res.status(403).json({ message: 'You can only create talks for spaces you own.' });
                 }
-            }
-            
-            const talkData = { ...req.body };
-            if (talkData.tags && typeof talkData.tags === 'string') {
-                talkData.tags = talkData.tags.split(',').map(t => t.trim()).filter(Boolean);
-            }
-            if (talkData.tagsEn && typeof talkData.tagsEn === 'string') {
-                talkData.tagsEn = talkData.tagsEn.split(',').map(t => t.trim()).filter(Boolean);
             }
 
             const newTalk = await dharmaTalkModel.create(talkData);
@@ -45,23 +88,15 @@ export const dharmaTalksController = {
     async updateDharmaTalk(req, res) {
         try {
             const id = parseInt(req.params.id, 10);
-            
+            const talkData = parseAndProcessTalkData(req);
+
             if (!req.user.permissions.includes('roles')) {
-                // Check if the content manager owns the space of the talk they are trying to edit.
                 const talkRes = await pool.query('SELECT s.user_id FROM dharma_talks dt JOIN spaces s ON dt.space_id = s.id WHERE dt.id = $1', [id]);
-                if (talkRes.rows.length === 0 || talkRes.rows[0].user_id !== req.user.id) {
+                if (talkRes.rows.length > 0 && talkRes.rows[0].user_id !== req.user.id) {
                     return res.status(403).json({ message: 'You can only edit talks from spaces you own.' });
                 }
             }
             
-            const talkData = { ...req.body };
-            if (talkData.tags && typeof talkData.tags === 'string') {
-                talkData.tags = talkData.tags.split(',').map(t => t.trim()).filter(Boolean);
-            }
-            if (talkData.tagsEn && typeof talkData.tagsEn === 'string') {
-                talkData.tagsEn = talkData.tagsEn.split(',').map(t => t.trim()).filter(Boolean);
-            }
-
             const updatedTalk = await dharmaTalkModel.update(id, talkData);
             if (!updatedTalk) {
                 return res.status(404).json({ message: 'Dharma talk not found.' });
@@ -69,7 +104,7 @@ export const dharmaTalksController = {
             res.json(updatedTalk);
         } catch (error) {
             console.error('Error updating dharma talk:', error);
-            res.status(500).json({ message: 'Failed to update dharma talk.' });
+            res.status(500).json({ message: `Failed to update dharma talk: ${error.message}` });
         }
     },
 
@@ -79,7 +114,7 @@ export const dharmaTalksController = {
             
             if (!req.user.permissions.includes('roles')) {
                 const talkRes = await pool.query('SELECT s.user_id FROM dharma_talks dt JOIN spaces s ON dt.space_id = s.id WHERE dt.id = $1', [id]);
-                if (talkRes.rows.length === 0 || talkRes.rows[0].user_id !== req.user.id) {
+                if (talkRes.rows.length > 0 && talkRes.rows[0].user_id !== req.user.id) {
                     return res.status(403).json({ message: 'You can only delete talks from spaces you own.' });
                 }
             }

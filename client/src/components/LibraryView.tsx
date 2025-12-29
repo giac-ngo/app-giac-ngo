@@ -1,5 +1,5 @@
 // client/src/components/LibraryView.tsx
-import React, { useEffect, useRef, useState,  useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { apiService } from '../services/apiService';
 import { Link } from 'react-router-dom';
 import { Document } from '../types';
@@ -62,6 +62,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
     const debounceTimeoutRef = useRef<number | null>(null);
 
     const fetchDocuments = useCallback(async (pageNum: number, currentFilters: LibraryFilters, currentSpaceId: number | null | undefined, abortSignal: AbortSignal) => {
+        // CRITICAL FIX: If we are in a specific space (implied by spaceSlug) but currentSpaceId is not yet resolved (null/undefined),
+        // we must NOT fetch. Fetching with undefined results in global data, which is wrong for a specific space.
+        // We only fetch if:
+        // 1. spaceSlug is missing (Global context / Homepage)
+        // 2. OR spaceSlug exists AND currentSpaceId is a valid number.
+        if (spaceSlug && (currentSpaceId === null || currentSpaceId === undefined)) {
+            return;
+        }
+
         if (pageNum === 1) {
             setIsLoading(true);
         } else {
@@ -96,17 +105,20 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
                 }
             }
         }
-    }, []);
+    }, [spaceSlug]);
 
     useEffect(() => {
         const controller = new AbortController();
         setPage(1);
-        setDocuments([]);
-        setHasMore(true);
-        fetchDocuments(1, filters, spaceId, controller.signal);
+        // Only reset documents if we are actually going to fetch (i.e. spaceId is resolved or we are global)
+        if (!spaceSlug || (spaceSlug && spaceId != null)) {
+             setDocuments([]);
+             setHasMore(true);
+             fetchDocuments(1, filters, spaceId, controller.signal);
+        }
         
         return () => controller.abort();
-    }, [filters, spaceId, fetchDocuments]);
+    }, [filters, spaceId, fetchDocuments, spaceSlug]);
 
     const handleLoadMore = () => {
         if (!isLoading && !isLoadingMore && hasMore) {
@@ -164,9 +176,12 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
                                 {doc.thumbnailUrl && doc.thumbnailUrl !== '' ? <img src={doc.thumbnailUrl} alt={doc.title} loading="lazy" /> : <BookOpenIcon />}
                             </div>
                             <div className="doc-card-content">
-                                <span className="doc-card-type">{doc.type}</span>
-                                <h3 className="doc-card-title">{language === 'en' && doc.titleEn ? doc.titleEn : doc.title}</h3>
-                                <p className="doc-card-author">{t.by} {doc.author}</p>
+                                <span className="doc-card-type">{language === 'en' && doc.typeEn ? doc.typeEn : doc.type}</span>
+                                <h3 className="doc-card-title">{language === 'en' && doc.titleEn ? doc.titleEn : doc.title}</h3>                                
+                                <p className="doc-card-summary">
+                                    {language === 'en' && doc.summaryEn ? doc.summaryEn : (doc.summary || '')}
+                                </p>
+                                <i><p className="doc-card-author">{t.by} {language === 'en' && doc.authorEn ? doc.authorEn : doc.author}</p></i>
                                 <div className="doc-card-stats">
                                     <span><EyeIcon className="w-4 h-4" /> {doc.views || 0}</span>
                                     <span><ThumbsUpIcon className="w-4 h-4" /> {doc.likes || 0}</span>

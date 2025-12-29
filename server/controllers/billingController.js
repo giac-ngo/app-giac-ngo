@@ -186,6 +186,103 @@ export const billingController = {
         }
     },
 
+    // NEW: Create Stripe Checkout Session
+    async createCheckoutSession(req, res) {
+        const { amount, userId, message } = req.body; // Amount in USD
+        if (!userId || !amount || amount <= 0) {
+            return res.status(400).json({ message: 'User ID and valid amount are required.' });
+        }
+
+        try {
+            const stripe = getStripeClient();
+            
+            const origin = req.headers.origin || 'http://localhost:3000';
+            const truncatedMessage = message ? message.substring(0, 500) : '';
+            
+            const session = await stripe.checkout.sessions.create({
+                mode: "payment",
+                line_items: [
+                    {
+                        price_data: {
+                            currency: "usd",
+                            product_data: {
+                                name: "Cúng Dường Tuỳ Tâm - Giac Ngo",
+                                description: `Offering of ${amount} USD for Merits`,
+                            },
+                            unit_amount: Math.round(amount * 100), // Stripe expects cents
+                        },
+                        quantity: 1,
+                    },
+                ],
+                metadata: {
+                    userId: userId,
+                    merits: amount, // 1 USD = 1 Merit
+                    type: 'offering',
+                    message: truncatedMessage
+                },
+                payment_intent_data: {
+                    metadata: {
+                        userId: userId,
+                        merits: amount,
+                        type: 'offering',
+                        message: truncatedMessage
+                    }
+                },
+                phone_number_collection: { enabled: true },
+                success_url: `${origin}/donation/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${origin}/donation`,
+            });
+
+            res.json({ url: session.url });
+        } catch (error) {
+            console.error("Error creating checkout session:", error);
+            res.status(500).json({ message: `Failed to create checkout session: ${error.message}` });
+        }
+    },
+
+    // NEW: Verify Checkout Session and Add Merits
+    async verifyCheckoutSession(req, res) {
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            return res.status(400).json({ message: 'Session ID is required.' });
+        }
+
+        try {
+            const stripe = getStripeClient();
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+            if (session.payment_status !== 'paid') {
+                return res.status(400).json({ message: 'Payment not successful.' });
+            }
+
+            const paymentIntentId = session.payment_intent;
+            
+            const existingTx = await pool.query('SELECT id FROM transactions WHERE stripe_charge_id = $1', [paymentIntentId]);
+            if (existingTx.rows.length > 0) {
+                const userId = session.metadata.userId;
+                const user = await userModel.findById(parseInt(userId, 10));
+                return res.json(mapAndSanitizeUser(user));
+            }
+
+            const { userId, merits, message } = session.metadata;
+
+            if (!userId || !merits) {
+                return res.status(400).json({ message: 'Invalid session metadata.' });
+            }
+
+            const userIdNum = parseInt(userId, 10);
+            const meritsNum = parseInt(merits, 10);
+            const details = message ? { message } : null;
+
+            const updatedUser = await billingModel.addMerits(userIdNum, meritsNum, null, 'stripe', paymentIntentId, details);
+            res.json(mapAndSanitizeUser(updatedUser));
+
+        } catch (error) {
+            console.error("Error verifying checkout session:", error);
+            res.status(500).json({ message: `Verification failed: ${error.message}` });
+        }
+    },
+
     // Withdrawals
     async getWithdrawalRequests(req, res) {
         try {

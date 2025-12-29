@@ -19,7 +19,7 @@ const translations = {
         space: 'Không gian',
         radio: 'Pháp thoại',
         library: 'Thư viện',
-        price: 'Bảng giá',
+        price: 'Cúng dường tùy tâm',
         login: 'Đăng nhập',
         logout: 'Đăng xuất',
         practiceSpace: 'Không gian thực hành',
@@ -39,7 +39,7 @@ const translations = {
         space: 'Space',
         radio: 'Dharma radio',
         library: 'Library',
-        price: 'Pricing',
+        price: 'Donation',
         login: 'Login',
         logout: 'Logout',
         practiceSpace: 'Practice Space',
@@ -150,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                                     <li><Link to="/terms" onClick={() => setIsDropdownOpen(false)}>{t.terms}</Link></li>
                                     <li><Link to="/privacy" onClick={() => setIsDropdownOpen(false)}>{t.privacy}</Link></li>
                                     <li><Link to="/donation" onClick={() => setIsDropdownOpen(false)}>{t.donation}</Link></li>
-                                    <li><Link to="/docs" onClick={() => setIsDropdownOpen(false)}>{t.docs}</Link></li>
+                                    <li><a href="https://docs.giac.ngo/docs/manifesto" onClick={() => setIsDropdownOpen(false)}>{t.docs}</a></li>
                                 </ul>
                                 <hr />
                                 <div className="logo-dropdown-socials">
@@ -163,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                     </div>
                     <nav className="main-nav">
                         <a href="#agents-section" onClick={(e) => handleScrollClick(e, 'agents-section')}>{t.ai}</a>
-                        <a href="#community-section" onClick={(e) => handleScrollClick(e, 'community-section')}>{t.space}</a>
+                        {/* <a href="#community-section" onClick={(e) => handleScrollClick(e, 'community-section')}>{t.space}</a> */}
                         <a href="#library-section" onClick={(e) => handleScrollClick(e, 'library-section')}>{t.library}</a>
                         <a href="#dharma-radio-section" onClick={(e) => handleScrollClick(e, 'dharma-radio-section')}>{t.radio}</a>
                         <a href="#pricing-section" onClick={(e) => handleScrollClick(e, 'pricing-section')}>{t.price}</a>
@@ -273,11 +273,12 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                                     <Link to="/terms" onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-sublink">{t.terms}</Link>
                                     <Link to="/privacy" onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-sublink">{t.privacy}</Link>
                                     <Link to="/donation" onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-sublink">{t.donation}</Link>
+                                    <a href="https://buddhist-agentic-network-bankericc.replit.app/docs/quick-start" onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-sublink">{t.docs}</a>
                                 </div>
                             )}
                         </div>
                         <a href="#agents-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#agents-section'); }} className="mobile-nav-link">{t.ai}</a>
-                        <a href="#community-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#community-section'); }} className="mobile-nav-link">{t.space}</a>
+                        {/* <a href="#community-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#community-section'); }} className="mobile-nav-link">{t.space}</a> */}
                         <a href="#library-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#library-section'); }} className="mobile-nav-link">{t.library}</a>
                         <a href="#dharma-radio-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#dharma-radio-section'); }} className="mobile-nav-link">{t.radio}</a>
                         <a href="#pricing-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#pricing-section'); }} className="mobile-nav-link">{t.price}</a>                     

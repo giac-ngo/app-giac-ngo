@@ -1,10 +1,11 @@
-/* client/public/themes/w5g/LoginPage.css */
+/* client/public/themes/giacngo/LoginPage.css */
 
 .login-page-grid {
   display: grid;
-  height: 100%;
+  min-height: 100vh;
   overflow: hidden;
   grid-template-columns: 1fr;
+  background-color: var(--color-background-main);
 }
 
 @media (min-width: 1024px) {
@@ -20,6 +21,11 @@
   padding: 8rem 2rem 2rem;
   background-color: var(--color-background-panel);
   overflow-y: auto;
+}
+
+.login-form-container h1,
+.login-form-container .font-serif {
+  font-family: "EB Garamond", serif;
 }
 
 .login-logo-container {
@@ -41,16 +47,17 @@
   width: 100%;
   border-radius: 0.375rem;
   border: 1px solid var(--color-border-color);
-  background-color: var(--color-background-panel);
+  background-color: #fefcf5; /* A lighter cream color */
   padding: 0.5rem 0.75rem;
   margin-top: 0.25rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  font-family: "Be Vietnam Pro", sans-serif;
 }
 .login-input:focus, .auth-input-white:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-light);
+  box-shadow: 0 0 0 1px var(--color-primary);
 }
 
 .login-divider {

@@ -2,10 +2,10 @@
 
 .login-page-grid {
   display: grid;
-  height: 100%;
+  min-height: 100vh;
   overflow: hidden;
   grid-template-columns: 1fr;
-  background-color: var(--color-background-main);
+  background-color: var(--color-background-panel);
 }
 
 @media (min-width: 1024px) {

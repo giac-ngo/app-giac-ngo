@@ -11,7 +11,7 @@ router.post('/chat/stream', chatController.sendMessageStream);
 router.post('/chat/estimate-context', chatController.estimateContext);
 
 // Standard conversation CRUD
-router.get('/', conversationController.getConversationsByUserId);
+router.get('/', conversationController.getConversations);
 router.post('/', conversationController.createConversation);
 router.get('/all', checkPermission('conversations'), conversationController.getAllConversations);
 router.delete('/:id', conversationController.deleteConversation);

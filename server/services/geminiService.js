@@ -169,23 +169,12 @@ Summary:`;
             const additionalTrainingText = await fileParserService.prepareAdditionalTrainingText(aiConfig);
             const languageName = language === 'vi' ? 'Vietnamese' : 'English';
 
-            const thoughtInstruction = `
-**MANDATORY INSTRUCTION: ALWAYS PROVIDE A THOUGHT BLOCK**
-Your answer MUST begin with a <thought> block.
-Inside it, explain your reasoning or internal thinking step-by-step.
-If the user's request is simple, still include something like:
-<thought>The question is simple. I will answer directly.</thought>
-
-After </thought>, write the final answer (formatted in Markdown).
-Do NOT wrap <thought> in code fences (no \`\`\`).
-Respond in ${languageName}.
-`;
-
+            // Simplified instructions - No more thought blocks
             const systemInstruction = [
                 retrievedContext,
                 aiConfig.trainingContent,
                 additionalTrainingText,
-                thoughtInstruction
+                `**SYSTEM INSTRUCTION:** You are a helpful AI assistant. Respond in ${languageName}. Use Markdown for formatting.`
             ].filter(Boolean).join('\n\n---\n\n');
 
             const contents = toGeminiContent(history);
@@ -197,15 +186,11 @@ Respond in ${languageName}.
             const ai = new GoogleGenAI({ apiKey });
             const model = aiConfig.modelName || "gemini-2.5-flash";
             
-            const geminiConfig = { systemInstruction };
-
-            // Use values from aiConfig if they are valid numbers, otherwise use service-level defaults.
-            const maxTokens = typeof aiConfig.maxOutputTokens === 'number' ? aiConfig.maxOutputTokens : 8000;
-            const budget = typeof aiConfig.thinkingBudget === 'number' ? aiConfig.thinkingBudget : 2000;
-
-            geminiConfig.maxOutputTokens = maxTokens;
-            geminiConfig.thinkingConfig = { thinkingBudget: budget };
-
+            const geminiConfig = { 
+                systemInstruction,
+                maxOutputTokens: typeof aiConfig.maxOutputTokens === 'number' ? aiConfig.maxOutputTokens : 8192,
+                temperature: 0.7,
+            };
 
             const result = await ai.models.generateContentStream({
                 model,
@@ -222,26 +207,8 @@ Respond in ${languageName}.
                 }
             }
 
-            // ======== FIX SECTION ========
-            fullResponseText = fullResponseText.replace(/```/g, '').trim();
-            if (fullResponseText.includes('<thought>') && !fullResponseText.includes('</thought>')) {
-                fullResponseText += '</thought>';
-            }
-
-            const match = fullResponseText.match(/<thought>([\s\S]*?)<\/thought>/i);
-            let thought = null;
-            let finalAnswer = fullResponseText;
-
-            if (match && match[1]) {
-                thought = match[1].trim();
-                finalAnswer = fullResponseText.replace(/<thought>[\s\S]*?<\/thought>/i, '').trim();
-            } else {
-                console.warn("⚠️ Gemini skipped <thought>. Full output:\n", fullResponseText);
-                thought = fullResponseText.slice(0, 200) + (fullResponseText.length > 200 ? '…' : '');
-            }
-
-            console.log("✅ Final thought (Gemini):", thought);
-            callbacks.onEnd({ text: finalAnswer, thought });
+            // No thought parsing needed
+            callbacks.onEnd({ text: fullResponseText.trim(), thought: null });
 
         } catch (err) {
             console.error("Error calling Gemini Stream API:", err);

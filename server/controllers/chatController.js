@@ -10,6 +10,7 @@ import { grokService } from '../services/grokService.js';
 import { fileParserService } from '../services/fileParserService.js';
 import weaviateService from '../services/weaviateService.js';
 import { trainingDataModel } from '../models/trainingData.model.js';
+import { vertexService } from '../services/vertexService.js';
 
 const mapAndSanitizeUser = (user) => {
     if (!user) return null;
@@ -37,9 +38,10 @@ async function getApiKeyForAi(aiConfig) {
 
 export const chatController = {
     async sendMessageStream(req, res) {
-        // FIX: Use authenticated user from req.user instead of userId from body to prevent impersonation.
-        const { aiConfig, messages, conversationId, isTestChat, language, clientAiMessageId } = req.body;
-        const userId = req.user ? req.user.id : req.body.userId; // Fallback for guest/unauthenticated users if allowed.
+        // Use authenticated user from req.user instead of userId from body to prevent impersonation.
+        const { aiConfig, messages, conversationId, isTestChat, language, clientAiMessageId, guestTurnCount } = req.body;
+        const currentUser = req.user; // This will be null for guests.
+        const userId = currentUser ? currentUser.id : null;
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -62,58 +64,67 @@ export const chatController = {
                 delete lastMessage.fileAttachment;
             }
 
-            if (!userId) {
-                return onError(new Error("Authentication is required to chat. Please log in."));
-            }
-
-            const currentUser = await userModel.findById(userId);
-            if (!currentUser) return onError(new Error("User not found."));
-
             let retrievedContext = '';
             let requestChargeMethod = 'none'; // 'none', 'ai_specific', 'subscription', 'merit_cost'
 
             if (!isTestChat) {
-                 if (aiConfig.isContactForAccess) {
-                    const isGranted = await aiConfigModel.checkUserAccess(aiConfig.id, currentUser.id);
-                    if (!isGranted) {
-                        return onError(new Error("This AI requires special access. Please contact the administrator."));
-                    }
-                    // If granted, access is free for this request.
-                    requestChargeMethod = 'none';
-                } else {
-                    const isUniversallyFree = aiConfig.isPublic && !aiConfig.requiresSubscription && !aiConfig.purchaseCost && !aiConfig.meritCost;
-                    
-                    if (!isUniversallyFree) {
-                        const perAiRequestCount = await aiConfigModel.getUserRequestCount(currentUser.id, aiConfig.id);
-                        if (perAiRequestCount !== null && perAiRequestCount > 0) {
-                            requestChargeMethod = 'ai_specific';
-                        } else if (currentUser.subscriptionPlanId && (currentUser.requestsRemaining === null || currentUser.requestsRemaining > 0)) {
-                            const plan = await billingModel.findPlanById(currentUser.subscriptionPlanId);
-                            if (plan && (plan.aiConfigIds || []).map(String).includes(String(aiConfig.id))) {
-                                requestChargeMethod = 'subscription';
-                            }
-                        } else if (aiConfig.meritCost && aiConfig.meritCost > 0) {
-                            if (currentUser.merits !== null && currentUser.merits >= aiConfig.meritCost) {
-                                requestChargeMethod = 'merit_cost';
+                // If user is logged in, perform strict access checks
+                if (currentUser) {
+                    if (aiConfig.isContactForAccess) {
+                        const isGranted = await aiConfigModel.checkUserAccess(aiConfig.id, currentUser.id);
+                        if (!isGranted) {
+                            return onError(new Error("This AI requires special access. Please contact the administrator."));
+                        }
+                        // If granted, access is free for this request.
+                        requestChargeMethod = 'none';
+                    } else {
+                        const isUniversallyFree = aiConfig.isPublic && !aiConfig.requiresSubscription && !aiConfig.purchaseCost && !aiConfig.meritCost;
+                        
+                        if (!isUniversallyFree) {
+                            const perAiRequestCount = await aiConfigModel.getUserRequestCount(currentUser.id, aiConfig.id);
+                            if (perAiRequestCount !== null && perAiRequestCount > 0) {
+                                requestChargeMethod = 'ai_specific';
+                            } else if (currentUser.subscriptionPlanId && (currentUser.requestsRemaining === null || currentUser.requestsRemaining > 0)) {
+                                const plan = await billingModel.findPlanById(currentUser.subscriptionPlanId);
+                                if (plan && (plan.aiConfigIds || []).map(String).includes(String(aiConfig.id))) {
+                                    requestChargeMethod = 'subscription';
+                                }
+                            } else if (aiConfig.meritCost && aiConfig.meritCost > 0) {
+                                if (currentUser.merits !== null && currentUser.merits >= aiConfig.meritCost) {
+                                    requestChargeMethod = 'merit_cost';
+                                } else {
+                                    return onError(new Error("You do not have enough merits for this request."));
+                                }
+                            } else if (aiConfig.purchaseCost && aiConfig.purchaseCost > 0) {
+                                return onError(new Error("This AI must be purchased to use."));
                             } else {
-                                return onError(new Error("You do not have enough merits for this request."));
+                                if (perAiRequestCount === 0) {
+                                    return onError(new Error("You have used all your requests for this specific AI."));
+                                } else if (currentUser.requestsRemaining === 0) {
+                                    return onError(new Error("You have reached the request limit for your subscription plan."));
+                                }
+                                return onError(new Error("You do not have access to this AI."));
                             }
-                        } else if (aiConfig.purchaseCost && aiConfig.purchaseCost > 0) {
-                             return onError(new Error("This AI must be purchased to use."));
-                        } else {
-                            if (perAiRequestCount === 0) {
-                                return onError(new Error("You have used all your requests for this specific AI."));
-                            } else if (currentUser.requestsRemaining === 0) {
-                                return onError(new Error("You have reached the request limit for your subscription plan."));
-                            }
-                            return onError(new Error("You do not have access to this AI."));
                         }
                     }
+                } else {
+                    // Guest Logic with backend limit check
+                    const systemConfig = await systemModel.getConfig();
+                    const guestLimit = systemConfig.guestMessageLimit || 5;
+
+                    if (guestTurnCount !== undefined && guestTurnCount >= guestLimit) {
+                        return onError(new Error("Hết lượt chat miễn phí. Vui lòng đăng nhập để tiếp tục."));
+                    }
+
+                    if (aiConfig.isContactForAccess) {
+                        return onError(new Error("This AI requires special access. Please log in or contact the administrator."));
+                    }
+                    requestChargeMethod = 'none'; // Guests are not charged in the DB
                 }
             }
             
             const apiKey = await getApiKeyForAi(aiConfig);
-
+            console.log(apiKey);
             const lastUserMessage = finalMessages.findLast(m => m.sender === 'user');
             if (lastUserMessage?.text && apiKey) {
                 const results = await weaviateService.search(aiConfig.modelType, aiConfig.id, lastUserMessage.text, apiKey);
@@ -133,25 +144,29 @@ export const chatController = {
                     if (conversationId) {
                         await conversationModel.update(conversationId, allFinalMessages);
                     } else if (typeof aiConfig.id === 'number') {
+                        // Create conversation. For guests, userId is null.
                         const newConv = await conversationModel.create({
-                            userId: currentUser?.id || null, userName: currentUser?.name || 'Guest',
-                            aiConfigId: aiConfig.id, messages: allFinalMessages, isTestChat,
+                            userId: currentUser?.id || null, 
+                            userName: currentUser?.name || 'Guest',
+                            aiConfigId: aiConfig.id, 
+                            messages: allFinalMessages, 
+                            isTestChat,
                         });
                         finalConvId = newConv.id;
                     }
                     
                     let updatedUser = null;
-                     if (userId && !isTestChat) {
+                     if (currentUser && !isTestChat) {
                          switch (requestChargeMethod) {
                             case 'ai_specific':
-                                await aiConfigModel.decrementUserRequestCount(userId, aiConfig.id);
-                                updatedUser = await userModel.findById(userId); // Re-fetch user to get the latest state
+                                await aiConfigModel.decrementUserRequestCount(currentUser.id, aiConfig.id);
+                                updatedUser = await userModel.findById(currentUser.id); // Re-fetch user to get the latest state
                                 break;
                             case 'subscription':
-                                updatedUser = await userModel.deductRequest(userId);
+                                updatedUser = await userModel.deductRequest(currentUser.id);
                                 break;
                             case 'merit_cost':
-                                updatedUser = await billingModel.addMerits(userId, -aiConfig.meritCost, null, 'ai_usage');
+                                updatedUser = await billingModel.addMerits(currentUser.id, -aiConfig.meritCost, null, 'ai_usage');
                                 break;
                          }
                     }
@@ -163,10 +178,10 @@ export const chatController = {
                     onError(error);
                 }
             };
-
-            const service = { gemini: geminiService, gpt: gptService, grok: grokService }[aiConfig.modelType];
+            console.log(aiConfig.modelType);
+            const service = { gemini: geminiService, gpt: gptService, grok: grokService, vertex: vertexService }[aiConfig.modelType];
             if (!service) return onError(new Error(`Unsupported model type: ${aiConfig.modelType}`));
-            
+            console.log(service);
             service.sendMessageStream(aiConfig, finalMessages.slice(-8), apiKey, { onChunk, onEnd, onError }, language, retrievedContext);
         } catch (error) {
             onError(error);
@@ -176,12 +191,12 @@ export const chatController = {
     async estimateContext(req, res) {
         try {
             const { aiConfig, userMessage, userId } = req.body;
-            if (!aiConfig || !userId) {
-                return res.status(400).json({ message: 'AI config and user ID are required.' });
+            if (!aiConfig) {
+                return res.status(400).json({ message: 'AI config is required.' });
             }
-            const user = await userModel.findById(userId);
-            if (!user) return res.status(404).json({ message: 'User not found.' });
             
+            // Allow estimation without user for guests, or require user if preferred.
+            // For now, let's allow it if we can get an API key.
             const apiKey = await getApiKeyForAi(aiConfig);
             
             let ragContext = '';

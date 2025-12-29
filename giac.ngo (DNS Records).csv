@@ -1,0 +1,13 @@
+name,ttl,type,value
+"giac.ngo","3600","NETLIFY","buddha-rag-prod.netlify.app"
+"www.giac.ngo","3600","NETLIFY","buddha-rag-prod.netlify.app"
+"www.giac.ngo","1800","CNAME","parkingpage.namecheap.com."
+"giac.ngo","600","TXT","verification-code-site-App_lark=geNVXDO6Bm1fxq4Ehxee"
+"giac.ngo","600","TXT","v=spf1 +include:spf.onlarksuite.com -all"
+"giac.ngo","600","MX","mx1.larksuite.com"
+"giac.ngo","600","MX","mx2.larksuite.com"
+"giac.ngo","600","MX","mx3.larksuite.com"
+"admin.giac.ngo","3600","NETLIFY","buddha-rag-prod.netlify.app"
+"giac.ngo","3600","TXT","tiktok-developers-site-verification=Qd9zwxeZLxYyfr7uTjox11OdtNkTf4Z5"
+"giac.ngo","3600","TXT","google-site-verification=PipMS98EV-S9lzdH2-Hs0Ksxl38D178aqgj6ol39Rpo"
+"app.giac.ngo","3600","A","54.95.0.172"

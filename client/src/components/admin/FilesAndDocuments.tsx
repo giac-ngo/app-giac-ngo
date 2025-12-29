@@ -1,3 +1,4 @@
+
 // client/src/components/admin/FilesAndDocuments.tsx
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { PencilIcon, TrashIcon, EyeIcon, PlusIcon, GenerateIcon, SpinnerIcon, BoldIcon, ItalicIcon, UnderlineIcon, ListOrderedIcon, ListIcon, AlignLeftIcon, AlignCenterIcon, AlignRightIcon, PaperclipIcon, SoundWaveIcon, SettingsIcon, ThumbsUpIcon, BookOpenIcon } from '../Icons';
@@ -30,6 +31,7 @@ const translations = {
         of: 'trên',
         prev: 'Trước',
         next: 'Sau',
+        page: 'Trang',
         // Actions
         edit: 'Sửa',
         delete: 'Xóa',
@@ -76,6 +78,7 @@ const translations = {
         deleteCategoryError: 'Xóa thất bại: {message}',
         filterAll: 'Tất cả',
         filterByTitle: 'Lọc theo tiêu đề...',
+        filterByTopicName: 'Lọc theo tên chủ đề...',
         selectPlaceholder: '--Chọn--',
         globalSpace: 'Không gian chung',
         nameLabel: 'Tên (VI)',
@@ -127,6 +130,7 @@ const translations = {
         of: 'of',
         prev: 'Previous',
         next: 'Next',
+        page: 'Page',
         // Actions
         edit: 'Edit',
         delete: 'Delete',
@@ -172,6 +176,7 @@ const translations = {
         deleteCategoryError: 'Delete failed: {message}',
         filterAll: 'All',
         filterByTitle: 'Filter by title...',
+        filterByTopicName: 'Filter by topic name...',
         selectPlaceholder: '--Select--',
         globalSpace: 'Global Space',
         nameLabel: 'Name (VI)',
@@ -277,6 +282,213 @@ function pcmToWav(pcmData: Uint8Array, numChannels: number, sampleRate: number, 
 }
 
 
+const TextEditor: React.FC<{
+    initialHtml: string;
+    onContentChange: (html: string) => void;
+    placeholder: string;
+    onFileExtract: (file: File) => void;
+    isExtracting: boolean;
+    language: 'vi' | 'en';
+}> = ({ initialHtml, onContentChange, placeholder, onFileExtract, isExtracting, language }) => {
+    const editorRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const t = translations[language];
+
+    useEffect(() => {
+        if (editorRef.current && editorRef.current.innerHTML !== initialHtml) {
+            editorRef.current.innerHTML = initialHtml;
+        }
+    }, [initialHtml]);
+
+    const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+        onContentChange(e.currentTarget.innerHTML);
+    };
+
+    const execCmd = (command: string) => {
+        document.execCommand(command, false, undefined);
+        editorRef.current?.focus();
+    };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            onFileExtract(e.target.files[0]);
+        }
+    };
+
+    return (
+        <div className="border border-border-color rounded-md">
+            <div className="flex items-center gap-1 p-2 border-b border-border-color bg-background-light flex-wrap">
+                <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded hover:bg-gray-200"><BoldIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded hover:bg-gray-200"><ItalicIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded hover:bg-gray-200"><UnderlineIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded hover:bg-gray-200"><ListOrderedIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1.5 rounded hover:bg-gray-200"><ListIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('justifyLeft')} className="p-1.5 rounded hover:bg-gray-200"><AlignLeftIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('justifyCenter')} className="p-1.5 rounded hover:bg-gray-200"><AlignCenterIcon className="w-4 h-4" /></button>
+                <button type="button" onClick={() => execCmd('justifyRight')} className="p-1.5 rounded hover:bg-gray-200"><AlignRightIcon className="w-4 h-4" /></button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isExtracting} className="ml-auto flex items-center gap-1 text-sm p-1.5 rounded hover:bg-gray-200 disabled:opacity-50">
+                    {isExtracting ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : <PaperclipIcon className="w-4 h-4" />}
+                    {isExtracting ? t.extracting : t.attachFile}
+                </button>
+            </div>
+            <div
+                ref={editorRef}
+                contentEditable={!isExtracting}
+                onInput={handleInput}
+                className="p-3 min-h-[200px] prose max-w-none focus:outline-none"
+                dangerouslySetInnerHTML={{ __html: initialHtml }}
+                data-placeholder={placeholder}
+            />
+        </div>
+    );
+};
+
+
+interface DocumentConfigModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    initialConfig: DocumentConfig | null;
+    onSaveSuccess: (newConfig: DocumentConfig) => void;
+    language: 'vi' | 'en';
+    user: User;
+}
+
+const DocumentConfigModal: React.FC<DocumentConfigModalProps> = ({ isOpen, onClose, initialConfig, onSaveSuccess, language, user }) => {
+    const t = translations[language];
+    const { showToast } = useToast();
+    const [config, setConfig] = useState<Partial<DocumentConfig>>(initialConfig || {});
+    const [isSaving, setIsSaving] = useState(false);
+    
+    const [translationModels, setTranslationModels] = useState<string[]>([]);
+    const [ttsModels, setTtsModels] = useState<string[]>([]);
+    const [isLoadingModels, setIsLoadingModels] = useState({ translation: false, tts: false });
+
+    useEffect(() => {
+        if (isOpen) {
+            setConfig(initialConfig || {});
+        }
+    }, [isOpen, initialConfig]);
+
+    const fetchModels = useCallback(async (provider: ModelType, modelType: 'translation' | 'tts') => {
+        setIsLoadingModels(prev => ({ ...prev, [modelType]: true }));
+        try {
+            const models = await apiService.getAvailableModels(provider, user.id as number);
+            if (modelType === 'translation') setTranslationModels(models);
+            else setTtsModels(models);
+        } catch (error) {
+            showToast((error as Error).message, 'error');
+        } finally {
+            setIsLoadingModels(prev => ({ ...prev, [modelType]: false }));
+        }
+    }, [user.id, showToast]);
+
+    useEffect(() => {
+        if (config.translationProvider) {
+            fetchModels(config.translationProvider, 'translation');
+        }
+    }, [config.translationProvider, fetchModels]);
+
+    useEffect(() => {
+        if (config.ttsProvider) {
+            fetchModels(config.ttsProvider, 'tts');
+        }
+    }, [config.ttsProvider, fetchModels]);
+    
+    const handleConfigChange = (field: keyof DocumentConfig, value: any) => {
+        const newConfig: Partial<DocumentConfig> = { ...config, [field]: value };
+        if (field === 'ttsProvider' && value !== config.ttsProvider) {
+            newConfig.ttsModel = '';
+            newConfig.ttsVoice = '';
+        }
+        if (field === 'translationProvider' && value !== config.translationProvider) {
+            newConfig.translationModel = '';
+        }
+        setConfig(newConfig);
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const updatedConfig = await apiService.updateDocumentConfig(config as DocumentConfig);
+            onSaveSuccess(updatedConfig);
+            showToast(t.saveSuccess, 'success');
+            onClose();
+        } catch (error: any) {
+            showToast(t.saveError.replace('{message}', error.message), 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const getTtsVoices = () => {
+        if (config.ttsProvider === 'gemini') return GEMINI_TTS_VOICES;
+        if (config.ttsProvider === 'gpt') return GPT_TTS_VOICES;
+        return [];
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+                <h2 className="text-xl font-bold p-4 border-b">{t.configTitle}</h2>
+                <div className="p-6 space-y-6">
+                    <div className="space-y-4 p-4 border rounded-md">
+                        <h3 className="font-semibold">{t.translationConfig}</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium">{t.translationProvider}</label>
+                                <select value={config.translationProvider || ''} onChange={e => handleConfigChange('translationProvider', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                    <option value="gemini">Gemini</option>
+                                    <option value="gpt">GPT (OpenAI)</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium">{t.translationModel}</label>
+                                {isLoadingModels.translation ? <p className="text-sm mt-1">{t.modelLoading}</p> :
+                                <select value={config.translationModel || ''} onChange={e => handleConfigChange('translationModel', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                    {translationModels.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>}
+                            </div>
+                        </div>
+                    </div>
+                     <div className="space-y-4 p-4 border rounded-md">
+                        <h3 className="font-semibold">{t.ttsConfig}</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                             <div>
+                                <label className="block text-sm font-medium">{t.ttsProvider}</label>
+                                <select value={config.ttsProvider || ''} onChange={e => handleConfigChange('ttsProvider', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                    <option value="gemini">Gemini</option>
+                                    <option value="gpt">GPT (OpenAI)</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium">{t.ttsModel}</label>
+                                {isLoadingModels.tts ? <p className="text-sm mt-1">{t.modelLoading}</p> :
+                                <select value={config.ttsModel || ''} onChange={e => handleConfigChange('ttsModel', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                     {config.ttsProvider === 'gpt' ? GPT_TTS_MODELS.map(m => <option key={m} value={m}>{m}</option>) : ttsModels.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>}
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium">{t.ttsVoice}</label>
+                                <select value={config.ttsVoice || ''} onChange={e => handleConfigChange('ttsVoice', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                    {getTtsVoices().map(v => <option key={v} value={v}>{v}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div className="p-4 border-t flex justify-end gap-2">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">{t.cancel}</button>
+                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-primary text-white rounded-md">{isSaving ? t.saving : t.save}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const CategoryManagerModal: React.FC<{
     category: {
         name: string;
@@ -295,7 +507,8 @@ const CategoryManagerModal: React.FC<{
     user: User;
     spaces: Space[];
     documentTypes: DocumentType[];
-}> = ({ category, isOpen, onClose, onUpdate, language, user, spaces, documentTypes }) => {
+    documentAuthors: DocumentAuthor[];
+}> = ({ category, isOpen, onClose, onUpdate, language, user, spaces, documentTypes, documentAuthors }) => {
     const t = translations[language];
     const { showToast } = useToast();
 
@@ -303,18 +516,23 @@ const CategoryManagerModal: React.FC<{
     const isSuperAdmin = user.permissions?.includes('roles');
     const defaultSpaceId = isSuperAdmin ? '' : (spaces.find(s => s.userId === user.id)?.id || '');
     
-    // State for the "add new" form
-    const [newItem, setNewItem] = useState({ name: '', nameEn: '', spaceId: String(defaultSpaceId), typeId: '' });
+    const [newItem, setNewItem] = useState({ name: '', nameEn: '', spaceId: String(defaultSpaceId), typeId: '', authorId: '' });
+    const [editingItem, setEditingItem] = useState<{ id: number; name: string; nameEn: string; spaceId: string; typeId?: string; authorId?: string } | null>(null);
 
-    // State for inline editing
-    const [editingItem, setEditingItem] = useState<{ id: number; name: string; nameEn: string; spaceId: string; typeId?: string } | null>(null);
+    const [topicSearch, setTopicSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 8;
     
     useEffect(() => {
         if (isOpen) {
-            setNewItem({ name: '', nameEn: '', spaceId: String(defaultSpaceId), typeId: documentTypes[0]?.id.toString() || '' });
+            const initialTypeId = isManagingTopics && documentTypes.length > 0 ? documentTypes[0].id.toString() : '';
+            const initialAuthorId = isManagingTopics && documentAuthors.length > 0 ? documentAuthors[0].id.toString() : '';
+            setNewItem({ name: '', nameEn: '', spaceId: String(defaultSpaceId), typeId: initialTypeId, authorId: initialAuthorId });
             setEditingItem(null);
+            setTopicSearch('');
+            setCurrentPage(1);
         }
-    }, [isOpen, defaultSpaceId, documentTypes]);
+    }, [isOpen, defaultSpaceId, documentTypes, documentAuthors, isManagingTopics]);
     
     const handleAddItem = async () => {
         if (!newItem.name.trim()) return;
@@ -326,10 +544,15 @@ const CategoryManagerModal: React.FC<{
                     showToast('Please select a type for the new topic.', 'error');
                     return;
                 }
+                if (!newItem.authorId) {
+                    showToast('Please select an author for the new topic.', 'error');
+                    return;
+                }
                 payload.typeId = Number(newItem.typeId);
+                payload.authorId = Number(newItem.authorId);
             }
             await category.api.create(payload);
-            setNewItem({ ...newItem, name: '', nameEn: '' });
+            setNewItem(prev => ({ ...prev, name: '', nameEn: '' }));
             onUpdate();
         } catch (error: any) {
             showToast(error.message, 'error');
@@ -343,8 +566,9 @@ const CategoryManagerModal: React.FC<{
         try {
             const payload: any = { name: editingItem.name.trim(), nameEn: editingItem.nameEn.trim() };
             payload.spaceId = editingItem.spaceId ? Number(editingItem.spaceId) : null;
-            if (isManagingTopics && editingItem.typeId !== undefined) {
-                payload.typeId = editingItem.typeId ? Number(editingItem.typeId) : null;
+            if (isManagingTopics) {
+                if (editingItem.typeId !== undefined) payload.typeId = editingItem.typeId ? Number(editingItem.typeId) : null;
+                if (editingItem.authorId !== undefined) payload.authorId = editingItem.authorId ? Number(editingItem.authorId) : null;
             }
             await category.api.update(editingItem.id, payload);
             setEditingItem(null);
@@ -364,25 +588,66 @@ const CategoryManagerModal: React.FC<{
             }
         }
     };
+
+    const filteredItems = useMemo(() => {
+        if (!isManagingTopics || !topicSearch) {
+            return category.items;
+        }
+        const searchLower = topicSearch.toLowerCase();
+        return category.items.filter(item =>
+            item.name.toLowerCase().includes(searchLower) ||
+            ((item as any).nameEn || '').toLowerCase().includes(searchLower)
+        );
+    }, [category.items, topicSearch, isManagingTopics]);
+
+    const totalPages = useMemo(() => {
+        if (!isManagingTopics) return 1;
+        return Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+    }, [filteredItems, isManagingTopics]);
+
+    const paginatedItems = useMemo(() => {
+        if (!isManagingTopics) return filteredItems;
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredItems, currentPage, isManagingTopics]);
     
     if (!isOpen) return null;
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-3xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <h2 className="text-xl font-bold p-4 border-b border-border-color">{t.manageCategoryTitle.replace('{category}', category.pluralName)}</h2>
-                <div className="p-4 overflow-y-auto space-y-2">
-                    {category.items.map(item => (
+                
+                {isManagingTopics && (
+                    <div className="p-4 border-b border-border-color">
+                        <input
+                            type="text"
+                            placeholder={t.filterByTopicName}
+                            value={topicSearch}
+                            onChange={e => {
+                                setTopicSearch(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="p-2 border rounded-md w-full"
+                        />
+                    </div>
+                )}
+
+                <div className="p-4 overflow-y-auto space-y-2 flex-grow">
+                    {paginatedItems.map(item => (
                         <div key={item.id} className="p-2 bg-background-light rounded-md">
                             {editingItem?.id === item.id ? (
-                                <div className="flex items-center gap-2">
-                                    <input type="text" value={editingItem.name} onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })} className="p-1 border rounded-md flex-grow" autoFocus placeholder={t.nameLabel}/>
-                                    <input type="text" value={editingItem.nameEn} onChange={(e) => setEditingItem({ ...editingItem, nameEn: e.target.value })} className="p-1 border rounded-md flex-grow" placeholder={t.nameEnLabel}/>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <input type="text" value={editingItem.name} onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })} className="p-1 border rounded-md flex-grow min-w-[100px]" autoFocus placeholder={t.nameLabel}/>
+                                    <input type="text" value={editingItem.nameEn} onChange={(e) => setEditingItem({ ...editingItem, nameEn: e.target.value })} className="p-1 border rounded-md flex-grow min-w-[100px]" placeholder={t.nameEnLabel}/>
                                     {isSuperAdmin && (
-                                        <select value={editingItem.spaceId} onChange={(e) => setEditingItem({ ...editingItem, spaceId: e.target.value })} className="p-1 border rounded-md text-xs w-32"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
+                                        <select value={editingItem.spaceId} onChange={(e) => setEditingItem({ ...editingItem, spaceId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
                                     )}
                                     {isManagingTopics && (
-                                        <select value={editingItem.typeId} onChange={(e) => setEditingItem({ ...editingItem, typeId: e.target.value })} className="p-1 border rounded-md text-xs w-32"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+                                        <>
+                                        <select value={editingItem.typeId} onChange={(e) => setEditingItem({ ...editingItem, typeId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+                                        <select value={editingItem.authorId} onChange={(e) => setEditingItem({ ...editingItem, authorId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">-- {t.author} --</option>{documentAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select>
+                                        </>
                                     )}
                                     <button onClick={handleUpdateItem} className="px-3 py-1 bg-primary text-white text-sm rounded">{t.save}</button>
                                     <button onClick={() => setEditingItem(null)} className="px-3 py-1 bg-gray-200 text-sm rounded">{t.cancel}</button>
@@ -393,11 +658,12 @@ const CategoryManagerModal: React.FC<{
                                         <span className="text-sm font-medium">{item.name} {(item as any).nameEn && ` / ${(item as any).nameEn}`}</span>
                                         <div className="flex items-center gap-2 text-xs text-text-light">
                                             <span>{spaces.find(s => s.id === item.spaceId)?.name || t.globalSpace}</span>
-                                            {isManagingTopics && (item as DocumentTopic).typeId && <span>| {(documentTypes.find(dt => dt.id === (item as DocumentTopic).typeId))?.name || 'Unknown Type'}</span>}
+                                            {isManagingTopics && (item as DocumentTopic).typeId && <span>| {documentTypes.find(dt => dt.id === (item as DocumentTopic).typeId)?.name}</span>}
+                                            {isManagingTopics && (item as DocumentTopic).authorId && <span>| {documentAuthors.find(da => da.id === (item as DocumentTopic).authorId)?.name}</span>}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                        <button onClick={() => setEditingItem({ id: item.id, name: item.name, nameEn: (item as any).nameEn || '', spaceId: String(item.spaceId ?? ''), typeId: String((item as DocumentTopic).typeId ?? '') })} className="p-1"><PencilIcon className="w-4 h-4 text-text-light hover:text-primary"/></button>
+                                        <button onClick={() => setEditingItem({ id: item.id, name: item.name, nameEn: (item as any).nameEn || '', spaceId: String(item.spaceId ?? ''), typeId: String((item as DocumentTopic).typeId ?? ''), authorId: String((item as DocumentTopic).authorId ?? '') })} className="p-1"><PencilIcon className="w-4 h-4 text-text-light hover:text-primary"/></button>
                                         <button onClick={() => handleDeleteItem(item)} className="p-1"><TrashIcon className="w-4 h-4 text-text-light hover:text-accent-red"/></button>
                                     </div>
                                 </div>
@@ -405,226 +671,33 @@ const CategoryManagerModal: React.FC<{
                         </div>
                     ))}
                 </div>
-                <div className="p-4 border-t border-border-color space-y-2">
-                    <h3 className="font-semibold">{editingItem?.id ? t.updateItem : t.addItem}</h3>
-                    <div className="flex items-center gap-2">
-                        <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} placeholder={t.nameLabel} className="p-2 border rounded-md w-full" />
-                        <input type="text" value={newItem.nameEn} onChange={(e) => setNewItem({...newItem, nameEn: e.target.value})} placeholder={t.nameEnLabel} className="p-2 border rounded-md w-full" />
+                
+                {isManagingTopics && totalPages > 1 && (
+                    <div className="p-4 border-t border-border-color flex justify-between items-center flex-shrink-0">
+                        <span className="text-sm text-text-light">{t.page} {currentPage} / {totalPages}</span>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 text-sm border rounded-md disabled:opacity-50">{t.prev}</button>
+                            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 text-sm border rounded-md disabled:opacity-50">{t.next}</button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="p-4 border-t border-border-color space-y-2 flex-shrink-0">
+                    <h3 className="font-semibold">{t.addItem}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} placeholder={t.nameLabel} className="p-2 border rounded-md flex-grow" />
+                        <input type="text" value={newItem.nameEn} onChange={(e) => setNewItem({...newItem, nameEn: e.target.value})} placeholder={t.nameEnLabel} className="p-2 border rounded-md flex-grow" />
                          {isSuperAdmin && (
-                            <select value={newItem.spaceId} onChange={e => setNewItem({...newItem, spaceId: e.target.value})} className="p-2 border rounded-md text-sm w-40"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
+                            <select value={newItem.spaceId} onChange={e => setNewItem({...newItem, spaceId: e.target.value})} className="p-2 border rounded-md text-sm"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
                         )}
                          {isManagingTopics && (
-                            <select value={newItem.typeId} onChange={e => setNewItem({...newItem, typeId: e.target.value})} className="p-2 border rounded-md text-sm w-40"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+                             <>
+                            <select value={newItem.typeId} onChange={e => setNewItem({...newItem, typeId: e.target.value})} className="p-2 border rounded-md text-sm"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+                            <select value={newItem.authorId} onChange={e => setNewItem({...newItem, authorId: e.target.value})} className="p-2 border rounded-md text-sm"><option value="">-- {t.author} --</option>{documentAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select>
+                             </>
                         )}
                         <button onClick={handleAddItem} className="px-4 py-2 bg-primary text-text-on-primary rounded-md">{t.addItem}</button>
                     </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-const TextEditor: React.FC<{
-    initialHtml: string;
-    placeholder: string;
-    onContentChange: (html: string) => void;
-    onFileExtract: (file: File) => void;
-    isExtracting: boolean;
-    language: 'vi' | 'en';
-}> = ({ initialHtml, placeholder, onContentChange, onFileExtract, isExtracting, language }) => {
-    const t = translations[language];
-    const editorRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (editorRef.current && initialHtml !== editorRef.current.innerHTML) {
-            editorRef.current.innerHTML = initialHtml;
-        }
-    }, [initialHtml]);
-
-    const handleInput = () => {
-        if (editorRef.current) {
-            onContentChange(editorRef.current.innerHTML);
-        }
-    };
-
-    const execCommand = (command: string, value?: string) => {
-        document.execCommand(command, false, value);
-        editorRef.current?.focus();
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            onFileExtract(file);
-        }
-        e.target.value = ''; // Reset file input
-    };
-
-    return (
-        <div className="text-editor-container border border-border-color rounded-md">
-            <div className="toolbar flex items-center space-x-2 flex-wrap bg-gray-100 p-2 rounded-t-md border-b border-border-color">
-                 <button type="button" onClick={() => execCommand('bold')}><BoldIcon className="w-4 h-4"/></button>
-                <button type="button" onClick={() => execCommand('italic')}><ItalicIcon className="w-4 h-4"/></button>
-                <button type="button" onClick={() => execCommand('underline')}><UnderlineIcon className="w-4 h-4"/></button>
-                <div className="divider w-px h-5 bg-border-color mx-2"></div>
-                <button type="button" onClick={() => execCommand('insertOrderedList')}><ListOrderedIcon className="w-4 h-4"/></button>
-                <button type="button" onClick={() => execCommand('insertUnorderedList')}><ListIcon className="w-4 h-4"/></button>
-                <div className="divider w-px h-5 bg-border-color mx-2"></div>
-                <button type="button" onClick={() => execCommand('justifyLeft')}><AlignLeftIcon className="w-4 h-4"/></button>
-                <button type="button" onClick={() => execCommand('justifyCenter')}><AlignCenterIcon className="w-4 h-4"/></button>
-                <button type="button" onClick={() => execCommand('justifyRight')}><AlignRightIcon className="w-4 h-4"/></button>
-                <div className="divider w-px h-5 bg-border-color mx-2"></div>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,.pdf,.doc,.docx" />
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isExtracting} title={t.attachFile}>
-                    {isExtracting ? <SpinnerIcon className="w-4 h-4" /> : <PaperclipIcon className="w-4 h-4" />}
-                </button>
-            </div>
-            <div
-                ref={editorRef}
-                className="editor p-3 bg-white min-h-[300px] overflow-y-auto"
-                contentEditable
-                onInput={handleInput}
-                data-placeholder={placeholder}
-            ></div>
-        </div>
-    );
-};
-
-const DocumentConfigModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    onSaveSuccess: (newConfig: DocumentConfig) => void;
-    initialConfig: DocumentConfig | null;
-    language: 'vi' | 'en';
-    user: User;
-}> = ({ isOpen, onClose, onSaveSuccess, initialConfig, language, user }) => {
-    const t = translations[language];
-    const { showToast } = useToast();
-    const defaultConfig: DocumentConfig = {
-        id: 1,
-        translationProvider: 'gemini',
-        translationModel: 'gemini-2.5-flash',
-        ttsProvider: 'gemini',
-        ttsModel: 'gemini-2.5-flash-preview-tts',
-        ttsVoice: 'Kore'
-    };
-    const [config, setConfig] = useState<DocumentConfig>(initialConfig || defaultConfig);
-    const [isSaving, setIsSaving] = useState(false);
-    const [availableModels, setAvailableModels] = useState<Record<ModelType, string[]>>({ gemini: [], gpt: [], grok: [] });
-    const [isLoadingModels, setIsLoadingModels] = useState(false);
-
-    useEffect(() => {
-        setConfig(initialConfig || defaultConfig);
-    }, [initialConfig, isOpen]);
-
-    const fetchModelsForProvider = useCallback(async (provider: ModelType) => {
-        if (!user.id || typeof user.id !== 'number') return;
-        try {
-            const models = await apiService.getAvailableModels(provider, user.id);
-            setAvailableModels(prev => ({ ...prev, [provider]: models }));
-        } catch (error) {
-            console.error(`Failed to fetch models for ${provider}`, error);
-            setAvailableModels(prev => ({ ...prev, [provider]: [] }));
-        }
-    }, [user.id]);
-
-    useEffect(() => {
-        if (isOpen) {
-            setIsLoadingModels(true);
-            Promise.all([
-                fetchModelsForProvider('gemini'),
-                fetchModelsForProvider('gpt'),
-            ]).finally(() => setIsLoadingModels(false));
-        }
-    }, [isOpen, fetchModelsForProvider]);
-
-    const handleConfigChange = (field: keyof DocumentConfig, value: any) => {
-        const newConfig = { ...config, [field]: value };
-
-        if (field === 'ttsProvider') {
-            if (value === 'gemini') {
-                newConfig.ttsModel = 'gemini-2.5-flash-preview-tts';
-                newConfig.ttsVoice = GEMINI_TTS_VOICES[0];
-            } else if (value === 'gpt') {
-                newConfig.ttsModel = GPT_TTS_MODELS[0];
-                newConfig.ttsVoice = GPT_TTS_VOICES[0];
-            }
-        } else if (field === 'translationProvider') {
-            newConfig.translationModel = ''; // Reset model on provider change
-        }
-
-        setConfig(newConfig);
-    };
-
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            const updatedConfig = await apiService.updateDocumentConfig(config);
-            onSaveSuccess(updatedConfig);
-            showToast(t.saveSuccess, 'success');
-            onClose();
-        } catch (error: any) {
-            showToast(t.saveError.replace('{message}', error.message), 'error');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-    
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
-                <h2 className="text-xl font-bold p-4 border-b border-border-color">{t.configTitle}</h2>
-                <div className="p-6 space-y-6">
-                    <div className="p-4 border rounded-lg">
-                        <h3 className="font-semibold mb-3">{t.translationConfig}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium">{t.translationProvider}</label>
-                                <select value={config.translationProvider} onChange={e => handleConfigChange('translationProvider', e.target.value)} className="mt-1 w-full p-2 border border-border-color rounded-md">
-                                    <option value="gemini">Gemini</option>
-                                    <option value="gpt">GPT</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium">{t.translationModel}</label>
-                                <select value={config.translationModel} onChange={e => handleConfigChange('translationModel', e.target.value)} disabled={isLoadingModels} className="mt-1 w-full p-2 border border-border-color rounded-md">
-                                    {isLoadingModels ? <option>{t.modelLoading}</option> : availableModels[config.translationProvider]?.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                        <h3 className="font-semibold mb-3">{t.ttsConfig}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium">{t.ttsProvider}</label>
-                                <select value={config.ttsProvider} onChange={e => handleConfigChange('ttsProvider', e.target.value)} className="mt-1 w-full p-2 border border-border-color rounded-md">
-                                    <option value="gemini">Gemini</option>
-                                    <option value="gpt">OpenAI</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium">{t.ttsModel}</label>
-                                <select value={config.ttsModel} onChange={e => handleConfigChange('ttsModel', e.target.value)} className="mt-1 w-full p-2 border border-border-color rounded-md">
-                                    {config.ttsProvider === 'gpt' ? GPT_TTS_MODELS.map(m => <option key={m} value={m}>{m}</option>) : <option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts</option>}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium">{t.ttsVoice}</label>
-                                <select value={config.ttsVoice} onChange={e => handleConfigChange('ttsVoice', e.target.value)} className="mt-1 w-full p-2 border border-border-color rounded-md">
-                                    {config.ttsProvider === 'gpt' ? GPT_TTS_VOICES.map(v => <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>) : GEMINI_TTS_VOICES.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                 <div className="p-4 border-t border-border-color text-right space-x-2">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md font-semibold">{t.cancel}</button>
-                    <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-primary text-text-on-primary rounded-md font-semibold disabled:opacity-50">{isSaving ? t.saving : t.save}</button>
                 </div>
             </div>
         </div>
@@ -636,6 +709,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     const t = translations[language];
     const { showToast } = useToast();
     const [documents, setDocuments] = useState<Document[]>([]);
+    const [totalDocuments, setTotalDocuments] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -728,12 +802,14 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             showToast('Failed to load categories for filter.', 'error');
         }
     }, [showToast]);
-
-    const fetchDocuments = useCallback(async (currentFilters: Filters) => {
+    
+    const fetchDocuments = useCallback(async (currentFilters: Filters, page: number) => {
         setIsLoading(true);
         try {
-            const docs = await apiService.getDocuments(currentFilters);
+            const params = { ...currentFilters, page, limit: ITEMS_PER_PAGE };
+            const docs = await apiService.getDocuments(params);
             setDocuments(docs.data || []);
+            setTotalDocuments(docs.total || 0);
         } catch (error) {
              showToast(t.fetchError, 'error');
         } finally {
@@ -750,17 +826,22 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     }, [filters.spaceId, fetchCategories]);
 
     useEffect(() => {
-        setCurrentPage(1); // Reset page on filter change
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-        debounceTimeout.current = window.setTimeout(() => fetchDocuments(filters), 300);
+        debounceTimeout.current = window.setTimeout(() => {
+            if (currentPage !== 1) {
+                setCurrentPage(1);
+            } else {
+                fetchDocuments(filters, 1);
+            }
+        }, 300);
         return () => { if (debounceTimeout.current) clearTimeout(debounceTimeout.current); };
-    }, [filters, fetchDocuments]);
+    }, [filters]);
+    
+    useEffect(() => {
+        fetchDocuments(filters, currentPage);
+    }, [currentPage, fetchDocuments]);
 
-    const totalPages = Math.ceil(documents.length / ITEMS_PER_PAGE);
-    const paginatedDocuments = documents.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const totalPages = Math.ceil(totalDocuments / ITEMS_PER_PAGE);
     
     const resetFormForNew = () => {
         const currentCategories = {
@@ -886,7 +967,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             }
             
             showToast(t.saveSuccess, 'success');
-            fetchDocuments(filters);
+            fetchDocuments(filters, currentPage); // Re-fetch current page
 
             setThumbnailFile(null);
             setAudioFile(null);
@@ -907,7 +988,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             try {
                 await apiService.deleteDocument(doc.id);
                 showToast(t.deleteSuccess, 'success');
-                fetchDocuments(filters);
+                fetchDocuments(filters, currentPage);
             } catch (error: any) {
                 showToast(t.deleteError.replace('{message}', error.message), 'error');
             }
@@ -1063,8 +1144,8 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                 <table className="min-w-full divide-y divide-border-color">
                     <thead className="bg-background-light sticky top-0 z-10"><tr><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.stt}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.thumbnail}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.titleHeader}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.summary}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.author}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.type}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.topic}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.space}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.tags}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.createdAt}</th><th className="px-4 py-3 text-right text-xs font-semibold text-text-light uppercase tracking-wider">{t.actions}</th></tr></thead>
                     <tbody className="bg-background-panel divide-y divide-border-color">
-                        {isLoading ? ( <tr><td colSpan={11} className="text-center p-4">{t.loading}</td></tr> ) : paginatedDocuments.length === 0 ? ( <tr><td colSpan={11} className="text-center p-4">{t.noDocuments}</td></tr> ) : (
-                            paginatedDocuments.map((doc, index) => (
+                        {isLoading ? ( <tr><td colSpan={11} className="text-center p-4">{t.loading}</td></tr> ) : documents.length === 0 ? ( <tr><td colSpan={11} className="text-center p-4">{t.noDocuments}</td></tr> ) : (
+                            documents.map((doc, index) => (
                                 <tr key={doc.id} className="hover:bg-background-light">
                                     <td className="px-4 py-3 text-sm text-text-light">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                                     <td className="px-4 py-3">
@@ -1106,7 +1187,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             
             <div className="flex justify-between items-center mt-4">
                 <p className="text-sm text-text-light">
-                    {t.showing} {documents.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t.to} {Math.min(currentPage * ITEMS_PER_PAGE, documents.length)} {t.of} {documents.length}
+                    {t.showing} {totalDocuments > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t.to} {Math.min(currentPage * ITEMS_PER_PAGE, totalDocuments)} {t.of} {totalDocuments}
                 </p>
                 <div className="flex space-x-1">
                     <button 
@@ -1202,6 +1283,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                     user={user}
                     spaces={manageableSpaces}
                     documentTypes={documentTypes}
+                    documentAuthors={documentAuthors}
                 />
             )}
              <DocumentConfigModal 

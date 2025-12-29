@@ -20,41 +20,20 @@ export const libraryModel = {
     },
 
     async getFilters(spaceId, currentFilters = {}) {
-        const { typeId, topicsPage = 1, topicsLimit = 15 } = currentFilters;
+        const { typeId, authorId, topicsPage = 1, topicsLimit = 15 } = currentFilters;
 
         const baseParams = [];
-        let baseWhereClause = '';
+        let baseWhereClauses = [];
 
         if (spaceId != null && spaceId !== 'global') {
-            baseWhereClause = `WHERE (space_id = $1 OR space_id IS NULL)`;
+            baseWhereClauses.push(`(space_id = $1 OR space_id IS NULL)`);
             baseParams.push(spaceId);
         } else if (spaceId === 'global') {
-            baseWhereClause = `WHERE space_id IS NULL`;
+            baseWhereClauses.push(`space_id IS NULL`);
         }
         
-        if (typeId) {
-             const topicsParams = [...baseParams];
-             let topicsWhereClause = baseWhereClause;
-             topicsWhereClause += (topicsWhereClause ? ' AND' : 'WHERE') + ` type_id = $${topicsParams.length + 1}`;
-             topicsParams.push(typeId);
+        const baseWhereClause = baseWhereClauses.length > 0 ? `WHERE ${baseWhereClauses.join(' AND ')}` : '';
 
-             const topicsQuery = `
-                SELECT id, name, name_en
-                FROM document_topics
-                ${topicsWhereClause}
-                ORDER BY number_index ASC
-                LIMIT $${topicsParams.length + 1} OFFSET $${topicsParams.length + 2};
-            `;
-            
-            const offset = (topicsPage - 1) * topicsLimit;
-            topicsParams.push(topicsLimit, offset);
-
-            const topicsRes = await pool.query(topicsQuery, topicsParams);
-            return {
-                topics: topicsRes.rows.map(mapRowToCamelCase),
-            };
-        }
-        
         const authorsQuery = `
             SELECT id, name, name_en
             FROM document_authors
@@ -74,10 +53,41 @@ export const libraryModel = {
             pool.query(authorsQuery, baseParams),
         ]);
 
+        let topics = [];
+        // Only fetch topics if both author and type are selected
+        if (typeId && authorId) {
+            const topicsParams = [typeId, authorId];
+            let paramIndex = 3;
+            let topicsWhereClauses = [`type_id = $1`, `author_id = $2`];
+
+            // Reuse space filtering logic for topics
+            if (spaceId != null && spaceId !== 'global') {
+                topicsWhereClauses.push(`(space_id = $${paramIndex++} OR space_id IS NULL)`);
+                topicsParams.push(spaceId);
+            } else if (spaceId === 'global') {
+                topicsWhereClauses.push(`space_id IS NULL`);
+            }
+
+            const topicsQuery = `
+                SELECT id, name, name_en
+                FROM document_topics
+                WHERE ${topicsWhereClauses.join(' AND ')}
+                ORDER BY number_index ASC
+                LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+            `;
+            
+            const offset = (topicsPage - 1) * topicsLimit;
+            topicsParams.push(topicsLimit, offset);
+
+            const topicsRes = await pool.query(topicsQuery, topicsParams);
+            topics = topicsRes.rows.map(mapRowToCamelCase);
+        }
+
+
         return {
             types: typesRes.rows.map(mapRowToCamelCase),
             authors: authorsRes.rows.map(mapRowToCamelCase),
-            topics: [], // Topics are fetched separately when a type is selected.
+            topics,
         };
     },
 
@@ -101,8 +111,13 @@ export const libraryModel = {
             SELECT
                 d.*,
                 da.name as author,
+                da.name_en as author_en,
                 dt.name as type,
+                dt.name_en as type_en,
                 d_topics.name as topic,
+                d_topics.name_en as topic_en,
+                s.slug as space_slug,
+                s.name as space_name,
                 rd.prev_id,
                 rd.next_id,
                 rd.prev_title,
@@ -113,6 +128,7 @@ export const libraryModel = {
             LEFT JOIN document_authors da ON d.author_id = da.id
             LEFT JOIN document_types dt ON d.type_id = dt.id
             LEFT JOIN document_topics d_topics ON d.topic_id = d_topics.id
+            LEFT JOIN spaces s ON d.space_id = s.id
             LEFT JOIN ranked_docs rd ON d.id = rd.id
             WHERE d.id = $1
         `, [documentId]);
@@ -137,7 +153,7 @@ export const libraryModel = {
         const query = `
             SELECT id, name, name_en FROM document_topics
             ${whereClause}
-            ORDER BY number_index ASC
+            ORDER BY name ASC
             LIMIT $${paramIndex++} OFFSET $${paramIndex++}
         `;
         params.push(limit, offset);

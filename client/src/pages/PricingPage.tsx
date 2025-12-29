@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { PricingCard } from '../components/PricingCard';
 import { PricingPlan, User, AIConfig } from '../types';
@@ -42,7 +43,7 @@ export const PricingPage: React.FC = () => {
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(() => {
-        const savedUser = sessionStorage.getItem('user');
+        const savedUser = localStorage.getItem('user');
         return savedUser ? JSON.parse(savedUser) : null;
     });
     const [language, setLanguage] = useState<'vi' | 'en'>(() => (localStorage.getItem('language') as 'vi' | 'en') || 'vi');
@@ -79,7 +80,7 @@ export const PricingPage: React.FC = () => {
     
     const handleUserUpdate = (updatedUser: User) => {
         setUser(updatedUser);
-        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
     const handlePurchase = async (planId: number | string) => {

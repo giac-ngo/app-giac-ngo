@@ -3,22 +3,55 @@ import { pool, mapRowToCamelCase } from '../db.js';
 
 export const dharmaTalkModel = {
     async create(data) {
-        const { spaceId, title, titleEn, subtitle, speaker, url, duration, date, tags, tagsEn, status, statusEn } = data;
+        const { spaceId, title, titleEn, subtitle, speaker, speakerAvatarUrl, url, duration, date, tags, tagsEn, status, statusEn } = data;
         const res = await pool.query(
-            'INSERT INTO dharma_talks (space_id, title, title_en, subtitle, speaker, url, duration, date, tags, tags_en, status, status_en) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
-            [spaceId, title, titleEn, subtitle, speaker, url, duration, date, tags, tagsEn, status, statusEn]
+            'INSERT INTO dharma_talks (space_id, title, title_en, subtitle, speaker, speaker_avatar_url, url, duration, date, tags, tags_en, status, status_en) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
+            [spaceId, title, titleEn, subtitle, speaker, speakerAvatarUrl, url, duration, date, tags, tagsEn, status, statusEn]
         );
         return mapRowToCamelCase(res.rows[0]);
     },
 
     async update(id, data) {
-        const { spaceId, title, titleEn, subtitle, speaker, url, duration, date, tags, tagsEn, status, statusEn } = data;
-        const res = await pool.query(
-            `UPDATE dharma_talks SET
-                space_id = $1, title = $2, title_en = $3, subtitle = $4, speaker = $5, url = $6, duration = $7, date = $8, tags = $9, tags_en = $10, status = $11, status_en = $12, updated_at = NOW()
-             WHERE id = $13 RETURNING *`,
-            [spaceId, title, titleEn, subtitle, speaker, url, duration, date, tags, tagsEn, status, statusEn, id]
-        );
+        const { id: talkId, createdAt, updatedAt, spaceName, ...dataToUpdate } = data;
+
+        const allowedFields = {
+            spaceId: 'space_id',
+            title: 'title',
+            titleEn: 'title_en',
+            subtitle: 'subtitle',
+            speaker: 'speaker',
+            speakerAvatarUrl: 'speaker_avatar_url',
+            url: 'url',
+            duration: 'duration',
+            date: 'date',
+            tags: 'tags',
+            tagsEn: 'tags_en',
+            status: 'status',
+            statusEn: 'status_en',
+            notifications: 'notifications',
+            views: 'views',
+            likes: 'likes',
+            rating: 'rating'
+        };
+
+        const fieldsToUpdate = Object.keys(dataToUpdate).filter(key => allowedFields[key] !== undefined && dataToUpdate[key] !== undefined);
+
+        if (fieldsToUpdate.length === 0) {
+            const res = await pool.query('SELECT * FROM dharma_talks WHERE id = $1', [id]);
+            return mapRowToCamelCase(res.rows[0]); // Nothing to update, return current state
+        }
+
+        const updateClauses = fieldsToUpdate.map((key, i) => {
+            const dbKey = allowedFields[key];
+            return `"${dbKey}" = $${i + 1}`;
+        });
+        const values = fieldsToUpdate.map(key => dataToUpdate[key]);
+
+        const setClauses = updateClauses.join(', ');
+        const query = `UPDATE dharma_talks SET ${setClauses}, updated_at = NOW() WHERE id = $${fieldsToUpdate.length + 1} RETURNING *`;
+        const finalValues = [...values, id];
+
+        const res = await pool.query(query, finalValues);
         return mapRowToCamelCase(res.rows[0]);
     },
 
