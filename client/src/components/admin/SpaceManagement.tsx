@@ -1,6 +1,6 @@
 
 // client/src/components/admin/SpaceManagement.tsx
-import React, { useState, useEffect, useRef,  useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Space, User, SpaceType } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
@@ -27,7 +27,8 @@ const translations = {
         groupGeneral: 'Thông tin chung',
         groupContent: 'Nội dung chi tiết',
         groupConfig: 'Cấu hình & Chỉ số',
-        
+        groupContact: 'Thông tin liên hệ',
+
         name: 'Tên (VI)',
         nameEn: 'Tên (EN)',
         slug: 'Slug (URL)',
@@ -54,7 +55,10 @@ const translations = {
         selectPlaceholder: '-- Chọn --',
         noOwner: '-- Không có --',
         manageTypes: 'Quản lý Loại hình',
-        
+        website: 'Trang web',
+        phone: 'Số điện thoại',
+        email: 'Email liên hệ',
+
         // Table Headers
         colImage: 'Ảnh',
         colName: 'Tên / Slug',
@@ -63,12 +67,12 @@ const translations = {
         colStats: 'Thống kê',
         colRank: 'Thứ hạng',
         colActions: 'Hành động',
-        
+
         // Filters
         filterSearch: 'Tìm theo tên, slug...',
         filterType: 'Tất cả loại hình',
         filterOwner: 'Tất cả chủ sở hữu',
-        
+
         // Type Manager Modal
         manageTypesTitle: 'Quản lý Loại hình Không gian',
         typeName: 'Tên (VI)',
@@ -104,6 +108,7 @@ const translations = {
         groupGeneral: 'General Info',
         groupContent: 'Content Details',
         groupConfig: 'Configuration & Stats',
+        groupContact: 'Contact Information',
 
         name: 'Name (VI)',
         nameEn: 'Name (EN)',
@@ -131,6 +136,9 @@ const translations = {
         selectPlaceholder: '-- Select --',
         noOwner: '-- None --',
         manageTypes: 'Manage Types',
+        website: 'Website',
+        phone: 'Phone Number',
+        email: 'Contact Email',
 
         // Table Headers
         colImage: 'Image',
@@ -197,7 +205,7 @@ const SpaceTypeManagerModal: React.FC<{
             showToast(e.message, 'error');
         }
     };
-    
+
     const handleDelete = async (id: number) => {
         if (window.confirm('Are you sure? This action cannot be undone.')) {
             try {
@@ -217,24 +225,24 @@ const SpaceTypeManagerModal: React.FC<{
             <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center p-4 border-b border-border-color">
                     <h2 className="text-xl font-bold">{t.manageTypesTitle}</h2>
-                    <button onClick={onClose}><XIcon className="w-5 h-5"/></button>
+                    <button onClick={onClose}><XIcon className="w-5 h-5" /></button>
                 </div>
                 <div className="p-4 overflow-y-auto space-y-2">
                     {types.map(type => (
                         <div key={type.id} className="p-2 bg-background-light rounded-md flex items-center gap-2">
                             <span className="text-xl w-8 text-center">{type.icon}</span>
                             <span className="font-medium flex-grow">{type.name} / {type.nameEn}</span>
-                            <button onClick={() => setEditingType(type)} className="p-1 hover:bg-gray-200 rounded"><PencilIcon className="w-4 h-4 text-text-light"/></button>
-                            <button onClick={() => handleDelete(type.id)} className="p-1 hover:bg-gray-200 rounded"><TrashIcon className="w-4 h-4 text-accent-red"/></button>
+                            <button onClick={() => setEditingType(type)} className="p-1 hover:bg-gray-200 rounded"><PencilIcon className="w-4 h-4 text-text-light" /></button>
+                            <button onClick={() => handleDelete(type.id)} className="p-1 hover:bg-gray-200 rounded"><TrashIcon className="w-4 h-4 text-accent-red" /></button>
                         </div>
                     ))}
                 </div>
                 <div className="p-4 border-t border-border-color space-y-2 bg-background-light">
                     <h3 className="font-semibold text-sm">{editingType?.id ? t.update : t.addNewType}</h3>
                     <div className="flex items-center gap-2">
-                        <input type="text" value={editingType?.icon || ''} onChange={e => setEditingType(prev => ({...prev, icon: e.target.value}))} placeholder={t.icon} className="p-2 border rounded-md w-16 text-center" />
-                        <input type="text" value={editingType?.name || ''} onChange={e => setEditingType(prev => ({...prev, name: e.target.value}))} placeholder={t.typeName} className="p-2 border rounded-md flex-grow" />
-                        <input type="text" value={editingType?.nameEn || ''} onChange={e => setEditingType(prev => ({...prev, nameEn: e.target.value}))} placeholder={t.typeNameEn} className="p-2 border rounded-md flex-grow" />
+                        <input type="text" value={editingType?.icon || ''} onChange={e => setEditingType(prev => ({ ...prev, icon: e.target.value }))} placeholder={t.icon} className="p-2 border rounded-md w-16 text-center" />
+                        <input type="text" value={editingType?.name || ''} onChange={e => setEditingType(prev => ({ ...prev, name: e.target.value }))} placeholder={t.typeName} className="p-2 border rounded-md flex-grow" />
+                        <input type="text" value={editingType?.nameEn || ''} onChange={e => setEditingType(prev => ({ ...prev, nameEn: e.target.value }))} placeholder={t.typeNameEn} className="p-2 border rounded-md flex-grow" />
                         <button onClick={() => handleSave(editingType || {})} className="px-4 py-2 bg-primary text-white rounded-md text-sm whitespace-nowrap">{editingType?.id ? t.update : t.addNewType}</button>
                         {editingType && <button onClick={() => setEditingType(null)} className="px-4 py-2 bg-gray-200 rounded-md text-sm whitespace-nowrap">{t.cancel}</button>}
                     </div>
@@ -247,18 +255,18 @@ const SpaceTypeManagerModal: React.FC<{
 export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ language, user }) => {
     const t = translations[language];
     const { showToast } = useToast();
-    
+
     // Data State
     const [spaces, setSpaces] = useState<Space[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [spaceTypes, setSpaceTypes] = useState<SpaceType[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTypeManagerOpen, setIsTypeManagerOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
-    
+
     // Filter State
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState('');
@@ -268,7 +276,7 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
     const [editingSpace, setEditingSpace] = useState<Partial<Space> | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     const imageInputRef = useRef<HTMLInputElement>(null);
     const isSuperAdmin = user.permissions?.includes('roles');
 
@@ -297,11 +305,11 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
     // Filtering
     const filteredSpaces = useMemo(() => {
         return spaces.filter(space => {
-            const matchSearch = space.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                space.slug.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchSearch = space.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                space.slug.toLowerCase().includes(searchQuery.toLowerCase());
             const matchType = !filterType || String(space.typeId) === filterType;
             const matchOwner = !filterOwner || String(space.userId) === filterOwner;
-            
+
             return matchSearch && matchType && matchOwner;
         });
     }, [spaces, searchQuery, filterType, filterOwner]);
@@ -324,7 +332,7 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
         } else {
             setEditingSpace({
                 id: 'new',
-                name: '', slug: '', rank: 0,
+                name: '', slug: '', spaceSort: 0,
                 tags: [], tagsEn: [], imageUrl: '',
                 userId: isSuperAdmin ? null : user.id as number,
                 spaceColor: '#ffffff'
@@ -338,7 +346,7 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
         if (!editingSpace) return;
         const { name, value, type } = e.target;
         let processedValue: any = value;
-        
+
         if (type === 'number') processedValue = value === '' ? 0 : Number(value);
         if (name === 'userId' && value === '') processedValue = null;
         if (name === 'typeId' && value === '') processedValue = null;
@@ -375,7 +383,7 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                 formData.append('context', 'Spaces');
                 formData.append('spaceId', 'global'); // Use global or temp ID since we might create new
                 formData.append('file', imageFile);
-                
+
                 const res = await apiService.uploadFiles(formData);
                 if (res.filePaths && res.filePaths[0]) {
                     finalPayload.imageUrl = res.filePaths[0];
@@ -387,9 +395,9 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                 const newSpace = await apiService.createSpace(createPayload);
                 setSpaces(prev => [newSpace, ...prev]);
             } else {
-                const updatedSpace = await apiService.updateSpace({ 
-                    id: editingSpace.id as number, 
-                    spaceData: finalPayload 
+                const updatedSpace = await apiService.updateSpace({
+                    id: editingSpace.id as number,
+                    spaceData: finalPayload
                 });
                 setSpaces(prev => prev.map(s => s.id === updatedSpace.id ? updatedSpace : s));
             }
@@ -429,12 +437,16 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
             <div className="flex justify-between items-center mb-6 flex-shrink-0">
                 <h1 className="text-2xl font-bold font-serif">{t.title}</h1>
                 <div className="flex gap-2">
-                    <button onClick={() => setIsTypeManagerOpen(true)} className="px-4 py-2 border border-border-color bg-background-panel rounded-md text-sm font-medium hover:bg-gray-50 flex items-center gap-2">
-                        <PencilIcon className="w-4 h-4"/> {t.manageTypes}
-                    </button>
-                    <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-text-on-primary rounded-md flex items-center gap-2 font-semibold hover:bg-primary-hover">
-                        <PlusIcon className="w-5 h-5" /> {t.newSpace}
-                    </button>
+                    {isSuperAdmin && (
+                        <button onClick={() => setIsTypeManagerOpen(true)} className="px-4 py-2 border border-border-color bg-background-panel rounded-md text-sm font-medium hover:bg-gray-50 flex items-center gap-2">
+                            <PencilIcon className="w-4 h-4" /> {t.manageTypes}
+                        </button>
+                    )}
+                    {isSuperAdmin && (
+                        <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-primary text-text-on-primary rounded-md flex items-center gap-2 font-semibold hover:bg-primary-hover">
+                            <PlusIcon className="w-5 h-5" /> {t.newSpace}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -448,10 +460,12 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                     <option value="">{t.filterType}</option>
                     {spaceTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
                 </select>
-                <select value={filterOwner} onChange={e => setFilterOwner(e.target.value)} className="w-full p-2 border rounded-md bg-background-panel">
-                    <option value="">{t.filterOwner}</option>
-                    {allUsers.map(user => <option key={user.id as number} value={user.id as number}>{user.name}</option>)}
-                </select>
+                {isSuperAdmin && (
+                    <select value={filterOwner} onChange={e => setFilterOwner(e.target.value)} className="w-full p-2 border rounded-md bg-background-panel">
+                        <option value="">{t.filterOwner}</option>
+                        {allUsers.map(user => <option key={user.id as number} value={user.id as number}>{user.name}</option>)}
+                    </select>
+                )}
             </div>
 
             {/* Table */}
@@ -492,18 +506,18 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-xs text-text-light">
                                     <div className="flex gap-3">
-                                        <span className="flex items-center gap-1"><UsersIcon className="w-3 h-3"/> {space.membersCount}</span>
-                                        <span className="flex items-center gap-1"><EyeIcon className="w-3 h-3"/> {space.views}</span>
-                                        <span className="flex items-center gap-1"><HeartIcon className="w-3 h-3"/> {space.likes}</span>
+                                        <span className="flex items-center gap-1"><UsersIcon className="w-3 h-3" /> {space.membersCount}</span>
+                                        <span className="flex items-center gap-1"><EyeIcon className="w-3 h-3" /> {space.views}</span>
+                                        <span className="flex items-center gap-1"><HeartIcon className="w-3 h-3" /> {space.likes}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center font-mono text-sm">
-                                    {space.rank}
+                                    {space.spaceSort}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div className="flex justify-end gap-2">
-                                        <button onClick={() => handleOpenModal(space)} className="p-1.5 text-text-light hover:text-primary hover:bg-primary-light rounded-md transition-colors"><PencilIcon className="w-4 h-4"/></button>
-                                        <button onClick={() => handleDelete(space)} className="p-1.5 text-text-light hover:text-accent-red hover:bg-red-50 rounded-md transition-colors"><TrashIcon className="w-4 h-4"/></button>
+                                        <button onClick={() => handleOpenModal(space)} className="p-1.5 text-text-light hover:text-primary hover:bg-primary-light rounded-md transition-colors"><PencilIcon className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDelete(space)} className="p-1.5 text-text-light hover:text-accent-red hover:bg-red-50 rounded-md transition-colors"><TrashIcon className="w-4 h-4" /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -511,23 +525,23 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                     </tbody>
                 </table>
             </div>
-            
+
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-4 flex-shrink-0">
-                     <p className="text-sm text-text-light">
+                    <p className="text-sm text-text-light">
                         {t.showing} {filteredSpaces.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t.to} {Math.min(currentPage * ITEMS_PER_PAGE, filteredSpaces.length)} {t.of} {filteredSpaces.length}
                     </p>
                     <div className="flex space-x-1">
-                        <button 
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                            disabled={currentPage === 1} 
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
                             className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50"
                         >
                             {t.prev}
                         </button>
-                        <button 
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages || totalPages === 0}
                             className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50"
                         >
@@ -543,9 +557,9 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                     <div className="bg-background-panel rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-5 border-b border-border-color">
                             <h2 className="text-xl font-bold">{editingSpace.id === 'new' ? t.newSpace : t.edit}</h2>
-                            <button onClick={() => setIsModalOpen(false)}><XIcon className="w-6 h-6 text-text-light hover:text-text-main"/></button>
+                            <button onClick={() => setIsModalOpen(false)}><XIcon className="w-6 h-6 text-text-light hover:text-text-main" /></button>
                         </div>
-                        
+
                         <div className="flex-1 overflow-y-auto p-6">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Left Column: Image & Config */}
@@ -583,7 +597,7 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div><label className="block text-sm font-medium mb-1">{t.rank}</label><input type="number" name="rank" value={editingSpace.rank ?? ''} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm bg-background-light" /></div>
+                                            <div><label className="block text-sm font-medium mb-1">{t.rank}</label><input type="number" name="spaceSort" value={editingSpace.spaceSort ?? ''} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm bg-background-light" /></div>
                                             <div><label className="block text-sm font-medium mb-1">{t.rating}</label><input type="number" step="0.1" name="rating" value={editingSpace.rating ?? ''} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm bg-background-light" /></div>
                                         </div>
                                         <div>
@@ -592,6 +606,23 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                                                 <option value="">{t.noOwner}</option>
                                                 {allUsers.map(u => <option key={u.id as number} value={u.id as number}>{u.name}</option>)}
                                             </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Contact Info Group */}
+                                    <div className="bg-background-panel p-4 rounded-lg border border-border-color space-y-4">
+                                        <h3 className="font-bold border-b pb-2 mb-2 text-text-main">{t.groupContact}</h3>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">{t.website}</label>
+                                            <input type="text" name="website" value={editingSpace.website || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm bg-background-light" placeholder="https://..." />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">{t.phone}</label>
+                                            <input type="text" name="phoneNumber" value={editingSpace.phoneNumber || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm bg-background-light" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">{t.email}</label>
+                                            <input type="email" name="email" value={editingSpace.email || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md text-sm bg-background-light" />
                                         </div>
                                     </div>
                                 </div>
@@ -605,12 +636,12 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                                             <div><label className="block text-sm font-medium mb-1">{t.nameEn}</label><input type="text" name="nameEn" value={editingSpace.nameEn || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                         </div>
                                         <div><label className="block text-sm font-medium mb-1">{t.slug}</label><input type="text" name="slug" value={editingSpace.slug || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md font-mono text-sm bg-background-light" /></div>
-                                        
+
                                         <div className="grid grid-cols-2 gap-4">
                                             <div><label className="block text-sm font-medium mb-1">{t.location}</label><input type="text" name="locationText" value={editingSpace.locationText || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                             <div><label className="block text-sm font-medium mb-1">{t.locationEn}</label><input type="text" name="locationTextEn" value={editingSpace.locationTextEn || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                         </div>
-                                        
+
                                         <div className="grid grid-cols-3 gap-4">
                                             <div><label className="block text-sm font-medium mb-1">{t.members}</label><input type="number" name="membersCount" value={editingSpace.membersCount ?? ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                             <div><label className="block text-sm font-medium mb-1">{t.views}</label><input type="number" name="views" value={editingSpace.views ?? ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
@@ -628,11 +659,11 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                                             <div><label className="block text-sm font-medium mb-1">{t.event}</label><textarea name="event" value={editingSpace.event || ''} onChange={handleInputChange} rows={2} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                             <div><label className="block text-sm font-medium mb-1">{t.eventEn}</label><textarea name="eventEn" value={editingSpace.eventEn || ''} onChange={handleInputChange} rows={2} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                         </div>
-                                         <div className="grid grid-cols-2 gap-4">
-                                            <div><label className="block text-sm font-medium mb-1">{t.tags}</label><input type="text" value={(editingSpace.tags || []).join(', ')} onChange={e => setEditingSpace(prev => prev ? {...prev, tags: e.target.value.split(',').map(t=>t.trim())} : null)} className="w-full p-2 border rounded-md bg-background-light" /></div>
-                                            <div><label className="block text-sm font-medium mb-1">{t.tagsEn}</label><input type="text" value={(editingSpace.tagsEn || []).join(', ')} onChange={e => setEditingSpace(prev => prev ? {...prev, tagsEn: e.target.value.split(',').map(t=>t.trim())} : null)} className="w-full p-2 border rounded-md bg-background-light" /></div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div><label className="block text-sm font-medium mb-1">{t.tags}</label><input type="text" value={(editingSpace.tags || []).join(', ')} onChange={e => setEditingSpace(prev => prev ? { ...prev, tags: e.target.value.split(',').map(t => t.trim()) } : null)} className="w-full p-2 border rounded-md bg-background-light" /></div>
+                                            <div><label className="block text-sm font-medium mb-1">{t.tagsEn}</label><input type="text" value={(editingSpace.tagsEn || []).join(', ')} onChange={e => setEditingSpace(prev => prev ? { ...prev, tagsEn: e.target.value.split(',').map(t => t.trim()) } : null)} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                         </div>
-                                         <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div><label className="block text-sm font-medium mb-1">{t.status}</label><input type="text" name="status" value={editingSpace.status || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                             <div><label className="block text-sm font-medium mb-1">{t.statusEn}</label><input type="text" name="statusEn" value={editingSpace.statusEn || ''} onChange={handleInputChange} className="w-full p-2 border rounded-md bg-background-light" /></div>
                                         </div>
@@ -651,7 +682,7 @@ export const SpaceManagement: React.FC<{ language: 'vi' | 'en', user: User }> = 
                     </div>
                 </div>
             )}
-            
+
             <SpaceTypeManagerModal isOpen={isTypeManagerOpen} onClose={() => setIsTypeManagerOpen(false)} onUpdate={fetchData} language={language} />
         </div>
     );

@@ -26,7 +26,8 @@ const translations = {
         createTitle: 'Tạo Pháp thoại mới',
         talkTitle: 'Tiêu đề (VI)',
         talkTitleEn: 'Tiêu đề (EN)',
-        talkSubtitle: 'Tóm tắt',
+        talkSubtitle: 'Tóm tắt (VI)',
+        talkSubtitleEn: 'Tóm tắt (EN)',
         speaker: 'Tác giả',
         speakerAvatar: 'Ảnh bìa',
         changeAvatar: 'Đổi ảnh',
@@ -39,12 +40,13 @@ const translations = {
         statusEn: 'Trạng thái (EN)',
         tags: 'Thẻ (VI, phân cách bởi dấu phẩy)',
         tagsEn: 'Thẻ (EN, phân cách bởi dấu phẩy)',
-        uploadAudio: 'Hoặc tải file âm thanh lên',
+        uploadAudioVi: 'Chọn tệp VN',
+        uploadAudioEn: 'Chọn tệp EN',
         uploading: 'Đang tải lên...',
         cancel: 'Hủy',
         searchPlaceholder: 'Lọc theo tiêu đề...',
         noTalksFound: 'Không tìm thấy pháp thoại nào.',
-         // Table Headers
+        // Table Headers
         stt: 'STT',
         titleHeader: 'Tiêu đề',
         actions: 'Hành động',
@@ -80,7 +82,8 @@ const translations = {
         createTitle: 'Create New Dharma Talk',
         talkTitle: 'Title (VI)',
         talkTitleEn: 'Title (EN)',
-        talkSubtitle: 'Summary',
+        talkSubtitle: 'Summary (VI)',
+        talkSubtitleEn: 'Summary (EN)',
         speaker: 'Author',
         speakerAvatar: 'Thumbnail',
         changeAvatar: 'Change',
@@ -93,12 +96,13 @@ const translations = {
         statusEn: 'Status (EN)',
         tags: 'Tags (VI, comma-separated)',
         tagsEn: 'Tags (EN, comma-separated)',
-        uploadAudio: 'Or upload an audio file',
+        uploadAudioVi: 'Choose VI file',
+        uploadAudioEn: 'Choose EN file',
         uploading: 'Uploading...',
         cancel: 'Cancel',
         searchPlaceholder: 'Filter by title...',
         noTalksFound: 'No dharma talks found.',
-         // Table Headers
+        // Table Headers
         stt: 'No.',
         titleHeader: 'Title',
         actions: 'Actions',
@@ -122,7 +126,7 @@ const ITEMS_PER_PAGE = 10;
 const DharmaTalkModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onSave: (talk: Partial<DharmaTalk>, audioFile: File | null, avatarFile: File | null) => void;
+    onSave: (talk: Partial<DharmaTalk>, audioFileVi: File | null, audioFileEn: File | null, avatarFile: File | null) => void;
     talk: Partial<DharmaTalk> | null;
     spaces: Space[];
     language: 'vi' | 'en';
@@ -130,9 +134,11 @@ const DharmaTalkModal: React.FC<{
 }> = ({ isOpen, onClose, onSave, talk, spaces, language, isSaving }) => {
     const t = translations[language];
     const [formData, setFormData] = useState<Partial<DharmaTalk>>({});
-    const [audioFile, setAudioFile] = useState<File | null>(null);
+    const [audioFileVi, setAudioFileVi] = useState<File | null>(null);
+    const [audioFileEn, setAudioFileEn] = useState<File | null>(null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
-    const audioInputRef = useRef<HTMLInputElement>(null);
+    const audioViInputRef = useRef<HTMLInputElement>(null);
+    const audioEnInputRef = useRef<HTMLInputElement>(null);
     const avatarInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -144,7 +150,8 @@ const DharmaTalkModal: React.FC<{
             });
         } else {
             setFormData({});
-            setAudioFile(null);
+            setAudioFileVi(null);
+            setAudioFileEn(null);
             setAvatarFile(null);
         }
     }, [isOpen, talk]);
@@ -159,14 +166,17 @@ const DharmaTalkModal: React.FC<{
         setFormData(prev => ({ ...prev, [name]: processedValue }));
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'audio' | 'avatar') => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'audioVi' | 'audioEn' | 'avatar') => {
         if (!e.target.files || e.target.files.length === 0) return;
         const file = e.target.files[0];
         const previewUrl = URL.createObjectURL(file);
-        
-        if (type === 'audio') {
-            setAudioFile(file);
+
+        if (type === 'audioVi') {
+            setAudioFileVi(file);
             setFormData(prev => ({ ...prev, url: previewUrl }));
+        } else if (type === 'audioEn') {
+            setAudioFileEn(file);
+            setFormData(prev => ({ ...prev, urlEn: previewUrl }));
         } else {
             setAvatarFile(file);
             setFormData(prev => ({ ...prev, speakerAvatarUrl: previewUrl }));
@@ -187,32 +197,52 @@ const DharmaTalkModal: React.FC<{
                         <div><label className="block text-sm font-medium">{t.talkTitle}</label><input type="text" name="title" value={formData.title || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" /></div>
                         <div><label className="block text-sm font-medium">{t.talkTitleEn}</label><input type="text" name="titleEn" value={formData.titleEn || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" /></div>
                     </div>
-                    <div><label className="block text-sm font-medium">{t.talkSubtitle}</label><textarea name="subtitle" value={formData.subtitle || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" rows={2}></textarea></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium">{t.talkSubtitle}</label><textarea name="subtitle" value={formData.subtitle || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" rows={2}></textarea></div>
+                        <div><label className="block text-sm font-medium">{t.talkSubtitleEn}</label><textarea name="subtitleEn" value={formData.subtitleEn || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" rows={2}></textarea></div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="md:col-span-2"><label className="block text-sm font-medium">{t.speaker}</label><input type="text" name="speaker" value={formData.speaker || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" /></div>
-                         <div>
+                        <div>
                             <label className="block text-sm font-medium">{t.speakerAvatar}</label>
                             <div className="flex items-center gap-2 mt-1">
-                                {formData.speakerAvatarUrl ? <img src={formData.speakerAvatarUrl} alt="avatar" className="w-10 h-10 rounded-full object-cover"/> : <UserIcon className="w-10 h-10 p-1 rounded-full bg-gray-200 text-gray-500" />}
+                                {formData.speakerAvatarUrl ? <img src={formData.speakerAvatarUrl} alt="avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserIcon className="w-10 h-10 p-1 rounded-full bg-gray-200 text-gray-500" />}
                                 <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} className="hidden" accept="image/*" />
                                 <button type="button" onClick={() => avatarInputRef.current?.click()} className="text-sm text-primary hover:underline">{t.changeAvatar}</button>
                             </div>
                         </div>
                     </div>
-                    <div><label className="block text-sm font-medium">{t.url}</label><input type="url" name="url" value={formData.url || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" /><div className="mt-2"><label className="block text-sm text-text-light">{t.uploadAudio}</label><input type="file" ref={audioInputRef} onChange={(e) => handleFileChange(e, 'audio')} accept="audio/*" className="mt-1 text-sm"/></div></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium">{t.url} (VI)</label>
+                            <input type="url" name="url" value={formData.url || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" />
+                            <div className="mt-2">
+                                <input type="file" ref={audioViInputRef} onChange={(e) => handleFileChange(e, 'audioVi')} accept="audio/*" className="hidden" />
+                                <button type="button" onClick={() => audioViInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary-hover">{t.uploadAudioVi}</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">{t.url} (EN)</label>
+                            <input type="url" name="urlEn" value={formData.urlEn || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" />
+                            <div className="mt-2">
+                                <input type="file" ref={audioEnInputRef} onChange={(e) => handleFileChange(e, 'audioEn')} accept="audio/*" className="hidden" />
+                                <button type="button" onClick={() => audioEnInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary-hover">{t.uploadAudioEn}</button>
+                            </div>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div><label className="block text-sm font-medium">{t.duration}</label><input type="number" name="duration" value={formData.duration ?? ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" /></div>
                         <div><label className="block text-sm font-medium">{t.date}</label><input type="date" name="date" value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md" /></div>
                         <div className="md:col-span-2"><label className="block text-sm font-medium">{t.space}</label><select name="spaceId" value={formData.spaceId ?? ''} onChange={handleInputChange} className="mt-1 w-full p-2 border rounded-md"><option value="">{t.noSpace}</option>{spaces.map(space => <option key={space.id as number} value={space.id as number}>{space.name}</option>)}</select></div>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium">{t.tags}</label><input type="text" value={Array.isArray(formData.tags) ? formData.tags.join(', ') : ''} onChange={e => setFormData(prev => ({...prev, tags: e.target.value.split(',').map(t=>t.trim())}))} className="mt-1 w-full p-2 border rounded-md" /></div>
-                        <div><label className="block text-sm font-medium">{t.tagsEn}</label><input type="text" value={Array.isArray(formData.tagsEn) ? formData.tagsEn.join(', ') : ''} onChange={e => setFormData(prev => ({...prev, tagsEn: e.target.value.split(',').map(t=>t.trim())}))} className="mt-1 w-full p-2 border rounded-md" /></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium">{t.tags}</label><input type="text" value={Array.isArray(formData.tags) ? formData.tags.join(', ') : ''} onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()) }))} className="mt-1 w-full p-2 border rounded-md" /></div>
+                        <div><label className="block text-sm font-medium">{t.tagsEn}</label><input type="text" value={Array.isArray(formData.tagsEn) ? formData.tagsEn.join(', ') : ''} onChange={e => setFormData(prev => ({ ...prev, tagsEn: e.target.value.split(',').map(t => t.trim()) }))} className="mt-1 w-full p-2 border rounded-md" /></div>
                     </div>
                 </div>
                 <div className="p-4 border-t flex justify-end gap-2">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">{t.cancel}</button>
-                    <button onClick={() => onSave(formData, audioFile, avatarFile)} disabled={isSaving} className="px-4 py-2 bg-primary text-white rounded-md">{isSaving ? t.saving : t.save}</button>
+                    <button onClick={() => onSave(formData, audioFileVi, audioFileEn, avatarFile)} disabled={isSaving} className="px-4 py-2 bg-primary text-white rounded-md">{isSaving ? t.saving : t.save}</button>
                 </div>
             </div>
         </div>
@@ -233,7 +263,7 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
     const [speakerFilter, setSpeakerFilter] = useState('');
     const [spaceFilter, setSpaceFilter] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    
+
     const [playingTalkId, setPlayingTalkId] = useState<number | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -302,7 +332,7 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
         setIsModalOpen(true);
     };
 
-    const handleSave = async (formData: Partial<DharmaTalk>, audioFile: File | null, avatarFile: File | null) => {
+    const handleSave = async (formData: Partial<DharmaTalk>, audioFileVi: File | null, audioFileEn: File | null, avatarFile: File | null) => {
         setIsSaving(true);
         try {
             const data = new FormData();
@@ -318,7 +348,8 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
             });
 
             if (avatarFile) data.append('avatarFile', avatarFile);
-            if (audioFile) data.append('audioFile', audioFile);
+            if (audioFileVi) data.append('audioFileVi', audioFileVi);
+            if (audioFileEn) data.append('audioFileEn', audioFileEn);
 
             if (formData.id === 'new') {
                 data.delete('id');
@@ -361,7 +392,7 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
             return titleMatch && speakerMatch && spaceMatch;
         });
     }, [talks, searchTerm, speakerFilter, spaceFilter]);
-    
+
     const paginatedTalks = useMemo(() => {
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
         return filteredTalks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -374,7 +405,7 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
         <div className="p-6 h-full flex flex-col bg-background-panel">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <div><h1 className="text-2xl font-bold font-serif">{t.title}</h1></div>
-                 <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <button onClick={handleNewTalk} className="px-4 py-2 bg-primary text-text-on-primary rounded-md flex items-center space-x-2 font-semibold">
                         <PlusIcon className="w-5 h-5" />
                         <span>{t.newTalk}</span>
@@ -382,9 +413,9 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
                 </div>
             </div>
             <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-background-light border-border-color flex-shrink-0">
-                 <div><label className="text-sm font-medium text-text-light">{t.titleHeader}</label><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.searchPlaceholder} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1" /></div>
-                 <div><label className="text-sm font-medium text-text-light">{t.speaker}</label><select value={speakerFilter} onChange={(e) => setSpeakerFilter(e.target.value)} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1"><option value="">{t.filterAll}</option>{uniqueSpeakers.map(name => <option key={name} value={name}>{name}</option>)}</select></div>
-                 <div><label className="text-sm font-medium text-text-light">{t.space}</label><select value={spaceFilter} onChange={(e) => setSpaceFilter(e.target.value)} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1"><option value="">{t.filterAll}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select></div>
+                <div><label className="text-sm font-medium text-text-light">{t.titleHeader}</label><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.searchPlaceholder} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1" /></div>
+                <div><label className="text-sm font-medium text-text-light">{t.speaker}</label><select value={speakerFilter} onChange={(e) => setSpeakerFilter(e.target.value)} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1"><option value="">{t.filterAll}</option>{uniqueSpeakers.map(name => <option key={name} value={name}>{name}</option>)}</select></div>
+                <div><label className="text-sm font-medium text-text-light">{t.space}</label><select value={spaceFilter} onChange={(e) => setSpaceFilter(e.target.value)} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1"><option value="">{t.filterAll}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select></div>
             </div>
 
             <div className="flex-1 overflow-auto border border-border-color rounded-lg shadow-sm bg-background-panel">
@@ -401,33 +432,34 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
                         </tr>
                     </thead>
                     <tbody className="bg-background-panel divide-y divide-border-color">
-                        {isLoading ? ( <tr><td colSpan={7} className="text-center p-4">{t.loading}</td></tr> ) : paginatedTalks.length === 0 ? ( <tr><td colSpan={7} className="text-center p-4">{t.noTalksFound}</td></tr> ) : (
+                        {isLoading ? (<tr><td colSpan={7} className="text-center p-4">{t.loading}</td></tr>) : paginatedTalks.length === 0 ? (<tr><td colSpan={7} className="text-center p-4">{t.noTalksFound}</td></tr>) : (
                             paginatedTalks.map((talk, index) => {
                                 const isPlaying = playingTalkId === talk.id;
                                 const isYouTube = talk.url && (talk.url.includes('youtube.com') || talk.url.includes('youtu.be'));
                                 return (
-                                <tr key={talk.id} className="hover:bg-background-light">
-                                    <td className="px-4 py-3 text-sm text-text-light">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
-                                    <td className="px-4 py-3">
-                                        <div className="w-16 h-12 flex items-center justify-center">
-                                            {talk.speakerAvatarUrl ? <img src={talk.speakerAvatarUrl} alt={talk.speaker} className="w-12 h-12 rounded-md object-cover"/> : <DharmaWheelIcon className="w-12 h-12 text-text-light"/>}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 font-semibold text-text-main max-w-xs">
-                                        <div className="flex items-center gap-3">
-                                            {talk.url && (<button onClick={() => handlePlayPause(talk)} className="p-2 rounded-full hover:bg-gray-200 flex-shrink-0" title={isYouTube ? t.listenOnYoutube : isPlaying ? t.pauseAudio : t.playAudio}>{isYouTube ? <YouTubeIcon className="w-5 h-5 text-red-600" /> : isPlaying ? <PauseIcon className="w-5 h-5 text-primary" /> : <PlayIcon className="w-5 h-5 text-primary" />}</button>)}
-                                            <span className="truncate" title={talk.title}>{talk.title}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm">{talk.speaker}</td>
-                                    <td className="px-4 py-3 text-sm">{getSpaceName(talk.spaceId)}</td>
-                                    <td className="px-4 py-3 text-sm text-text-light">{new Date(talk.date || talk.createdAt!).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')}</td>
-                                    <td className="px-4 py-3 text-right text-sm space-x-2 whitespace-nowrap">
-                                        <button onClick={() => handleEditTalk(talk)} title={t.edit} className="p-2 rounded-full hover:bg-gray-200"><PencilIcon className="w-5 h-5 text-text-light"/></button>
-                                        <button onClick={() => handleDelete(talk)} title={t.delete} className="p-2 rounded-full hover:bg-gray-200"><TrashIcon className="w-5 h-5 text-accent-red"/></button>
-                                    </td>
-                                </tr>
-                                )}
+                                    <tr key={talk.id} className="hover:bg-background-light">
+                                        <td className="px-4 py-3 text-sm text-text-light">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="w-16 h-12 flex items-center justify-center">
+                                                {talk.speakerAvatarUrl ? <img src={talk.speakerAvatarUrl} alt={talk.speaker} className="w-12 h-12 rounded-md object-cover" /> : <DharmaWheelIcon className="w-12 h-12 text-text-light" />}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 font-semibold text-text-main max-w-xs">
+                                            <div className="flex items-center gap-3">
+                                                {talk.url && (<button onClick={() => handlePlayPause(talk)} className="p-2 rounded-full hover:bg-gray-200 flex-shrink-0" title={isYouTube ? t.listenOnYoutube : isPlaying ? t.pauseAudio : t.playAudio}>{isYouTube ? <YouTubeIcon className="w-5 h-5 text-red-600" /> : isPlaying ? <PauseIcon className="w-5 h-5 text-primary" /> : <PlayIcon className="w-5 h-5 text-primary" />}</button>)}
+                                                <span className="truncate" title={talk.title}>{talk.title}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm">{talk.speaker}</td>
+                                        <td className="px-4 py-3 text-sm">{getSpaceName(talk.spaceId)}</td>
+                                        <td className="px-4 py-3 text-sm text-text-light">{new Date(talk.date || talk.createdAt!).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US')}</td>
+                                        <td className="px-4 py-3 text-right text-sm space-x-2 whitespace-nowrap">
+                                            <button onClick={() => handleEditTalk(talk)} title={t.edit} className="p-2 rounded-full hover:bg-gray-200"><PencilIcon className="w-5 h-5 text-text-light" /></button>
+                                            <button onClick={() => handleDelete(talk)} title={t.delete} className="p-2 rounded-full hover:bg-gray-200"><TrashIcon className="w-5 h-5 text-accent-red" /></button>
+                                        </td>
+                                    </tr>
+                                )
+                            }
                             )
                         )}
                     </tbody>
@@ -437,15 +469,15 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
                 <div className="flex justify-between items-center mt-4 flex-shrink-0">
                     <p className="text-sm text-text-light">{t.showing} {filteredTalks.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t.to} {Math.min(currentPage * ITEMS_PER_PAGE, filteredTalks.length)} {t.of} {filteredTalks.length}</p>
                     <div className="flex space-x-1">
-                        <button 
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                            disabled={currentPage === 1} 
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
                             className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50"
                         >
                             {t.prev}
                         </button>
-                        <button 
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages || totalPages === 0}
                             className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50"
                         >
@@ -454,7 +486,7 @@ export const DharmaTalksManagement: React.FC<{ language: 'vi' | 'en' }> = ({ lan
                     </div>
                 </div>
             )}
-            <DharmaTalkModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} talk={editingTalk} spaces={spaces} language={language} isSaving={isSaving}/>
+            <DharmaTalkModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} talk={editingTalk} spaces={spaces} language={language} isSaving={isSaving} />
         </div>
     );
 };

@@ -73,7 +73,7 @@ export const trainingDataModel = {
         );
         return mapRowToCamelCase(res.rows[0]);
     },
-    
+
     async addIndexedProvider(sourceId, provider) {
         // Appends provider to the array if it's not already there. 
         // COALESCE(indexed_providers, '{}') ensures we append to an empty array instead of NULL.
@@ -96,20 +96,32 @@ export const trainingDataModel = {
         );
         return mapRowToCamelCase(res.rows[0]);
     },
-    
-    async findAllQaData() {
-        const res = await pool.query(`
+
+    async findAllQaData(userId = null) {
+        let query = `
             SELECT 
                 tds.*, 
                 ac.name as ai_name 
             FROM training_data_sources tds
             JOIN ai_configs ac ON tds.ai_config_id = ac.id
+            LEFT JOIN spaces s ON ac.space_id = s.id
             WHERE tds.type = 'qa'
-            ORDER BY ac.name, tds.created_at
-        `);
+        `;
+
+        const params = [];
+
+        // Filter by owner if userId is provided
+        if (userId) {
+            query += ` AND s.user_id = $1`;
+            params.push(userId);
+        }
+
+        query += ` ORDER BY ac.name, tds.created_at`;
+
+        const res = await pool.query(query, params);
         return res.rows.map(mapRowToCamelCase);
     },
-    
+
     async markAsExported(sourceIds) {
         if (!sourceIds || sourceIds.length === 0) return;
         const res = await pool.query(

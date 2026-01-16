@@ -8,7 +8,7 @@ export const billingModel = {
         const res = await pool.query('SELECT * FROM pricing_plans ORDER BY merit_cost ASC');
         return res.rows.map(mapRowToCamelCase);
     },
-    
+
     async findPlanById(id) {
         const res = await pool.query('SELECT * FROM pricing_plans WHERE id = $1', [id]);
         return mapRowToCamelCase(res.rows[0]);
@@ -39,7 +39,7 @@ export const billingModel = {
     async deletePlan(id) {
         await pool.query('DELETE FROM pricing_plans WHERE id = $1', [id]);
     },
-    
+
     // Transactions
     async findAllTransactions() {
         const res = await pool.query(`
@@ -62,7 +62,7 @@ export const billingModel = {
         `, [userId]);
         return res.rows.map(mapRowToCamelCase);
     },
-    
+
     async addMerits(userId, merits, adminId, type = 'manual', stripeChargeId = null, details = null) {
         const client = await pool.connect();
         try {
@@ -84,7 +84,7 @@ export const billingModel = {
             client.release();
         }
     },
-    
+
     async purchaseSubscription(userId, planId) {
         const client = await pool.connect();
         try {
@@ -98,12 +98,12 @@ export const billingModel = {
             if (user.merits !== null && user.merits < plan.meritCost) {
                 throw new Error('Not enough merits for this plan.');
             }
-            
+
             if (user.merits !== null) {
-                await client.query( 'UPDATE users SET merits = merits - $1 WHERE id = $2', [plan.meritCost, userId]);
+                await client.query('UPDATE users SET merits = merits - $1 WHERE id = $2', [plan.meritCost, userId]);
                 await client.query('INSERT INTO transactions (user_id, merits, type) VALUES ($1, $2, $3)', [userId, -plan.meritCost, 'subscription']);
             }
-            
+
             const finalUserRes = await client.query(
                 'UPDATE users SET subscription_plan_id = $1, requests_remaining = $2 WHERE id = $3 RETURNING *',
                 [planId, plan.requestLimit, userId]
@@ -118,17 +118,20 @@ export const billingModel = {
             client.release();
         }
     },
-    
+
     async purchaseAi(userId, aiId) {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            
+
             const aiRes = await client.query('SELECT purchase_cost, space_id, requests_granted_on_purchase FROM ai_configs WHERE id = $1', [aiId]);
             if (aiRes.rows.length === 0) throw new Error('AI not found.');
             const { purchase_cost: cost, space_id: spaceId, requests_granted_on_purchase: requestsGranted } = aiRes.rows[0];
 
-            if (!cost || cost <= 0) throw new Error('This AI is not for sale.');
+            // Allow free AIs (cost = 0), but reject if cost is null/undefined or negative
+            if (cost === null || cost === undefined || cost < 0) {
+                throw new Error('This AI is not for sale.');
+            }
             if (!spaceId) throw new Error('This AI is not associated with a space and cannot be purchased.');
 
             const ownedRes = await client.query('SELECT 1 FROM user_owned_ais WHERE user_id = $1 AND ai_config_id = $2', [userId, aiId]);
@@ -137,27 +140,35 @@ export const billingModel = {
             const userRes = await client.query('SELECT * FROM users WHERE id = $1 FOR UPDATE', [userId]);
             const user = mapRowToCamelCase(userRes.rows[0]);
             if (!user) throw new Error('User not found.');
-            if (user.merits !== null && user.merits < cost) throw new Error('Insufficient merits.');
 
             let updatedUserRes;
 
-            if (user.merits !== null) {
-                updatedUserRes = await client.query('UPDATE users SET merits = merits - $1 WHERE id = $2 RETURNING *', [cost, userId]);
+            if (cost > 0) {
+                // Paid AI - check merits and deduct
+                if (user.merits !== null && user.merits < cost) throw new Error('Insufficient merits.');
+                if (user.merits !== null) {
+                    updatedUserRes = await client.query('UPDATE users SET merits = merits - $1 WHERE id = $2 RETURNING *', [cost, userId]);
+                } else {
+                    updatedUserRes = await client.query('SELECT * FROM users WHERE id = $1', [userId]);
+                }
             } else {
+                // Free AI - no merit deduction needed
                 updatedUserRes = await client.query('SELECT * FROM users WHERE id = $1', [userId]);
             }
 
-            await client.query('UPDATE spaces SET merits = merits + $1, merits_sold = merits_sold + $1 WHERE id = $2', [cost, spaceId]);
-
-            await client.query(
-                'INSERT INTO transactions (user_id, merits, type, destination_space_id, details) VALUES ($1, $2, $3, $4, $5)',
-                [userId, -cost, 'ai_purchase', spaceId, JSON.stringify({ aiConfigId: aiId })]
-            );
+            // Only update space merits and create transaction for paid AIs
+            if (cost > 0) {
+                await client.query('UPDATE spaces SET merits = merits + $1, merits_sold = merits_sold + $1 WHERE id = $2', [cost, spaceId]);
+                await client.query(
+                    'INSERT INTO transactions (user_id, merits, type, destination_space_id, details) VALUES ($1, $2, $3, $4, $5)',
+                    [userId, -cost, 'ai_purchase', spaceId, JSON.stringify({ aiConfigId: aiId })]
+                );
+            }
 
             await client.query('INSERT INTO user_owned_ais (user_id, ai_config_id, requests_remaining) VALUES ($1, $2, $3)', [userId, aiId, requestsGranted]);
 
             await client.query('COMMIT');
-            
+
             const updatedUser = await enrichUserWithPermissions(mapRowToCamelCase(updatedUserRes.rows[0]));
             return { updatedUser };
         } catch (error) {
@@ -180,10 +191,10 @@ export const billingModel = {
 
             const ownedRes = await client.query('SELECT 1 FROM user_owned_ais WHERE user_id = $1 AND ai_config_id = $2', [userId, aiId]);
             if (ownedRes.rows.length > 0) {
-                 // User already owns it, this is not an error, just do nothing.
-                 await client.query('COMMIT');
-                 const user = await userModel.findById(userId);
-                 return { updatedUser: user };
+                // User already owns it, this is not an error, just do nothing.
+                await client.query('COMMIT');
+                const user = await userModel.findById(userId);
+                return { updatedUser: user };
             }
 
             await client.query('INSERT INTO user_owned_ais (user_id, ai_config_id, requests_remaining) VALUES ($1, $2, $3)', [userId, aiId, requestsGranted || 0]);

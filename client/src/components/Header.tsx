@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, SystemConfig } from '../types';
-import { LoginIcon, SettingsIcon, LogoutIcon, ChevronDownIcon, FacebookIcon, InstagramIcon,  MenuIcon, XIcon, UserIcon, ThreadsIcon } from '../components/Icons';
+import { LoginIcon, SettingsIcon, LogoutIcon, ChevronDownIcon, FacebookIcon, InstagramIcon, MenuIcon, XIcon, UserIcon, ThreadsIcon } from '../components/Icons';
+import { apiService } from '../services/apiService';
 
 interface HeaderProps {
     user: User | null;
@@ -67,14 +68,35 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isOrgSubMenuOpen, setIsOrgSubMenuOpen] = useState(false);
+    const [userSlug, setUserSlug] = useState('giac-ngo'); // Default fallback
 
     const dropdownRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const logoTimeoutRef = useRef<number | null>(null);
     const userMenuTimeoutRef = useRef<number | null>(null);
-    
+
     useEffect(() => {
-        if(isMobileMenuOpen) {
+        const fetchUserSpace = async () => {
+            if (user) {
+                try {
+                    const isSuperAdmin = user.permissions?.includes('roles');
+
+                    if (!isSuperAdmin) {
+                        const spaces = await apiService.getSpaces();
+                        if (spaces && spaces.length > 0) {
+                            setUserSlug(spaces[0].slug);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch user space for navigation slug", error);
+                }
+            }
+        };
+        fetchUserSpace();
+    }, [user]);
+
+    useEffect(() => {
+        if (isMobileMenuOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'auto';
@@ -103,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
             setIsUserMenuOpen(false);
         }, 300);
     };
-    
+
     const handleScrollClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
         event.preventDefault();
         const element = document.getElementById(targetId);
@@ -128,8 +150,8 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
             <div className="container">
                 {/* Desktop View */}
                 <div className="hidden lg:flex w-full justify-between items-center">
-                    <div 
-                        className="logo-container" 
+                    <div
+                        className="logo-container"
                         ref={dropdownRef}
                         onMouseEnter={handleLogoEnter}
                         onMouseLeave={handleLogoLeave}
@@ -169,20 +191,20 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                         <a href="#pricing-section" onClick={(e) => handleScrollClick(e, 'pricing-section')}>{t.price}</a>
                     </nav>
                     <div className="header-actions">
-                         <div className="user-menu-language-switcher">
-                                            <div className="user-menu-language-switcher-pill">
-                                                <button onClick={() => setLanguage('vi')} className={language === 'vi' ? 'active' : ''}>VIE</button>
-                                                <button onClick={() => setLanguage('en')} className={language === 'en' ? 'active' : ''}>ENG</button>
-                                            </div>
-                                        </div>
+                        <div className="user-menu-language-switcher">
+                            <div className="user-menu-language-switcher-pill">
+                                <button onClick={() => setLanguage('vi')} className={language === 'vi' ? 'active' : ''}>VIE</button>
+                                <button onClick={() => setLanguage('en')} className={language === 'en' ? 'active' : ''}>ENG</button>
+                            </div>
+                        </div>
                         {user ? (
-                            <div 
-                                className="relative" 
+                            <div
+                                className="relative"
                                 ref={userMenuRef}
                                 onMouseEnter={handleUserMenuEnter}
                                 onMouseLeave={handleUserMenuLeave}
                             >
-                                <Link to="/giac-ngo/chat" title={t.practiceSpace}>
+                                <Link to={`/${userSlug}/chat`} title={t.practiceSpace}>
                                     <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full ring-2 ring-offset-2 ring-transparent hover:ring-primary transition-all" />
                                 </Link>
 
@@ -192,16 +214,16 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                                             <p className="font-semibold">{user.name}</p>
                                             <p className="text-sm text-text-light">{user.email}</p>
                                         </div>
-                                        <hr/>
-                                        <Link to="/giac-ngo/chat" className="user-menu-item"><UserIcon className="w-5 h-5"/><span>{t.practiceSpace}</span></Link>
+                                        <hr />
+                                        <Link to={`/${userSlug}/chat`} className="user-menu-item"><UserIcon className="w-5 h-5" /><span>{t.practiceSpace}</span></Link>
                                         {hasAdminPermission && (
-                                            <Link to="/giac-ngo/admin" className="user-menu-item">
-                                                <SettingsIcon className="w-5 h-5"/>
+                                            <Link to={`/${userSlug}/admin`} className="user-menu-item">
+                                                <SettingsIcon className="w-5 h-5" />
                                                 <span>{t.adminPanel}</span>
                                             </Link>
-                                        )}                                    
+                                        )}
                                         <button onClick={onLogout} className="user-menu-item logout">
-                                            <LogoutIcon className="w-5 h-5"/>
+                                            <LogoutIcon className="w-5 h-5" />
                                             <span>{t.logout}</span>
                                         </button>
                                     </div>
@@ -210,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                         ) : (
                             <div className="flex items-center gap-4">
                                 <Link to="/login" state={{ from: location }} title={t.login} className="p-2 rounded-full hover:bg-background-light">
-                                    <LoginIcon className="w-6 h-6 text-text-light hover:text-primary"/>
+                                    <LoginIcon className="w-6 h-6 text-text-light hover:text-primary" />
                                 </Link>
                             </div>
                         )}
@@ -222,9 +244,17 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                     <Link to="/" className="logo-link">
                         <img src={logoUrl} alt="Logo" className="logo h-8" />
                     </Link>
-                    <button onClick={() => setIsMobileMenuOpen(true)} className="p-2">
-                        <MenuIcon className="w-6 h-6" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className="user-menu-language-switcher">
+                            <div className="user-menu-language-switcher-pill">
+                                <button onClick={() => setLanguage('vi')} className={language === 'vi' ? 'active' : ''}>VIE</button>
+                                <button onClick={() => setLanguage('en')} className={language === 'en' ? 'active' : ''}>ENG</button>
+                            </div>
+                        </div>
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="p-2">
+                            <MenuIcon className="w-6 h-6" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -245,22 +275,22 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                             </div>
                             <div className="mobile-nav-section-divider"></div>
                             <div className="mobile-nav-section">
-                                <Link to="/giac-ngo/chat" onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-link"><UserIcon className="w-5 h-5" /><span>{t.practiceSpace}</span></Link>
-                                {hasAdminPermission && <Link to="/giac-ngo/admin" onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-link"><SettingsIcon className="w-5 h-5" /><span>{t.adminPanel}</span></Link>}
+                                <Link to={`/${userSlug}/chat`} onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-link"><UserIcon className="w-5 h-5" /><span>{t.practiceSpace}</span></Link>
+                                {hasAdminPermission && <Link to={`/${userSlug}/admin`} onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-link"><SettingsIcon className="w-5 h-5" /><span>{t.adminPanel}</span></Link>}
                             </div>
                         </>
                     )}
 
                     {!user && (
                         <div className="mobile-nav-section">
-                             <Link to="/login" state={{ from: location }} onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-link"><LoginIcon className="w-5 h-5" /><span>{t.login}</span></Link>
+                            <Link to="/login" state={{ from: location }} onClick={() => setIsMobileMenuOpen(false)} className="mobile-nav-link"><LoginIcon className="w-5 h-5" /><span>{t.login}</span></Link>
                         </div>
                     )}
-                    
+
                     <div className="mobile-nav-section-divider"></div>
-                    
+
                     <nav className="mobile-nav-section">
-                           <div>
+                        <div>
                             <button onClick={() => setIsOrgSubMenuOpen(!isOrgSubMenuOpen)} className="mobile-nav-link w-full justify-between">
                                 {t.organization}
                                 <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOrgSubMenuOpen ? 'rotate-180' : ''}`} />
@@ -281,20 +311,14 @@ export const Header: React.FC<HeaderProps> = ({ user, systemConfig, language, se
                         {/* <a href="#community-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#community-section'); }} className="mobile-nav-link">{t.space}</a> */}
                         <a href="#library-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#library-section'); }} className="mobile-nav-link">{t.library}</a>
                         <a href="#dharma-radio-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#dharma-radio-section'); }} className="mobile-nav-link">{t.radio}</a>
-                        <a href="#pricing-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#pricing-section'); }} className="mobile-nav-link">{t.price}</a>                     
+                        <a href="#pricing-section" onClick={(e) => { e.preventDefault(); handleMobileNavLinkClick('#pricing-section'); }} className="mobile-nav-link">{t.price}</a>
                     </nav>
 
                     <div className="mobile-nav-section-divider"></div>
 
-                     <div className="mobile-nav-section">
-                        {user && <button onClick={onLogout} className="mobile-nav-link text-accent-red"><LogoutIcon className="w-5 h-5"/><span>{t.logout}</span></button>}
-                         <div className="user-menu-language-switcher">
-                            <div className="user-menu-language-switcher-pill">
-                                <button onClick={() => { setLanguage('vi'); setIsMobileMenuOpen(false); }} className={language === 'vi' ? 'active' : ''}>VIE</button>
-                                <button onClick={() => { setLanguage('en'); setIsMobileMenuOpen(false); }} className={language === 'en' ? 'active' : ''}>ENG</button>
-                            </div>
-                        </div>                        
-                     </div>
+                    <div className="mobile-nav-section">
+                        {user && <button onClick={onLogout} className="mobile-nav-link text-accent-red"><LogoutIcon className="w-5 h-5" /><span>{t.logout}</span></button>}
+                    </div>
                 </div>
             </div>
         </header>

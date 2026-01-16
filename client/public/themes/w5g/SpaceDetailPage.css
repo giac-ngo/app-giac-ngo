@@ -15,12 +15,13 @@ html:not([data-theme="giacngo"]) .back-link {
     text-decoration: none;
     margin-bottom: 2rem;
 }
+
 html:not([data-theme="giacngo"]) .back-link:hover {
     color: var(--color-primary);
 }
 
 html:not([data-theme="giacngo"]) .detail-card-container {
-     max-width: 900px;
+    max-width: 900px;
     margin: 0 auto;
 }
 
@@ -29,19 +30,22 @@ html:not([data-theme="giacngo"]) .detail-card {
     border-radius: 0.75rem;
     border: 1px solid var(--color-border-color);
     overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
+
 html:not([data-theme="giacngo"]) .detail-image-container {
     position: relative;
     width: 100%;
     height: 400px;
     background-color: var(--color-background-light);
 }
+
 html:not([data-theme="giacngo"]) .detail-image-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
+
 html:not([data-theme="giacngo"]) .detail-rank-badge {
     position: absolute;
     top: 1.5rem;
@@ -56,43 +60,51 @@ html:not([data-theme="giacngo"]) .detail-rank-badge {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    border: 2px solid rgba(255,255,255,0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
 html:not([data-theme="giacngo"]) .detail-content {
     padding: 2rem;
 }
+
 html:not([data-theme="giacngo"]) .detail-header-top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
 }
+
 html:not([data-theme="giacngo"]) .status-badge {
-    background-color: #dcfce7; /* green-100 */
-    color: #166534; /* green-800 */
+    background-color: #dcfce7;
+    /* green-100 */
+    color: #166534;
+    /* green-800 */
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     flex-shrink: 0;
 }
+
 html:not([data-theme="giacngo"]) .status-badge::before {
     content: '•';
     margin-right: 4px;
-    color: #22c55e; /* green-500 */
+    color: #22c55e;
+    /* green-500 */
 }
 
 html:not([data-theme="giacngo"]) .detail-type {
     font-weight: 600;
     color: var(--color-primary);
 }
+
 html:not([data-theme="giacngo"]) .detail-title {
     font-size: 2.25rem;
     font-weight: 700;
     margin-top: 0.5rem;
     color: var(--color-text-main);
 }
+
 html:not([data-theme="giacngo"]) .detail-meta {
     display: flex;
     flex-wrap: wrap;
@@ -101,18 +113,25 @@ html:not([data-theme="giacngo"]) .detail-meta {
     font-size: 1rem;
     color: var(--color-text-light);
 }
+
 html:not([data-theme="giacngo"]) .detail-meta span {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
-html:not([data-theme="giacngo"]) .detail-meta .w-5 { width: 1.25rem; height: 1.25rem; }
+
+html:not([data-theme="giacngo"]) .detail-meta .w-5 {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
 html:not([data-theme="giacngo"]) .detail-tags {
     margin-top: 1.5rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
 }
+
 html:not([data-theme="giacngo"]) .tag {
     background-color: var(--color-background-light);
     color: var(--color-text-main);
@@ -121,34 +140,46 @@ html:not([data-theme="giacngo"]) .tag {
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
 }
+
 html:not([data-theme="giacngo"]) .detail-actions {
     margin-top: 1.5rem;
     display: flex;
     gap: 1rem;
 }
-html:not([data-theme="giacngo"]) .join-btn, html:not([data-theme="giacngo"]) .contact-btn {
+
+html:not([data-theme="giacngo"]) .join-btn,
+html:not([data-theme="giacngo"]) .contact-btn {
     padding: 0.75rem 1.5rem;
     border-radius: 9999px;
     font-weight: 600;
     cursor: pointer;
     border: 1px solid var(--color-primary);
 }
+
 html:not([data-theme="giacngo"]) .join-btn {
     background-color: var(--color-primary);
     color: var(--color-text-on-primary);
 }
+
 html:not([data-theme="giacngo"]) .contact-btn {
     background-color: transparent;
     color: var(--color-primary);
 }
-html:not([data-theme="giacngo"]) .join-btn:hover { background-color: var(--color-primary-hover); }
-html:not([data-theme="giacngo"]) .contact-btn:hover { background-color: var(--color-primary-light); }
+
+html:not([data-theme="giacngo"]) .join-btn:hover {
+    background-color: var(--color-primary-hover);
+}
+
+html:not([data-theme="giacngo"]) .contact-btn:hover {
+    background-color: var(--color-primary-light);
+}
 
 html:not([data-theme="giacngo"]) .detail-tabs {
     display: flex;
     border-top: 1px solid var(--color-border-color);
     background-color: var(--color-background-light);
 }
+
 html:not([data-theme="giacngo"]) .tab-btn {
     flex: 1;
     display: flex;
@@ -165,60 +196,76 @@ html:not([data-theme="giacngo"]) .tab-btn {
     cursor: pointer;
     transition: all 0.2s;
 }
+
 html:not([data-theme="giacngo"]) .tab-btn:hover {
-    background-color: #e5e7eb; /* gray-200 */
+    background-color: #e5e7eb;
+    /* gray-200 */
 }
+
 html:not([data-theme="giacngo"]) .tab-btn.active {
     color: var(--color-primary);
     border-bottom-color: var(--color-primary);
 }
+
 html:not([data-theme="giacngo"]) .tab-btn.offering-tab {
-    background-color: #dbeafe; /* blue-100 */
+    background-color: #dbeafe;
+    /* blue-100 */
 }
 
 html:not([data-theme="giacngo"]) .tab-content {
     padding: 2rem;
 }
+
 html:not([data-theme="giacngo"]) .tab-content h2 {
     font-size: 1.75rem;
     font-weight: 700;
     margin-bottom: 1rem;
 }
+
 html:not([data-theme="giacngo"]) .tab-content h3 {
     font-size: 1.25rem;
     font-weight: 600;
     margin-top: 1.5rem;
     margin-bottom: 0.75rem;
 }
+
 html:not([data-theme="giacngo"]) .detail-description {
     line-height: 1.7;
-    color: #374151; /* gray-700 */
+    color: #374151;
+    /* gray-700 */
 }
+
 html:not([data-theme="giacngo"]) .info-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
     margin-top: 1rem;
 }
-html:not([data-theme="giacngo"]) .info-grid > div {
+
+html:not([data-theme="giacngo"]) .info-grid>div {
     background-color: var(--color-background-light);
     padding: 1rem;
     border-radius: 0.5rem;
     text-align: center;
 }
+
 html:not([data-theme="giacngo"]) .info-grid .value {
     font-size: 1.5rem;
     font-weight: 700;
 }
+
 html:not([data-theme="giacngo"]) .info-grid .label {
     font-size: 0.875rem;
     color: var(--color-text-light);
 }
+
 html:not([data-theme="giacngo"]) .info-grid .rank-value {
     color: var(--color-primary);
 }
+
 html:not([data-theme="giacngo"]) .info-grid .rating-value {
-    color: #f59e0b; /* amber-500 */
+    color: #f59e0b;
+    /* amber-500 */
 }
 
 html:not([data-theme="giacngo"]) .coming-soon {
@@ -236,13 +283,48 @@ html:not([data-theme="giacngo"]) .loading-container {
     color: var(--color-text-light);
 }
 
-html:not([data-theme="giacngo"]) .ai-agent-list { display: flex; flex-direction: column; gap: 1rem; }
-html:not([data-theme="giacngo"]) .ai-agent-card { display: flex; gap: 1rem; padding: 1rem; background-color: var(--color-background-light); border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
-html:not([data-theme="giacngo"]) .ai-agent-card:hover { background-color: #e5e7eb; }
-html:not([data-theme="giacngo"]) .ai-agent-card img { width: 60px; height: 60px; border-radius: 50%; }
-html:not([data-theme="giacngo"]) .ai-agent-info h3 { font-size: 1.125rem; font-weight: 600; }
-html:not([data-theme="giacngo"]) .ai-agent-info p { font-size: 0.9rem; color: var(--color-text-light); }
-html:not([data-theme="giacngo"]) .library-link-text { color: var(--color-primary); font-weight: 600; text-decoration: underline; font-size: 1.1rem; }
+html:not([data-theme="giacngo"]) .ai-agent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+html:not([data-theme="giacngo"]) .ai-agent-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--color-background-light);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+html:not([data-theme="giacngo"]) .ai-agent-card:hover {
+    background-color: #e5e7eb;
+}
+
+html:not([data-theme="giacngo"]) .ai-agent-card img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+
+html:not([data-theme="giacngo"]) .ai-agent-info h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+html:not([data-theme="giacngo"]) .ai-agent-info p {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+}
+
+html:not([data-theme="giacngo"]) .library-link-text {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+    font-size: 1.1rem;
+}
 
 /* Dharma Talks */
 html:not([data-theme="giacngo"]) .dharma-talks-content .dharma-talk-list {
@@ -295,10 +377,76 @@ html:not([data-theme="giacngo"]) .dharma-talk-card .play-button {
 }
 
 html:not([data-theme="giacngo"]) .dharma-talk-card .play-button:hover {
-    background-color: #dbeafe; /* blue-100 */
+    background-color: #dbeafe;
+    /* blue-100 */
 }
 
 html:not([data-theme="giacngo"]) .dharma-talk-card .play-button svg {
     width: 1.5rem;
     height: 1.5rem;
+}
+
+/* Audio Controls */
+html:not([data-theme="giacngo"]) .dharma-card-new .audio-controls {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--color-border-color);
+    background-color: var(--color-background-light);
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .audio-controls-inline {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+
+html:not([data-theme="giacngo"]) .dharma-card-new .play-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .play-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .audio-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .time-label {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+    min-width: 2.5rem;
+    font-family: monospace;
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .progress-bar {
+    flex: 1;
+    height: 6px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .progress-fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    border-radius: 3px;
+    transition: width 0.1s linear;
+}
+
+html:not([data-theme="giacngo"]) .dharma-card-new .progress-bar:hover {
+    height: 8px;
 }

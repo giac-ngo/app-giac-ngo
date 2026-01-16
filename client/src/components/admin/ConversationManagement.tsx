@@ -1,14 +1,14 @@
 // client/src/components/admin/ConversationManagement.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { Conversation, AIConfig, User } from '../../types';
+import { Conversation, AIConfig, User, Space } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
 
 const ITEMS_PER_PAGE = 10;
 
 interface ConversationManagementProps {
-  user: User;
-  language: 'vi' | 'en';
+    user: User;
+    language: 'vi' | 'en';
 }
 
 const translations = {
@@ -98,9 +98,14 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [userFilter, setUserFilter] = useState<string>('');
     const [aiFilter, setAiFilter] = useState<string>('');
+    const [spaceIdFilter, setSpaceIdFilter] = useState<string>(() => {
+        if (user.permissions?.includes('roles')) return ''; // Admin sees all by default
+        return '';
+    });
+    const [allSpaces, setAllSpaces] = useState<Space[]>([]);
     const { showToast } = useToast();
     const t = translations[language];
-    
+
     const [trainingPairIndex, setTrainingPairIndex] = useState<number | null>(null);
     const [successfullyTrainedIndices, setSuccessfullyTrainedIndices] = useState<Set<number>>(new Set());
     const [trainedPairsMap, setTrainedPairsMap] = useState<Map<number, Set<string>>>(new Map());
@@ -110,12 +115,22 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [convos, ais] = await Promise.all([
+                const [convos, ais, spaces] = await Promise.all([
                     apiService.getAllConversations(user),
-                    apiService.getManageableAiConfigs(user)
+                    apiService.getManageableAiConfigs(user),
+                    apiService.getSpaces()
                 ]);
                 setConversations(convos);
                 setAiConfigs(ais);
+                setAllSpaces(spaces || []);
+
+                // Set default space for regular users
+                if (!user.permissions?.includes('roles') && spaces && spaces.length > 0) {
+                    const userSpace = spaces.find(s => s.userId === user.id);
+                    if (userSpace) {
+                        setSpaceIdFilter(String(userSpace.id));
+                    }
+                }
 
                 const newTrainedPairsMap = new Map<number, Set<string>>();
                 const trainingDataPromises = ais
@@ -148,13 +163,28 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
     const uniqueUsers = useMemo(() => Array.from(new Set(conversations.map(c => c.userName))).sort(), [conversations]);
     const uniqueAis = useMemo(() => Array.from(new Set(conversations.map(c => c.aiName).filter(Boolean) as string[])).sort(), [conversations]);
 
+    const manageableSpaces = useMemo(() => {
+        if (user.permissions?.includes('roles')) {
+            return allSpaces; // Admins can see all spaces
+        }
+        return allSpaces.filter(space => space.userId === user.id);
+    }, [allSpaces, user]);
+
     const filteredConversations = useMemo(() => {
         return conversations.filter(conv => {
             const userMatch = !userFilter || conv.userName === userFilter;
             const aiMatch = !aiFilter || conv.aiName === aiFilter;
-            return userMatch && aiMatch;
+
+            // Space filter: filter by AI's space
+            let spaceMatch = true;
+            if (spaceIdFilter) {
+                const aiConfig = aiConfigs.find(ai => ai.id === conv.aiConfigId);
+                spaceMatch = aiConfig ? String(aiConfig.spaceId) === spaceIdFilter : false;
+            }
+
+            return userMatch && aiMatch && spaceMatch;
         });
-    }, [conversations, userFilter, aiFilter]);
+    }, [conversations, userFilter, aiFilter, spaceIdFilter, aiConfigs]);
 
     const totalPages = Math.ceil(filteredConversations.length / ITEMS_PER_PAGE);
     const paginatedConversations = filteredConversations.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -176,7 +206,7 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
             try {
                 const trainedPairs = trainedPairsMap.get(conv.aiConfigId as number);
                 const trainedIndices = new Set<number>();
-                
+
                 if (trainedPairs) {
                     conv.messages.forEach((msg, index) => {
                         if (msg.sender === 'ai' && index > 0 && conv.messages[index - 1].sender === 'user') {
@@ -197,30 +227,30 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
                 setSuccessfullyTrainedIndices(new Set());
             }
         } else {
-             setSuccessfullyTrainedIndices(new Set());
+            setSuccessfullyTrainedIndices(new Set());
         }
-        
+
         setIsModalOpen(true);
     };
 
     const handleToggleTrainPair = async (conversation: Conversation, aiMessageIndex: number) => {
         if (!conversation || typeof conversation.aiConfigId !== 'number' || trainingPairIndex !== null) return;
-    
+
         const aiToTrain = aiConfigs.find(ai => ai.id === conversation.aiConfigId);
         if (!aiToTrain) {
             showToast(`Không tìm thấy AI '${conversation.aiName || ''}' để huấn luyện.`, 'error');
             return;
         }
-    
+
         const question = conversation.messages[aiMessageIndex - 1]?.text?.trim();
         const thought = conversation.messages[aiMessageIndex]?.thought;
-    
+
         if (!question) return;
-    
+
         const isAlreadyTrained = successfullyTrainedIndices.has(aiMessageIndex);
-    
+
         setTrainingPairIndex(aiMessageIndex);
-    
+
         if (isAlreadyTrained) {
             const originalAnswer = conversation.messages[aiMessageIndex]?.text?.trim();
             if (originalAnswer === undefined) { setTrainingPairIndex(null); return; }
@@ -228,11 +258,11 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
             try {
                 await apiService.deleteTrainingQaDataSource(Number(aiToTrain.id), question, originalAnswer);
                 showToast(t.untrainSuccess, 'success');
-    
+
                 const newTrainedIndices = new Set(successfullyTrainedIndices);
                 newTrainedIndices.delete(aiMessageIndex);
                 setSuccessfullyTrainedIndices(newTrainedIndices);
-    
+
                 setTrainedPairsMap(prevMap => {
                     const newMap = new Map(prevMap);
                     const pairsForAi = new Set<string>(newMap.get(aiToTrain.id as number) || []);
@@ -240,11 +270,11 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
                     newMap.set(aiToTrain.id as number, pairsForAi);
                     return newMap;
                 });
-    
+
                 if (newTrainedIndices.size === 0) {
                     await apiService.updateConversationTrainingStatus(conversation.id, false);
-                    setConversations(prevConvos => 
-                        prevConvos.map(c => 
+                    setConversations(prevConvos =>
+                        prevConvos.map(c =>
                             c.id === conversation.id ? { ...c, isTrained: false } : c
                         )
                     );
@@ -254,25 +284,25 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
             } finally {
                 setTrainingPairIndex(null);
             }
-    
+
         } else {
             const editedAnswer = editableAnswers[aiMessageIndex]?.trim();
             if (editedAnswer === undefined) { setTrainingPairIndex(null); return; }
-            
+
             try {
                 await apiService.createTrainingQaDataSource(Number(aiToTrain.id), question, editedAnswer, thought);
                 showToast(t.trainRequestSent.replace('{name}', aiToTrain.name), 'success');
-    
+
                 await apiService.updateConversationTrainingStatus(conversation.id, true);
-    
-                setConversations(prevConvos => 
-                    prevConvos.map(c => 
+
+                setConversations(prevConvos =>
+                    prevConvos.map(c =>
                         c.id === conversation.id ? { ...c, isTrained: true } : c
                     )
                 );
-    
+
                 setSuccessfullyTrainedIndices(prev => new Set(prev).add(aiMessageIndex));
-    
+
                 setTrainedPairsMap(prevMap => {
                     const newMap = new Map(prevMap);
                     const pairsForAi = new Set<string>(newMap.get(aiToTrain.id as number) || []);
@@ -287,7 +317,7 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
             }
         }
     };
-    
+
     const handleAddToSocialFeed = () => {
         showToast(t.socialFeedNotImplemented, 'info');
     };
@@ -327,6 +357,22 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
                         {uniqueAis.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
                 </div>
+                {manageableSpaces.length > 0 && (
+                    <div>
+                        <label htmlFor="space-filter" className="block text-sm font-medium text-text-light">Lọc theo Không gian</label>
+                        <select
+                            id="space-filter"
+                            value={spaceIdFilter}
+                            onChange={e => setSpaceIdFilter(e.target.value)}
+                            className="mt-1 block w-full p-2 border border-border-color rounded-md focus:ring-primary focus:border-primary"
+                        >
+                            {user.permissions?.includes('roles') && <option value="">Tất cả không gian</option>}
+                            {manageableSpaces.map(space => (
+                                <option key={space.id} value={space.id}>{space.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             <div className="bg-background-panel shadow-md rounded-lg overflow-hidden">
@@ -362,10 +408,10 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
                         ))}
                     </tbody>
                 </table>
-                 {filteredConversations.length === 0 && <p className="text-center py-4 text-text-light">{t.noConversations}</p>}
+                {filteredConversations.length === 0 && <p className="text-center py-4 text-text-light">{t.noConversations}</p>}
             </div>
             {renderPagination()}
-            
+
             {isModalOpen && selectedConversation && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
                     <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-3xl flex flex-col h-[80vh]" onClick={e => e.stopPropagation()}>
@@ -380,53 +426,53 @@ export const ConversationManagement: React.FC<ConversationManagementProps> = ({ 
                                     : (isTrained ? t.untrainPair : t.trainPair);
 
                                 return (
-                                <div key={msg.id || index} className="group mb-4">
-                                     {msg.sender === 'user' ? (
-                                        <div className="p-3 rounded-lg bg-blue-50">
-                                            <p className="text-sm text-blue-800">
-                                                <strong className="font-semibold">User:</strong> {msg.text}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="bg-green-50 p-3 rounded-lg">
-                                            <label className="block text-xs font-semibold text-green-900 mb-1">{t.editableAnswer}</label>
-                                            <textarea
-                                                value={editableAnswers[index] || ''}
-                                                onChange={(e) => setEditableAnswers(prev => ({ ...prev, [index]: e.target.value }))}
-                                                className="w-full p-2 border rounded-md bg-white text-sm text-green-900 focus:ring-primary focus:border-primary"
-                                                rows={Math.max(4, (editableAnswers[index] || '').split('\n').length)}
-                                            />
-                                        </div>
-                                    )}
+                                    <div key={msg.id || index} className="group mb-4">
+                                        {msg.sender === 'user' ? (
+                                            <div className="p-3 rounded-lg bg-blue-50">
+                                                <p className="text-sm text-blue-800">
+                                                    <strong className="font-semibold">User:</strong> {msg.text}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-green-50 p-3 rounded-lg">
+                                                <label className="block text-xs font-semibold text-green-900 mb-1">{t.editableAnswer}</label>
+                                                <textarea
+                                                    value={editableAnswers[index] || ''}
+                                                    onChange={(e) => setEditableAnswers(prev => ({ ...prev, [index]: e.target.value }))}
+                                                    className="w-full p-2 border rounded-md bg-white text-sm text-green-900 focus:ring-primary focus:border-primary"
+                                                    rows={Math.max(4, (editableAnswers[index] || '').split('\n').length)}
+                                                />
+                                            </div>
+                                        )}
 
-                                    {msg.sender === 'ai' && msg.thought && (
-                                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-800">
-                                            <p className="font-semibold">{t.aiThought}:</p>
-                                            <p className="italic whitespace-pre-wrap">{msg.thought}</p>
-                                        </div>
-                                    )}
-                                    {isTrainablePair && (
-                                        <div className="text-right -mt-2">
-                                            <button 
-                                                onClick={() => handleToggleTrainPair(selectedConversation, index)}
-                                                disabled={isTraining}
-                                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                                                    isTrained 
-                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200 opacity-100 group-hover:opacity-100' 
-                                                        : isTraining 
-                                                        ? 'bg-yellow-100 text-yellow-700 cursor-wait'
-                                                        : 'bg-gray-200 text-gray-700 hover:bg-primary-light hover:text-primary opacity-0 group-hover:opacity-100'
-                                                }`}
-                                            >
-                                                {buttonText}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )})}
+                                        {msg.sender === 'ai' && msg.thought && (
+                                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-800">
+                                                <p className="font-semibold">{t.aiThought}:</p>
+                                                <p className="italic whitespace-pre-wrap">{msg.thought}</p>
+                                            </div>
+                                        )}
+                                        {isTrainablePair && (
+                                            <div className="text-right -mt-2">
+                                                <button
+                                                    onClick={() => handleToggleTrainPair(selectedConversation, index)}
+                                                    disabled={isTraining}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${isTrained
+                                                            ? 'bg-red-100 text-red-700 hover:bg-red-200 opacity-100 group-hover:opacity-100'
+                                                            : isTraining
+                                                                ? 'bg-yellow-100 text-yellow-700 cursor-wait'
+                                                                : 'bg-gray-200 text-gray-700 hover:bg-primary-light hover:text-primary opacity-0 group-hover:opacity-100'
+                                                        }`}
+                                                >
+                                                    {buttonText}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                         <div className="text-right space-x-3 p-6 border-t border-border-color flex-shrink-0">
-                             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-text-main bg-background-light rounded-md hover:bg-border-color">{t.cancel}</button>
+                            <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-text-main bg-background-light rounded-md hover:bg-border-color">{t.cancel}</button>
                         </div>
                     </div>
                 </div>

@@ -40,7 +40,7 @@ const _createCategory = async (req, res, tableName, additionalData = {}) => {
         const item = await documentModel._createCategory(tableName, payload);
         res.status(201).json(item);
     } catch (e) {
-        res.status(500).json({message: e.message});
+        res.status(500).json({ message: e.message });
     }
 };
 
@@ -51,7 +51,7 @@ const _updateCategory = async (req, res, tableName) => {
         if (name !== undefined) dataToUpdate.name = name;
         if (nameEn !== undefined) dataToUpdate.nameEn = nameEn;
         if (spaceId !== undefined) dataToUpdate.spaceId = spaceId || null;
-        
+
         if (tableName === 'document_topics') {
             if (typeId !== undefined) dataToUpdate.typeId = typeId || null;
             if (authorId !== undefined) dataToUpdate.authorId = authorId || null;
@@ -60,7 +60,7 @@ const _updateCategory = async (req, res, tableName) => {
         if (Object.keys(dataToUpdate).length === 0) {
             return res.status(400).json({ message: 'No fields to update provided.' });
         }
-        
+
         // Permission check...
         if (!req.user.permissions.includes('roles')) {
             const itemRes = await pool.query(`SELECT space_id FROM ${tableName} WHERE id = $1`, [req.params.id]);
@@ -73,10 +73,10 @@ const _updateCategory = async (req, res, tableName) => {
                     }
                 }
                 if (spaceId) { // Check ownership of target space
-                     const targetSpaceRes = await pool.query('SELECT user_id FROM spaces WHERE id = $1', [spaceId]);
-                     if (targetSpaceRes.rows.length === 0 || targetSpaceRes.rows[0].user_id !== req.user.id) {
+                    const targetSpaceRes = await pool.query('SELECT user_id FROM spaces WHERE id = $1', [spaceId]);
+                    if (targetSpaceRes.rows.length === 0 || targetSpaceRes.rows[0].user_id !== req.user.id) {
                         return res.status(403).json({ message: 'You can only assign items to spaces you own.' });
-                     }
+                    }
                 }
             }
         }
@@ -110,7 +110,7 @@ export const documentController = {
             res.status(500).json({ message: error.message || 'Failed to extract text from file.' });
         }
     },
-    
+
     async getDocumentConfig(req, res) {
         try {
             const config = await documentModel.getConfig();
@@ -136,13 +136,41 @@ export const documentController = {
             const pageNum = parseInt(page, 10);
             const limitNum = parseInt(limit, 10);
 
+            // Import helper functions
+            const { getUserManagedSpaceIds, isAdmin } = await import('../middleware/authMiddleware.js');
+
+            // Determine which spaces the user can access
+            let spaceIds = null;
+            if (!isAdmin(req.user)) {
+                // Regular user: only see documents from their managed spaces
+                const managedIds = await getUserManagedSpaceIds(req.user.id);
+                if (managedIds.length === 0) {
+                    return res.json({ data: [], total: 0 });
+                }
+
+                if (spaceId) {
+                    const requestedId = parseInt(spaceId, 10);
+                    if (managedIds.includes(requestedId)) {
+                        spaceIds = [requestedId];
+                    } else {
+                        return res.status(403).json({ message: "Forbidden: You do not own this space." });
+                    }
+                } else {
+                    spaceIds = managedIds;
+                }
+            } else if (spaceId) {
+                // Admin with space filter: filter by specific space
+                spaceIds = [parseInt(spaceId, 10)];
+            }
+            // Admin without filter: spaceIds remains null (see all)
+
             const filters = {
                 title: title || undefined,
                 authorId: authorId ? parseInt(authorId, 10) : undefined,
                 typeId: typeId ? parseInt(typeId, 10) : undefined,
                 topicId: topicId ? parseInt(topicId, 10) : undefined,
                 tagId: tagId ? parseInt(tagId, 10) : undefined,
-                spaceId: spaceId, // Pass string 'global' or number
+                spaceIds: spaceIds, // Pass array of space IDs or null
                 limit: limitNum,
                 offset: (pageNum - 1) * limitNum,
             };
@@ -151,7 +179,7 @@ export const documentController = {
             res.status(500).json({ message: 'Failed to fetch documents.' });
         }
     },
-    
+
     async createDocument(req, res) {
         try {
             const { spaceId } = req.body;
@@ -161,7 +189,7 @@ export const documentController = {
                     return res.status(403).json({ message: 'You can only create documents for spaces you own.' });
                 }
             }
-    
+
             const { tags, ...docData } = req.body;
             const newDoc = await documentModel.create(docData, tags || []);
             res.status(201).json(newDoc);
@@ -173,16 +201,16 @@ export const documentController = {
     async updateDocument(req, res) {
         try {
             const id = parseInt(req.params.id, 10);
-            
+
             if (!req.user.permissions.includes('roles')) {
                 const docRes = await pool.query('SELECT s.user_id FROM documents d JOIN spaces s ON d.space_id = s.id WHERE d.id = $1', [id]);
                 if (docRes.rows.length > 0 && docRes.rows[0].user_id !== req.user.id) {
-                     return res.status(403).json({ message: 'You can only edit documents from spaces you own.' });
+                    return res.status(403).json({ message: 'You can only edit documents from spaces you own.' });
                 }
             }
 
             const { tags, ...docData } = req.body;
-            
+
             if (docData.spaceId) {
                 docData.spaceId = docData.spaceId === 'null' ? null : parseInt(docData.spaceId, 10);
             }
@@ -197,10 +225,10 @@ export const documentController = {
     async deleteDocument(req, res) {
         try {
             const id = parseInt(req.params.id, 10);
-             if (!req.user.permissions.includes('roles')) {
+            if (!req.user.permissions.includes('roles')) {
                 const docRes = await pool.query('SELECT s.user_id FROM documents d JOIN spaces s ON d.space_id = s.id WHERE d.id = $1', [id]);
-                 if (docRes.rows.length > 0 && docRes.rows[0].user_id !== req.user.id) {
-                     return res.status(403).json({ message: 'You can only delete documents from spaces you own.' });
+                if (docRes.rows.length > 0 && docRes.rows[0].user_id !== req.user.id) {
+                    return res.status(403).json({ message: 'You can only delete documents from spaces you own.' });
                 }
             }
 
@@ -227,7 +255,7 @@ export const documentController = {
             res.status(500).json({ message: 'Failed to like document.' });
         }
     },
-    
+
     // Linking
     async linkDocumentsToAi(req, res) {
         const aiConfigId = parseInt(req.params.id, 10);
@@ -242,7 +270,7 @@ export const documentController = {
             res.status(500).json({ message: 'Failed to link documents.' });
         }
     },
-    
+
     async unlinkDocumentFromAi(req, res) {
         const aiConfigId = parseInt(req.params.id, 10);
         const documentId = parseInt(req.params.docId, 10);
@@ -259,18 +287,81 @@ export const documentController = {
 
     // Tags & Categories
     async getAllTags(req, res) { res.json(await documentModel.findAllTags()); },
-    
-    async getDocumentAuthors(req, res) { res.json(await documentModel._findCategory('document_authors', req.query.spaceId)); },
+
+    async getDocumentAuthors(req, res) {
+        try {
+            const { getUserManagedSpaceIds, isAdmin } = await import('../middleware/authMiddleware.js');
+            let spaceFilter = req.query.spaceId;
+
+            if (req.user && !isAdmin(req.user)) {
+                const managedIds = await getUserManagedSpaceIds(req.user.id);
+                if (managedIds.length === 0) return res.json([]);
+
+                if (spaceFilter) {
+                    if (!managedIds.includes(parseInt(spaceFilter, 10))) {
+                        return res.status(403).json({ message: "Forbidden: You do not own this space." });
+                    }
+                } else {
+                    spaceFilter = managedIds;
+                }
+            }
+            res.json(await documentModel._findCategory('document_authors', spaceFilter));
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
     async createDocumentAuthor(req, res) { await _createCategory(req, res, 'document_authors'); },
     async updateDocumentAuthor(req, res) { await _updateCategory(req, res, 'document_authors'); },
     async deleteDocumentAuthor(req, res) { await _deleteCategory(res, documentModel._deleteCategory.bind(null, 'document_authors'), req.params.id); },
-    
-    async getDocumentTypes(req, res) { res.json(await documentModel._findCategory('document_types', req.query.spaceId)); },
+
+    async getDocumentTypes(req, res) {
+        try {
+            const { getUserManagedSpaceIds, isAdmin } = await import('../middleware/authMiddleware.js');
+            let spaceFilter = req.query.spaceId;
+
+            if (req.user && !isAdmin(req.user)) {
+                const managedIds = await getUserManagedSpaceIds(req.user.id);
+                if (managedIds.length === 0) return res.json([]);
+
+                if (spaceFilter) {
+                    if (!managedIds.includes(parseInt(spaceFilter, 10))) {
+                        return res.status(403).json({ message: "Forbidden: You do not own this space." });
+                    }
+                } else {
+                    spaceFilter = managedIds;
+                }
+            }
+            res.json(await documentModel._findCategory('document_types', spaceFilter));
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
     async createDocumentType(req, res) { await _createCategory(req, res, 'document_types'); },
     async updateDocumentType(req, res) { await _updateCategory(req, res, 'document_types'); },
     async deleteDocumentType(req, res) { await _deleteCategory(res, documentModel._deleteCategory.bind(null, 'document_types'), req.params.id); },
 
-    async getDocumentTopics(req, res) { res.json(await documentModel._findCategory('document_topics', req.query.spaceId)); },
+    async getDocumentTopics(req, res) {
+        try {
+            const { getUserManagedSpaceIds, isAdmin } = await import('../middleware/authMiddleware.js');
+            let spaceFilter = req.query.spaceId;
+
+            if (req.user && !isAdmin(req.user)) {
+                const managedIds = await getUserManagedSpaceIds(req.user.id);
+                if (managedIds.length === 0) return res.json([]);
+
+                if (spaceFilter) {
+                    if (!managedIds.includes(parseInt(spaceFilter, 10))) {
+                        return res.status(403).json({ message: "Forbidden: You do not own this space." });
+                    }
+                } else {
+                    spaceFilter = managedIds;
+                }
+            }
+            res.json(await documentModel._findCategory('document_topics', spaceFilter));
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
     async createDocumentTopic(req, res) {
         const { typeId, authorId } = req.body;
         if (typeId === undefined || authorId === undefined) {

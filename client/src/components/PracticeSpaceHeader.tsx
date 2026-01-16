@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AIConfig } from '../types';
 // FIX: Imported missing MenuIcon and XIcon components.
-import { ChevronDownIcon, ChevronLeftIcon, MenuIcon, XIcon } from './Icons';
+import { ChevronDownIcon, ChevronLeftIcon, MenuIcon, XIcon, ListIcon } from './Icons';
 import { ViewMode } from '../types';
 
 
@@ -21,6 +21,8 @@ interface PracticeSpaceHeaderProps {
     setIsMarketplaceModalOpen: (isOpen: boolean) => void;
     setViewMode: (mode: ViewMode) => void;
     viewMode: ViewMode;
+    isSidebarCollapsed: boolean;
+    setIsSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
@@ -36,6 +38,9 @@ export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
     handleSelectAi,
     setIsMarketplaceModalOpen,
     setViewMode,
+    viewMode,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
 }) => {
     return (
         <header className="chat-main-header">
@@ -50,11 +55,23 @@ export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
                     <Link to="/" className="back-link-desktop flex items-center gap-3 text-text-light hover:text-text-main">
                         <ChevronLeftIcon className="w-6 h-6" />
                     </Link>
+
+                    {/* Table of Contents Toggle Button for Library View Only */}
+                    {viewMode === 'library' && (
+                        <button
+                            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+                            title={isSidebarCollapsed ? 'Mở mục lục' : 'Đóng mục lục'}
+                        >
+                            <ListIcon className="w-5 h-5" />
+                            <span className="hidden md:inline font-medium">Mục lục</span>
+                        </button>
+                    )}
                 </div>
-                
+
                 {/* HIDDEN FOR NOW: Center Navigation */}
                 {false && (
-                    <nav className={`header-center-group ${isMobileMenuOpen ? 'is-open' : ''}`}>                    
+                    <nav className={`header-center-group ${isMobileMenuOpen ? 'is-open' : ''}`}>
                         <button onClick={() => { setViewMode('about'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.sutra}</button>
                         <button onClick={() => { setViewMode('community'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.community}</button>
                         <button onClick={() => { setViewMode('library'); setIsMobileMenuOpen(false); }} className="header-nav-item">{t.library}</button>
@@ -71,7 +88,7 @@ export const PracticeSpaceHeader: React.FC<PracticeSpaceHeaderProps> = ({
                                 <ChevronDownIcon className={`chevron ${isAiSelectorOpen ? 'rotate-180' : ''}`} />
                             </button>
                         ) : (
-                             <div className="ai-selector-button is-loading">
+                            <div className="ai-selector-button is-loading">
                                 <div className="ai-selector-avatar skeleton-placeholder" />
                                 <span className="ai-selector-name skeleton-placeholder" />
                             </div>

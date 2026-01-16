@@ -30,14 +30,16 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
-    storage,
-    limits: { fileSize: 100 * 1024 * 1024 } // 100 MB limit
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB limit
 });
 
 const fieldsUpload = upload.fields([
-    { name: 'avatarFile', maxCount: 1 },
-    { name: 'audioFile', maxCount: 1 }
+  { name: 'avatarFile', maxCount: 1 },
+  { name: 'audioFile', maxCount: 1 }, // Legacy support
+  { name: 'audioFileVi', maxCount: 1 },
+  { name: 'audioFileEn', maxCount: 1 }
 ]);
 
 const router = Router();
@@ -51,7 +53,8 @@ router.post('/', protectDharmaRoutes, fieldsUpload, dharmaTalksController.create
 router.put('/:id', protectDharmaRoutes, fieldsUpload, dharmaTalksController.updateDharmaTalk);
 router.delete('/:id', protectDharmaRoutes, dharmaTalksController.deleteDharmaTalk);
 
-// Public route to like a talk
+// Public routes for interactions
+router.post('/:id/view', dharmaTalksController.incrementDharmaTalkView);
 router.post('/:id/like', isAuthenticated, dharmaTalksController.likeDharmaTalk);
 
 

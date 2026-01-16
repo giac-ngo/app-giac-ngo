@@ -28,10 +28,16 @@ export const libraryModel = {
         if (spaceId != null && spaceId !== 'global') {
             baseWhereClauses.push(`(space_id = $1 OR space_id IS NULL)`);
             baseParams.push(spaceId);
-        } else if (spaceId === 'global') {
+        } else {
+            // Default to global only if no space is specified
             baseWhereClauses.push(`space_id IS NULL`);
         }
-        
+
+        if (currentFilters.excludeTypeNames && currentFilters.excludeTypeNames.length > 0) {
+            baseWhereClauses.push(`name != ALL($${baseParams.length + 1})`);
+            baseParams.push(currentFilters.excludeTypeNames);
+        }
+
         const baseWhereClause = baseWhereClauses.length > 0 ? `WHERE ${baseWhereClauses.join(' AND ')}` : '';
 
         const authorsQuery = `
@@ -40,16 +46,16 @@ export const libraryModel = {
             ${baseWhereClause}
             ORDER BY name;
         `;
-        
+
         const typesQuery = `
             SELECT id, name, name_en 
             FROM document_types 
-            WHERE name IN ('Kệ', 'Câu Chuyện') 
+            ${baseWhereClause}
             ORDER BY id
         `;
 
         const [typesRes, authorsRes] = await Promise.all([
-            pool.query(typesQuery),
+            pool.query(typesQuery, baseParams),
             pool.query(authorsQuery, baseParams),
         ]);
 
@@ -75,7 +81,7 @@ export const libraryModel = {
                 ORDER BY number_index ASC
                 LIMIT $${paramIndex++} OFFSET $${paramIndex++};
             `;
-            
+
             const offset = (topicsPage - 1) * topicsLimit;
             topicsParams.push(topicsLimit, offset);
 
@@ -93,7 +99,7 @@ export const libraryModel = {
 
     async getDocumentWithNeighbors(documentId) {
         await pool.query('UPDATE documents SET views = views + 1 WHERE id = $1', [documentId]);
-        
+
         const res = await pool.query(`
             WITH ranked_docs AS (
                 SELECT 
@@ -132,13 +138,13 @@ export const libraryModel = {
             LEFT JOIN ranked_docs rd ON d.id = rd.id
             WHERE d.id = $1
         `, [documentId]);
-        
+
         return mapRowToCamelCase(res.rows[0]);
     },
 
     async getTopics(spaceId, page = 1, limit = 15) {
         const offset = (page - 1) * limit;
-        
+
         const params = [];
         let whereClause = '';
         let paramIndex = 1;
@@ -146,7 +152,7 @@ export const libraryModel = {
         if (spaceId != null && spaceId !== 'global') {
             whereClause = `WHERE (space_id = $${paramIndex++} OR space_id IS NULL)`;
             params.push(spaceId);
-        } else if (spaceId === 'global') {
+        } else {
             whereClause = `WHERE space_id IS NULL`;
         }
 

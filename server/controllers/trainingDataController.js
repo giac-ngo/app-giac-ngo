@@ -40,7 +40,7 @@ const trainingDataStorage = multer.diskStorage({
 });
 
 export const trainingDataController = {
-    upload: multer({ 
+    upload: multer({
         storage: trainingDataStorage,
         limits: { fileSize: 50 * 1024 * 1024 } // Limit to 50MB
     }),
@@ -49,7 +49,7 @@ export const trainingDataController = {
         try {
             const aiId = parseInt(req.params.id, 10);
             if (isNaN(aiId)) return res.status(400).json({ message: 'Invalid AI ID.' });
-            
+
             const data = await trainingDataModel.findByAiId(aiId);
             res.setHeader('Cache-Control', 'no-store');
             res.json(data);
@@ -57,19 +57,19 @@ export const trainingDataController = {
             res.status(500).json({ message: 'Failed to fetch training data.' });
         }
     },
-    
+
     async createTrainingDataSourceForAI(req, res) {
         const aiId = parseInt(req.params.id, 10);
         const { type, question, answer, thought } = req.body;
-        
+
         // Path to clean up in case of error (if file was uploaded)
         let uploadedFilePath = req.file ? req.file.path : null;
 
         try {
             const aiConfig = await aiConfigModel.findById(aiId);
             if (!aiConfig) {
-                 if (uploadedFilePath) await fs.unlink(uploadedFilePath).catch(() => {});
-                 return res.status(404).json({ message: 'AI Config not found.' });
+                if (uploadedFilePath) await fs.unlink(uploadedFilePath).catch(() => { });
+                return res.status(404).json({ message: 'AI Config not found.' });
             }
 
             const owner = await userModel.findById(aiConfig.ownerId);
@@ -106,7 +106,7 @@ export const trainingDataController = {
                     try {
                         // Extract text from file (supports PDF, DOCX, TXT, XLSX, CSV, JSONL)
                         const text = await fileParserService.extractText(createdSource.fileUrl, createdSource.fileName);
-                        
+
                         if (text?.trim() && apiKey) {
                             const service = aiConfig.modelType === 'gemini' ? geminiService : gptService;
                             const summary = await service.summarizeText(text, apiKey);
@@ -114,8 +114,8 @@ export const trainingDataController = {
                                 await trainingDataModel.updateSummary(createdSource.id, summary);
                             }
                         }
-                    } catch (e) { 
-                        console.error(`Background processing failed for source ${createdSource.id}:`, e); 
+                    } catch (e) {
+                        console.error(`Background processing failed for source ${createdSource.id}:`, e);
                     }
                 })();
             }
@@ -123,14 +123,14 @@ export const trainingDataController = {
         } catch (error) {
             console.error("Error in createTrainingDataSourceForAI:", error);
             if (uploadedFilePath) {
-                try { await fs.unlink(uploadedFilePath); } catch(e) {}
+                try { await fs.unlink(uploadedFilePath); } catch (e) { }
             }
             if (!res.headersSent) {
                 res.status(500).json({ message: 'Failed to create training data source: ' + error.message });
             }
         }
     },
-    
+
     async generateSummaryForDataSource(req, res) {
         const sourceId = parseInt(req.params.id, 10);
         try {
@@ -145,14 +145,14 @@ export const trainingDataController = {
 
             const aiConfig = await aiConfigModel.findById(source.aiConfigId);
             if (!aiConfig) return res.status(404).json({ message: 'Associated AI config not found.' });
-            
+
             const owner = await userModel.findById(aiConfig.ownerId);
             const apiKey = owner?.apiKeys?.[aiConfig.modelType];
             if (!apiKey) return res.status(400).json({ message: `Owner's API key not set.` });
-            
+
             const text = await fileParserService.extractText(source.fileUrl, source.fileName);
             if (!text?.trim()) return res.status(400).json({ message: 'File is empty or text could not be extracted.' });
-            
+
             const service = aiConfig.modelType === 'gemini' ? geminiService : gptService;
             const summary = await service.summarizeText(text, apiKey);
             if (!summary) throw new Error('Failed to generate summary from AI provider.');
@@ -169,15 +169,15 @@ export const trainingDataController = {
         try {
             const sourceId = parseInt(req.params.id, 10);
             // Get source info before deleting to know which providers indexed it
-            const sourceToDelete = await trainingDataModel.delete(sourceId); 
-            
+            const sourceToDelete = await trainingDataModel.delete(sourceId);
+
             if (!sourceToDelete) return res.status(404).json({ message: 'Training data source not found.' });
 
             // Clean up Weaviate for ALL providers that have indexed this file
             const aiConfig = await aiConfigModel.findById(sourceToDelete.aiConfigId);
             if (aiConfig) {
                 const owner = await userModel.findById(aiConfig.ownerId);
-                
+
                 // Iterate through all providers (gpt, gemini, etc.) that have this file indexed
                 if (sourceToDelete.indexedProviders && Array.isArray(sourceToDelete.indexedProviders)) {
                     for (const provider of sourceToDelete.indexedProviders) {
@@ -185,7 +185,7 @@ export const trainingDataController = {
                         // We try to delete even if key is missing (service might handle it or just log error)
                         // Ideally we need key to init client with headers
                         if (providerKey) {
-                             await weaviateService.deleteDataBySourceId(provider, sourceToDelete.id, sourceToDelete.type, providerKey)
+                            await weaviateService.deleteDataBySourceId(provider, sourceToDelete.id, sourceToDelete.type, providerKey)
                                 .catch(err => console.error(`Weaviate cleanup failed for provider ${provider}:`, err.message));
                         }
                     }
@@ -197,29 +197,29 @@ export const trainingDataController = {
                 // Construct absolute path using project root
                 // fileUrl is like "/uploads/..."
                 const absolutePath = path.join(projectRoot, sourceToDelete.fileUrl);
-                try { 
-                    await fs.unlink(absolutePath); 
+                try {
+                    await fs.unlink(absolutePath);
                 } catch (e) {
                     console.warn(`Failed to delete file from disk: ${absolutePath}`, e.message);
                 }
             }
-            
+
             res.status(204).send();
         } catch (error) {
             console.error('Delete error:', error);
             res.status(500).json({ message: 'Failed to delete training data source.' });
         }
     },
-    
+
     async deleteTrainingQaDataSource(req, res) {
         const { aiConfigId, question, answer } = req.body;
         try {
             const deletedSource = await trainingDataModel.deleteByContent(aiConfigId, question, answer);
             if (deletedSource) {
-                 const aiConfig = await aiConfigModel.findById(deletedSource.aiConfigId);
-                 if (aiConfig) {
+                const aiConfig = await aiConfigModel.findById(deletedSource.aiConfigId);
+                if (aiConfig) {
                     const owner = await userModel.findById(aiConfig.ownerId);
-                    
+
                     // Same logic: iterate through all indexed providers
                     if (deletedSource.indexedProviders && Array.isArray(deletedSource.indexedProviders)) {
                         for (const provider of deletedSource.indexedProviders) {
@@ -240,19 +240,21 @@ export const trainingDataController = {
 
     async getAllQaTrainingData(req, res) {
         try {
-            res.json(await trainingDataModel.findAllQaData());
+            // Pass the current user's ID to filter by owner
+            const userId = req.user?.id;
+            res.json(await trainingDataModel.findAllQaData(userId));
         } catch (error) {
             res.status(500).json({ message: 'Failed to fetch QA training data.' });
         }
     },
-    
+
     async exportQaDataForFinetune(req, res) {
         try {
             const { sourcesToExport } = req.body;
             if (!Array.isArray(sourcesToExport) || sourcesToExport.length === 0) {
                 return res.status(400).json({ message: 'No sources provided for export.' });
             }
-            
+
             const jsonlLines = sourcesToExport.map(source => {
                 let assistantContent = source.answer;
                 if (source.thought) {
@@ -267,7 +269,7 @@ export const trainingDataController = {
             });
 
             await trainingDataModel.markAsExported(sourcesToExport.map(s => s.id));
-            
+
             const fileName = `finetune_data_${new Date().toISOString().split('T')[0]}.jsonl`;
             res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
             res.setHeader('Content-type', 'application/jsonl');

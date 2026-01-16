@@ -14,13 +14,22 @@ export const libraryController = {
             res.status(500).json({ message: 'Failed to fetch library sidebar data.' });
         }
     },
-    
+
     async getLibraryFilters(req, res) {
         try {
-            const { spaceId, typeId, authorId, topicsPage, topicsLimit } = req.query;
-            
+            const { spaceId, spaceSlug, typeId, authorId, topicsPage, topicsLimit } = req.query;
+
             let finalSpaceId;
-            if (spaceId === 'global') {
+
+            // If spaceSlug is provided, resolve it to spaceId
+            if (spaceSlug) {
+                const spaceResult = await pool.query('SELECT id FROM spaces WHERE slug = $1', [spaceSlug]);
+                if (spaceResult.rows.length > 0) {
+                    finalSpaceId = spaceResult.rows[0].id;
+                } else {
+                    finalSpaceId = null;
+                }
+            } else if (spaceId === 'global') {
                 finalSpaceId = 'global';
             } else if (spaceId) {
                 const parsedId = parseInt(spaceId, 10);
@@ -35,8 +44,10 @@ export const libraryController = {
                 topicsPage: topicsPage ? parseInt(topicsPage, 10) : 1,
                 topicsLimit: topicsLimit ? parseInt(topicsLimit, 10) : 15,
             };
-            
-            const filters = await libraryModel.getFilters(finalSpaceId, modelFilters);
+
+            const filters = await libraryModel.getFilters(finalSpaceId, {
+                ...modelFilters
+            });
             res.json(filters);
 
         } catch (error) {
@@ -47,11 +58,20 @@ export const libraryController = {
 
     async getLibraryDocuments(req, res) {
         try {
-            const { search, typeId, authorId, topicId, page = 1, limit = 6, spaceId } = req.query;
-            
+            const { search, typeId, authorId, topicId, page = 1, limit = 6, spaceId, spaceSlug } = req.query;
+
             let finalSpaceId;
-            if (spaceId === 'null' || spaceId === 'undefined' || spaceId === undefined) {
-                finalSpaceId = null; 
+
+            // If spaceSlug is provided, resolve it to spaceId
+            if (spaceSlug) {
+                const spaceResult = await pool.query('SELECT id FROM spaces WHERE slug = $1', [spaceSlug]);
+                if (spaceResult.rows.length > 0) {
+                    finalSpaceId = spaceResult.rows[0].id;
+                } else {
+                    finalSpaceId = null;
+                }
+            } else if (spaceId === 'null' || spaceId === 'undefined' || spaceId === undefined) {
+                finalSpaceId = null;
             } else {
                 const parsedId = parseInt(spaceId, 10);
                 finalSpaceId = isNaN(parsedId) ? undefined : parsedId;
@@ -60,8 +80,8 @@ export const libraryController = {
             const pageNum = parseInt(page, 10);
             const limitNum = parseInt(limit, 10);
 
-            const result = await documentModel.find({ 
-                title: search || undefined, 
+            const result = await documentModel.find({
+                title: search || undefined,
                 typeId: typeId ? parseInt(typeId, 10) : undefined,
                 authorId: authorId ? parseInt(authorId, 10) : undefined,
                 topicId: topicId ? parseInt(topicId, 10) : undefined,

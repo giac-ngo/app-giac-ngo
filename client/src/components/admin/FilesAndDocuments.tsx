@@ -223,21 +223,21 @@ const GPT_TTS_VOICES = ['alloy', 'echo', 'fable', 'nova', 'onyx', 'shimmer'];
 
 // A helper function to strip HTML tags from a string
 const stripHtml = (html: string) => {
-  if (!html) return "";
-  const tmp = document.createElement("DIV");
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || "";
+    if (!html) return "";
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
 };
 
 // Helper function to decode base64
 const decode = (base64: string): Uint8Array => {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
 };
 
 // Helper function to convert raw PCM data to a WAV blob
@@ -308,7 +308,7 @@ const TextEditor: React.FC<{
         document.execCommand(command, false, undefined);
         editorRef.current?.focus();
     };
-    
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             onFileExtract(e.target.files[0]);
@@ -328,7 +328,7 @@ const TextEditor: React.FC<{
                 <button type="button" onClick={() => execCmd('justifyRight')} className="p-1.5 rounded hover:bg-gray-200"><AlignRightIcon className="w-4 h-4" /></button>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isExtracting} className="ml-auto flex items-center gap-1 text-sm p-1.5 rounded hover:bg-gray-200 disabled:opacity-50">
-                    {isExtracting ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : <PaperclipIcon className="w-4 h-4" />}
+                    {isExtracting ? <SpinnerIcon className="w-4 h-4 animate-spin" /> : <PaperclipIcon className="w-4 h-4" />}
                     {isExtracting ? t.extracting : t.attachFile}
                 </button>
             </div>
@@ -359,7 +359,7 @@ const DocumentConfigModal: React.FC<DocumentConfigModalProps> = ({ isOpen, onClo
     const { showToast } = useToast();
     const [config, setConfig] = useState<Partial<DocumentConfig>>(initialConfig || {});
     const [isSaving, setIsSaving] = useState(false);
-    
+
     const [translationModels, setTranslationModels] = useState<string[]>([]);
     const [ttsModels, setTtsModels] = useState<string[]>([]);
     const [isLoadingModels, setIsLoadingModels] = useState({ translation: false, tts: false });
@@ -394,7 +394,7 @@ const DocumentConfigModal: React.FC<DocumentConfigModalProps> = ({ isOpen, onClo
             fetchModels(config.ttsProvider, 'tts');
         }
     }, [config.ttsProvider, fetchModels]);
-    
+
     const handleConfigChange = (field: keyof DocumentConfig, value: any) => {
         const newConfig: Partial<DocumentConfig> = { ...config, [field]: value };
         if (field === 'ttsProvider' && value !== config.ttsProvider) {
@@ -444,33 +444,33 @@ const DocumentConfigModal: React.FC<DocumentConfigModalProps> = ({ isOpen, onClo
                                     <option value="gpt">GPT (OpenAI)</option>
                                 </select>
                             </div>
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium">{t.translationModel}</label>
                                 {isLoadingModels.translation ? <p className="text-sm mt-1">{t.modelLoading}</p> :
-                                <select value={config.translationModel || ''} onChange={e => handleConfigChange('translationModel', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
-                                    {translationModels.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>}
+                                    <select value={config.translationModel || ''} onChange={e => handleConfigChange('translationModel', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                        {translationModels.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>}
                             </div>
                         </div>
                     </div>
-                     <div className="space-y-4 p-4 border rounded-md">
+                    <div className="space-y-4 p-4 border rounded-md">
                         <h3 className="font-semibold">{t.ttsConfig}</h3>
                         <div className="grid grid-cols-3 gap-4">
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium">{t.ttsProvider}</label>
                                 <select value={config.ttsProvider || ''} onChange={e => handleConfigChange('ttsProvider', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
                                     <option value="gemini">Gemini</option>
                                     <option value="gpt">GPT (OpenAI)</option>
                                 </select>
                             </div>
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium">{t.ttsModel}</label>
                                 {isLoadingModels.tts ? <p className="text-sm mt-1">{t.modelLoading}</p> :
-                                <select value={config.ttsModel || ''} onChange={e => handleConfigChange('ttsModel', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
-                                     {config.ttsProvider === 'gpt' ? GPT_TTS_MODELS.map(m => <option key={m} value={m}>{m}</option>) : ttsModels.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>}
+                                    <select value={config.ttsModel || ''} onChange={e => handleConfigChange('ttsModel', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
+                                        {config.ttsProvider === 'gpt' ? GPT_TTS_MODELS.map(m => <option key={m} value={m}>{m}</option>) : ttsModels.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>}
                             </div>
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium">{t.ttsVoice}</label>
                                 <select value={config.ttsVoice || ''} onChange={e => handleConfigChange('ttsVoice', e.target.value)} className="mt-1 w-full p-2 border rounded-md">
                                     {getTtsVoices().map(v => <option key={v} value={v}>{v}</option>)}
@@ -479,7 +479,7 @@ const DocumentConfigModal: React.FC<DocumentConfigModalProps> = ({ isOpen, onClo
                         </div>
                     </div>
                 </div>
-                 <div className="p-4 border-t flex justify-end gap-2">
+                <div className="p-4 border-t flex justify-end gap-2">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">{t.cancel}</button>
                     <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-primary text-white rounded-md">{isSaving ? t.saving : t.save}</button>
                 </div>
@@ -508,39 +508,48 @@ const CategoryManagerModal: React.FC<{
     spaces: Space[];
     documentTypes: DocumentType[];
     documentAuthors: DocumentAuthor[];
-}> = ({ category, isOpen, onClose, onUpdate, language, user, spaces, documentTypes, documentAuthors }) => {
+    initialSpaceId?: string;
+}> = ({ category, isOpen, onClose, onUpdate, language, user, spaces, documentTypes, documentAuthors, initialSpaceId }) => {
     const t = translations[language];
     const { showToast } = useToast();
 
     const isManagingTopics = category.name === 'Topic';
     const isSuperAdmin = user.permissions?.includes('roles');
-    const defaultSpaceId = isSuperAdmin ? '' : (spaces.find(s => s.userId === user.id)?.id || '');
-    
+    // Use initialSpaceId if provided, otherwise fallback to default logic
+    const defaultSpaceId = initialSpaceId
+        ? initialSpaceId
+        : (isSuperAdmin ? '' : (spaces.find(s => s.userId === user.id)?.id || ''));
+
     const [newItem, setNewItem] = useState({ name: '', nameEn: '', spaceId: String(defaultSpaceId), typeId: '', authorId: '' });
     const [editingItem, setEditingItem] = useState<{ id: number; name: string; nameEn: string; spaceId: string; typeId?: string; authorId?: string } | null>(null);
 
     const [topicSearch, setTopicSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
-    
+
     useEffect(() => {
         if (isOpen) {
             const initialTypeId = isManagingTopics && documentTypes.length > 0 ? documentTypes[0].id.toString() : '';
             const initialAuthorId = isManagingTopics && documentAuthors.length > 0 ? documentAuthors[0].id.toString() : '';
-            setNewItem({ name: '', nameEn: '', spaceId: String(defaultSpaceId), typeId: initialTypeId, authorId: initialAuthorId });
+            // Re-calculate default space ID on open to ensure it captures latest props
+            const currentDefaultSpaceId = initialSpaceId
+                ? initialSpaceId
+                : (isSuperAdmin ? '' : (spaces.find(s => s.userId === user.id)?.id || ''));
+
+            setNewItem({ name: '', nameEn: '', spaceId: String(currentDefaultSpaceId), typeId: initialTypeId, authorId: initialAuthorId });
             setEditingItem(null);
             setTopicSearch('');
             setCurrentPage(1);
         }
-    }, [isOpen, defaultSpaceId, documentTypes, documentAuthors, isManagingTopics]);
-    
+    }, [isOpen, initialSpaceId, isSuperAdmin, spaces, user.id, documentTypes, documentAuthors, isManagingTopics]);
+
     const handleAddItem = async () => {
         if (!newItem.name.trim()) return;
         try {
             const payload: any = { name: newItem.name.trim(), nameEn: newItem.nameEn.trim() };
             payload.spaceId = newItem.spaceId ? Number(newItem.spaceId) : null;
             if (isManagingTopics) {
-                 if (!newItem.typeId) {
+                if (!newItem.typeId) {
                     showToast('Please select a type for the new topic.', 'error');
                     return;
                 }
@@ -577,7 +586,7 @@ const CategoryManagerModal: React.FC<{
             showToast(error.message, 'error');
         }
     };
-    
+
     const handleDeleteItem = async (item: { id: number; name: string }) => {
         if (window.confirm(t.deleteItemConfirm.replace('{name}', item.name))) {
             try {
@@ -590,15 +599,27 @@ const CategoryManagerModal: React.FC<{
     };
 
     const filteredItems = useMemo(() => {
+        let items = category.items;
+
+        // Filter by Space Scope if initialSpaceId is provided
+        if (initialSpaceId) {
+            if (initialSpaceId === 'global') {
+                items = items.filter(item => !item.spaceId);
+            } else {
+                // Filter ensuring we only show items for the specific space
+                items = items.filter(item => String(item.spaceId) === initialSpaceId);
+            }
+        }
+
         if (!isManagingTopics || !topicSearch) {
-            return category.items;
+            return items;
         }
         const searchLower = topicSearch.toLowerCase();
-        return category.items.filter(item =>
+        return items.filter(item =>
             item.name.toLowerCase().includes(searchLower) ||
             ((item as any).nameEn || '').toLowerCase().includes(searchLower)
         );
-    }, [category.items, topicSearch, isManagingTopics]);
+    }, [category.items, topicSearch, isManagingTopics, initialSpaceId]);
 
     const totalPages = useMemo(() => {
         if (!isManagingTopics) return 1;
@@ -610,14 +631,14 @@ const CategoryManagerModal: React.FC<{
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
         return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
     }, [filteredItems, currentPage, isManagingTopics]);
-    
+
     if (!isOpen) return null;
-    
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <h2 className="text-xl font-bold p-4 border-b border-border-color">{t.manageCategoryTitle.replace('{category}', category.pluralName)}</h2>
-                
+
                 {isManagingTopics && (
                     <div className="p-4 border-b border-border-color">
                         <input
@@ -638,15 +659,15 @@ const CategoryManagerModal: React.FC<{
                         <div key={item.id} className="p-2 bg-background-light rounded-md">
                             {editingItem?.id === item.id ? (
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <input type="text" value={editingItem.name} onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })} className="p-1 border rounded-md flex-grow min-w-[100px]" autoFocus placeholder={t.nameLabel}/>
-                                    <input type="text" value={editingItem.nameEn} onChange={(e) => setEditingItem({ ...editingItem, nameEn: e.target.value })} className="p-1 border rounded-md flex-grow min-w-[100px]" placeholder={t.nameEnLabel}/>
+                                    <input type="text" value={editingItem.name} onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })} className="p-1 border rounded-md flex-grow min-w-[100px]" autoFocus placeholder={t.nameLabel} />
+                                    <input type="text" value={editingItem.nameEn} onChange={(e) => setEditingItem({ ...editingItem, nameEn: e.target.value })} className="p-1 border rounded-md flex-grow min-w-[100px]" placeholder={t.nameEnLabel} />
                                     {isSuperAdmin && (
                                         <select value={editingItem.spaceId} onChange={(e) => setEditingItem({ ...editingItem, spaceId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
                                     )}
                                     {isManagingTopics && (
                                         <>
-                                        <select value={editingItem.typeId} onChange={(e) => setEditingItem({ ...editingItem, typeId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
-                                        <select value={editingItem.authorId} onChange={(e) => setEditingItem({ ...editingItem, authorId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">-- {t.author} --</option>{documentAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select>
+                                            <select value={editingItem.typeId} onChange={(e) => setEditingItem({ ...editingItem, typeId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+                                            <select value={editingItem.authorId} onChange={(e) => setEditingItem({ ...editingItem, authorId: e.target.value })} className="p-1 border rounded-md text-xs w-28"><option value="">-- {t.author} --</option>{documentAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select>
                                         </>
                                     )}
                                     <button onClick={handleUpdateItem} className="px-3 py-1 bg-primary text-white text-sm rounded">{t.save}</button>
@@ -663,15 +684,15 @@ const CategoryManagerModal: React.FC<{
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                        <button onClick={() => setEditingItem({ id: item.id, name: item.name, nameEn: (item as any).nameEn || '', spaceId: String(item.spaceId ?? ''), typeId: String((item as DocumentTopic).typeId ?? ''), authorId: String((item as DocumentTopic).authorId ?? '') })} className="p-1"><PencilIcon className="w-4 h-4 text-text-light hover:text-primary"/></button>
-                                        <button onClick={() => handleDeleteItem(item)} className="p-1"><TrashIcon className="w-4 h-4 text-text-light hover:text-accent-red"/></button>
+                                        <button onClick={() => setEditingItem({ id: item.id, name: item.name, nameEn: (item as any).nameEn || '', spaceId: String(item.spaceId ?? ''), typeId: String((item as DocumentTopic).typeId ?? ''), authorId: String((item as DocumentTopic).authorId ?? '') })} className="p-1"><PencilIcon className="w-4 h-4 text-text-light hover:text-primary" /></button>
+                                        <button onClick={() => handleDeleteItem(item)} className="p-1"><TrashIcon className="w-4 h-4 text-text-light hover:text-accent-red" /></button>
                                     </div>
                                 </div>
                             )}
                         </div>
                     ))}
                 </div>
-                
+
                 {isManagingTopics && totalPages > 1 && (
                     <div className="p-4 border-t border-border-color flex justify-between items-center flex-shrink-0">
                         <span className="text-sm text-text-light">{t.page} {currentPage} / {totalPages}</span>
@@ -685,16 +706,16 @@ const CategoryManagerModal: React.FC<{
                 <div className="p-4 border-t border-border-color space-y-2 flex-shrink-0">
                     <h3 className="font-semibold">{t.addItem}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
-                        <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} placeholder={t.nameLabel} className="p-2 border rounded-md flex-grow" />
-                        <input type="text" value={newItem.nameEn} onChange={(e) => setNewItem({...newItem, nameEn: e.target.value})} placeholder={t.nameEnLabel} className="p-2 border rounded-md flex-grow" />
-                         {isSuperAdmin && (
-                            <select value={newItem.spaceId} onChange={e => setNewItem({...newItem, spaceId: e.target.value})} className="p-2 border rounded-md text-sm"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
+                        <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} placeholder={t.nameLabel} className="p-2 border rounded-md flex-grow" />
+                        <input type="text" value={newItem.nameEn} onChange={(e) => setNewItem({ ...newItem, nameEn: e.target.value })} placeholder={t.nameEnLabel} className="p-2 border rounded-md flex-grow" />
+                        {isSuperAdmin && (
+                            <select value={newItem.spaceId} onChange={e => setNewItem({ ...newItem, spaceId: e.target.value })} className="p-2 border rounded-md text-sm"><option value="">{t.globalSpace}</option>{spaces.map(s => <option key={s.id as number} value={s.id as number}>{s.name}</option>)}</select>
                         )}
-                         {isManagingTopics && (
-                             <>
-                            <select value={newItem.typeId} onChange={e => setNewItem({...newItem, typeId: e.target.value})} className="p-2 border rounded-md text-sm"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
-                            <select value={newItem.authorId} onChange={e => setNewItem({...newItem, authorId: e.target.value})} className="p-2 border rounded-md text-sm"><option value="">-- {t.author} --</option>{documentAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select>
-                             </>
+                        {isManagingTopics && (
+                            <>
+                                <select value={newItem.typeId} onChange={e => setNewItem({ ...newItem, typeId: e.target.value })} className="p-2 border rounded-md text-sm"><option value="">-- {t.type} --</option>{documentTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select>
+                                <select value={newItem.authorId} onChange={e => setNewItem({ ...newItem, authorId: e.target.value })} className="p-2 border rounded-md text-sm"><option value="">-- {t.author} --</option>{documentAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select>
+                            </>
                         )}
                         <button onClick={handleAddItem} className="px-4 py-2 bg-primary text-text-on-primary rounded-md">{t.addItem}</button>
                     </div>
@@ -720,7 +741,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [audioEnFile, setAudioEnFile] = useState<File | null>(null);
-    
+
     // Category states
     const [documentAuthors, setDocumentAuthors] = useState<DocumentAuthor[]>([]);
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
@@ -739,7 +760,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     const [translatingField, setTranslatingField] = useState<string | null>(null);
     const [extractingFor, setExtractingFor] = useState<'vi' | 'en' | null>(null);
     const [isGeneratingAudioFor, setIsGeneratingAudioFor] = useState<'vi' | 'en' | null>(null);
-    
+
     // Filter states
     const [filters, setFilters] = useState<Filters>({ title: '', authorId: '', typeId: '', topicId: '', tagId: '', spaceId: '' });
     const debounceTimeout = useRef<number | null>(null);
@@ -748,7 +769,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
-    
+
     const fileInputRefs = {
         thumbnail: useRef<HTMLInputElement>(null),
         audio: useRef<HTMLInputElement>(null),
@@ -770,10 +791,10 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             [name]: value,
         }));
     };
-    
+
     const fetchInitialData = useCallback(async () => {
         try {
-             const [tags, config, allSpacesData] = await Promise.all([
+            const [tags, config, allSpacesData] = await Promise.all([
                 apiService.getAllTags(),
                 apiService.getDocumentConfig(),
                 apiService.getSpaces()
@@ -781,10 +802,18 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             setTags(tags || []);
             setDocumentConfig(config);
             setAllSpaces(allSpacesData || []);
+
+            // Auto-select space for non-admins
+            if (user && !user.permissions?.includes('roles')) {
+                const userSpaces = (allSpacesData || []).filter(s => s.userId === user.id);
+                if (userSpaces.length > 0) {
+                    setFilters(prev => ({ ...prev, spaceId: String(userSpaces[0].id) }));
+                }
+            }
         } catch (error) {
             showToast(t.fetchError, 'error');
         }
-    }, [showToast, t.fetchError]);
+    }, [showToast, t.fetchError, user]); // Added user dependency
 
 
     const fetchCategories = useCallback(async (spaceIdFilter: string) => {
@@ -802,7 +831,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             showToast('Failed to load categories for filter.', 'error');
         }
     }, [showToast]);
-    
+
     const fetchDocuments = useCallback(async (currentFilters: Filters, page: number) => {
         setIsLoading(true);
         try {
@@ -811,7 +840,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             setDocuments(docs.data || []);
             setTotalDocuments(docs.total || 0);
         } catch (error) {
-             showToast(t.fetchError, 'error');
+            showToast(t.fetchError, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -820,7 +849,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     useEffect(() => {
         fetchInitialData();
     }, [fetchInitialData]);
-    
+
     useEffect(() => {
         fetchCategories(filters.spaceId);
     }, [filters.spaceId, fetchCategories]);
@@ -835,22 +864,22 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             }
         }, 300);
         return () => { if (debounceTimeout.current) clearTimeout(debounceTimeout.current); };
-    }, [filters]);
-    
+    }, [filters]); // Ensure fetchDocuments runs when filters change (including spaceId update)
+
     useEffect(() => {
         fetchDocuments(filters, currentPage);
     }, [currentPage, fetchDocuments]);
 
     const totalPages = Math.ceil(totalDocuments / ITEMS_PER_PAGE);
-    
+
     const resetFormForNew = () => {
         const currentCategories = {
             authorId: editingDocument?.authorId,
             typeId: editingDocument?.typeId,
             topicId: editingDocument?.topicId,
-            spaceId: editingDocument?.spaceId,
+            spaceId: filters.spaceId ? Number(filters.spaceId) : undefined,
         };
-    
+
         setEditingDocument({
             id: 'new',
             title: '', titleEn: '', summary: '', summaryEn: '',
@@ -869,8 +898,9 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     const openDialog = (doc: Partial<Document> | null) => {
         setEditingDocument(doc ? { ...doc } : {
             id: 'new',
-            title: '', titleEn: '', summary: '', summaryEn: '', 
-            authorId: undefined, typeId: undefined, topicId: undefined, spaceId: undefined,
+            title: '', titleEn: '', summary: '', summaryEn: '',
+            authorId: undefined, typeId: undefined, topicId: undefined,
+            spaceId: filters.spaceId ? Number(filters.spaceId) : undefined,
             content: '', contentEn: '', tags: [], thumbnailUrl: '',
         });
         setThumbnailFile(null);
@@ -889,7 +919,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'thumbnailUrl' | 'audioUrl' | 'audioUrlEn') => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            
+
             if (fieldName === 'thumbnailUrl') {
                 setThumbnailFile(file);
                 const previewUrl = URL.createObjectURL(file);
@@ -900,7 +930,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                 } else if (fieldName === 'audioUrlEn') {
                     setAudioEnFile(file);
                 }
-    
+
                 const audioUrl = URL.createObjectURL(file);
                 const audioElement = new Audio(audioUrl);
                 audioElement.addEventListener('loadedmetadata', () => {
@@ -909,7 +939,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                         return { ...prev, duration: Math.round(audioElement.duration) };
                     });
                 });
-                
+
                 setEditingDocument(prev => prev ? { ...prev, [fieldName]: audioUrl } : null);
             }
         }
@@ -940,7 +970,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                     throw new Error(`Upload for ${field} failed.`);
                 }
             };
-            
+
             showToast(t.saving, 'info');
 
             if (thumbnailFile) await uploadFile(thumbnailFile, 'Document', 'thumbnailUrl');
@@ -953,7 +983,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             finalPayload.topicId = finalPayload.topicId ? Number(finalPayload.topicId) : undefined;
             finalPayload.spaceId = finalPayload.spaceId ? Number(finalPayload.spaceId) : null;
             finalPayload.rating = finalPayload.rating ? Number(finalPayload.rating) : 0;
-            
+
             if (finalPayload.id === 'new') {
                 await apiService.createDocument(finalPayload);
                 if (andContinue) {
@@ -965,7 +995,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                 await apiService.updateDocument(finalPayload.id, finalPayload);
                 setIsDialogOpen(false);
             }
-            
+
             showToast(t.saveSuccess, 'success');
             fetchDocuments(filters, currentPage); // Re-fetch current page
 
@@ -978,7 +1008,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             setIsSaving(false);
         }
     };
-    
+
     const handleDelete = async (doc: Document) => {
         if (typeof doc.id !== 'number') {
             showToast('Cannot delete an unsaved document.', 'error');
@@ -1000,7 +1030,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
 
         const sourceField = sourceLang === 'en' ? `${field}En` as keyof Document : field;
         const targetField = targetLang === 'en' ? `${field}En` as keyof Document : field;
-        
+
         const sourceText = String(editingDocument[sourceField] || '').trim();
         const targetText = String(editingDocument[targetField] || '').trim();
 
@@ -1008,13 +1038,13 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             showToast(sourceLang === 'vi' ? 'Nội dung Tiếng Việt trống để dịch.' : 'English content is empty to translate from.', 'error');
             return;
         }
-        
+
         if (targetText && !window.confirm(targetLang === 'vi' ? 'Nội dung Tiếng Việt hiện tại sẽ bị ghi đè. Bạn có muốn tiếp tục?' : 'Current English content will be overwritten. Do you want to continue?')) {
             return;
         }
-        
+
         const contextPrompt = "Dịch với văn phong 'giác ngộ', sử dụng ngôn từ trang trọng, sâu sắc, phù hợp với các văn bản Phật giáo.";
-        
+
         setTranslatingField(field);
         try {
             const { translatedText } = await apiService.translateText(
@@ -1033,7 +1063,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             setTranslatingField(null);
         }
     };
-    
+
     const handleFileExtract = async (file: File, lang: 'vi' | 'en') => {
         setExtractingFor(lang);
         try {
@@ -1044,7 +1074,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                 handleFormChange({ target: { name: 'contentEn', value: htmlContent } } as any);
             }
         } catch (error: any) {
-             showToast(t.extractError.replace('{message}', error.message), 'error');
+            showToast(t.extractError.replace('{message}', error.message), 'error');
         } finally {
             setExtractingFor(null);
         }
@@ -1052,38 +1082,38 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
 
     const handleGenerateAudio = async (lang: 'vi' | 'en') => {
         if (!editingDocument || !documentConfig || isGeneratingAudioFor) return;
-    
+
         const htmlContent = (lang === 'vi' ? editingDocument.content : editingDocument.contentEn) || '';
         const text = stripHtml(htmlContent);
         const { ttsProvider, ttsModel, ttsVoice } = documentConfig;
-    
+
         if (!text.trim() || !ttsProvider || !ttsModel || !ttsVoice) {
             showToast(t.ttsError, 'error');
             return;
         }
-    
+
         setIsGeneratingAudioFor(lang);
         try {
             const { audioContent } = await apiService.generateTtsAudio(text, ttsProvider as ModelType, ttsModel, ttsVoice, lang, user.id as number);
-    
+
             // Decode base64 PCM data
             const pcmData = decode(audioContent);
-    
+
             const sampleRate = 24000; // Gemini TTS standard
             const bitsPerSample = 16;
             const numChannels = 1;
-            
+
             // Create a proper WAV Blob
             const wavBlob = pcmToWav(pcmData, numChannels, sampleRate, bitsPerSample);
             const wavFile = new File([wavBlob], `generated_${lang}_${Date.now()}.wav`, { type: 'audio/wav' });
-    
+
             // Calculate duration in seconds
             const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
             const duration = pcmData.length / byteRate;
-    
+
             // Update state
             const objectUrl = URL.createObjectURL(wavFile);
-    
+
             if (lang === 'vi') {
                 setAudioFile(wavFile);
                 setEditingDocument(prev => prev ? { ...prev, audioUrl: objectUrl, duration: Math.round(duration) } : null);
@@ -1091,35 +1121,35 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                 setAudioEnFile(wavFile);
                 setEditingDocument(prev => prev ? { ...prev, audioUrlEn: objectUrl, duration: Math.round(duration) } : null);
             }
-            
+
             showToast(t.ttsSuccess, 'success');
-    
+
         } catch (error: any) {
             showToast(t.ttsFailure.replace('{message}', error.message), 'error');
         } finally {
             setIsGeneratingAudioFor(null);
         }
     };
-    
+
     const openPreview = (doc: Document) => { setEditingDocument(doc); setIsPreviewOpen(true); };
     const handleAddTag = () => { if (!editingDocument || !tagInput.trim()) return; const newTags = [...(editingDocument.tags || []), tagInput.trim()]; setEditingDocument(prev => prev ? { ...prev, tags: newTags } : null); setTagInput(''); };
     const handleRemoveTag = (tagToRemove: string) => { if (!editingDocument) return; const newTags = (editingDocument.tags || []).filter(t => t !== tagToRemove); setEditingDocument(prev => prev ? { ...prev, tags: newTags } : null); };
     const openCategoryManager = (category: Category) => { setManagingCategory(category); setIsCategoryModalOpen(true); };
     const handleCategoryUpdate = () => { fetchInitialData(); fetchCategories(filters.spaceId); };
-    const categoryConfig = { 
-        documentAuthor: { name: 'Author', pluralName: t.author, items: documentAuthors, api: { create: apiService.createDocumentAuthor, update: apiService.updateDocumentAuthor, delete: apiService.deleteDocumentAuthor }}, 
-        type: { name: 'Type', pluralName: t.type, items: documentTypes, api: { create: apiService.createDocumentType, update: apiService.updateDocumentType, delete: apiService.deleteDocumentType }}, 
-        documentTopic: { name: 'Topic', pluralName: t.topic, items: documentTopics, api: { create: apiService.createDocumentTopic, update: apiService.updateDocumentTopic, delete: apiService.deleteDocumentTopic }}, 
+    const categoryConfig = {
+        documentAuthor: { name: 'Author', pluralName: t.author, items: documentAuthors, api: { create: apiService.createDocumentAuthor, update: apiService.updateDocumentAuthor, delete: apiService.deleteDocumentAuthor } },
+        type: { name: 'Type', pluralName: t.type, items: documentTypes, api: { create: apiService.createDocumentType, update: apiService.updateDocumentType, delete: apiService.deleteDocumentType } },
+        documentTopic: { name: 'Topic', pluralName: t.topic, items: documentTopics, api: { create: apiService.createDocumentTopic, update: apiService.updateDocumentTopic, delete: apiService.deleteDocumentTopic } },
     };
 
     return (
         <div className="p-6 h-full flex flex-col bg-background-panel">
-             <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4">
                 <div>
                     <h1 className="text-2xl font-bold font-serif">{t.title}</h1>
                     <p className="text-text-light">{t.subtitle}</p>
                 </div>
-                 <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <button onClick={() => setIsConfigModalOpen(true)} className="px-4 py-2 bg-background-light border border-border-color text-text-main rounded-md flex items-center space-x-2 font-semibold hover:bg-gray-200">
                         <SettingsIcon className="w-5 h-5" />
                         <span>{t.configure}</span>
@@ -1132,11 +1162,11 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
             </div>
             {/* Filters Section */}
             <div className="mb-4 grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg bg-background-light">
-                 <div><label className="text-sm font-medium text-text-light">{t.titleHeader}</label><input type="text" name="title" value={filters.title} onChange={handleFilterChange} placeholder={t.filterByTitle} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1" /></div>
-                <div><label className="text-sm font-medium text-text-light">{t.author}</label><div className="flex items-center gap-1 mt-1"><select name="authorId" value={filters.authorId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{documentAuthors.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button onClick={() => openCategoryManager('documentAuthor')} className="p-2 rounded-md hover:bg-gray-200"><PencilIcon className="w-4 h-4 text-text-light"/></button></div></div>
-                <div><label className="text-sm font-medium text-text-light">{t.type}</label><div className="flex items-center gap-1 mt-1"><select name="typeId" value={filters.typeId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{documentTypes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button onClick={() => openCategoryManager('type')} className="p-2 rounded-md hover:bg-gray-200"><PencilIcon className="w-4 h-4 text-text-light"/></button></div></div>
-                <div><label className="text-sm font-medium text-text-light">{t.topic}</label><div className="flex items-center gap-1 mt-1"><select name="topicId" value={filters.topicId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{documentTopics.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button onClick={() => openCategoryManager('documentTopic')} className="p-2 rounded-md hover:bg-gray-200"><PencilIcon className="w-4 h-4 text-text-light"/></button></div></div>
-                <div><label className="text-sm font-medium text-text-light">{t.space}</label><select name="spaceId" value={filters.spaceId} onChange={handleFilterChange} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1"><option value="">{t.filterAll}</option><option value="global">{t.globalSpace}</option>{manageableSpaces.map(item => <option key={item.id as number} value={item.id as number}>{item.name}</option>)}</select></div>
+                <div><label className="text-sm font-medium text-text-light">{t.titleHeader}</label><input type="text" name="title" value={filters.title} onChange={handleFilterChange} placeholder={t.filterByTitle} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1" /></div>
+                <div><label className="text-sm font-medium text-text-light">{t.author}</label><div className="flex items-center gap-1 mt-1"><select name="authorId" value={filters.authorId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{documentAuthors.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{(user.permissions?.includes('roles') || manageableSpaces.length > 0) && <button onClick={() => openCategoryManager('documentAuthor')} className="p-2 rounded-md hover:bg-gray-200"><PencilIcon className="w-4 h-4 text-text-light" /></button>}</div></div>
+                <div><label className="text-sm font-medium text-text-light">{t.type}</label><div className="flex items-center gap-1 mt-1"><select name="typeId" value={filters.typeId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{documentTypes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{(user.permissions?.includes('roles') || manageableSpaces.length > 0) && <button onClick={() => openCategoryManager('type')} className="p-2 rounded-md hover:bg-gray-200"><PencilIcon className="w-4 h-4 text-text-light" /></button>}</div></div>
+                <div><label className="text-sm font-medium text-text-light">{t.topic}</label><div className="flex items-center gap-1 mt-1"><select name="topicId" value={filters.topicId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{documentTopics.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{(user.permissions?.includes('roles') || manageableSpaces.length > 0) && <button onClick={() => openCategoryManager('documentTopic')} className="p-2 rounded-md hover:bg-gray-200"><PencilIcon className="w-4 h-4 text-text-light" /></button>}</div></div>
+                <div><label className="text-sm font-medium text-text-light">{t.space}</label><select name="spaceId" value={filters.spaceId} onChange={handleFilterChange} className="p-2 border border-border-color rounded-md bg-background-panel text-sm w-full mt-1"><option value="">{t.filterAll}</option>{user.permissions?.includes('roles') && <option value="global">{t.globalSpace}</option>}{manageableSpaces.map(item => <option key={item.id as number} value={item.id as number}>{item.name}</option>)}</select></div>
                 <div><label className="text-sm font-medium text-text-light">{t.tags}</label><div className="flex items-center gap-1 mt-1"><select name="tagId" value={filters.tagId} onChange={handleFilterChange} className="flex-grow p-2 border border-border-color rounded-md bg-background-panel text-sm w-full"><option value="">{t.filterAll}</option>{tags.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></div>
             </div>
 
@@ -1144,7 +1174,7 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                 <table className="min-w-full divide-y divide-border-color">
                     <thead className="bg-background-light sticky top-0 z-10"><tr><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.stt}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.thumbnail}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.titleHeader}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.summary}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.author}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.type}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.topic}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.space}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.tags}</th><th className="px-4 py-3 text-left text-xs font-semibold text-text-light uppercase tracking-wider">{t.createdAt}</th><th className="px-4 py-3 text-right text-xs font-semibold text-text-light uppercase tracking-wider">{t.actions}</th></tr></thead>
                     <tbody className="bg-background-panel divide-y divide-border-color">
-                        {isLoading ? ( <tr><td colSpan={11} className="text-center p-4">{t.loading}</td></tr> ) : documents.length === 0 ? ( <tr><td colSpan={11} className="text-center p-4">{t.noDocuments}</td></tr> ) : (
+                        {isLoading ? (<tr><td colSpan={11} className="text-center p-4">{t.loading}</td></tr>) : documents.length === 0 ? (<tr><td colSpan={11} className="text-center p-4">{t.noDocuments}</td></tr>) : (
                             documents.map((doc, index) => (
                                 <tr key={doc.id} className="hover:bg-background-light">
                                     <td className="px-4 py-3 text-sm text-text-light">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
@@ -1152,9 +1182,9 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                                         <div className="flex flex-col items-start">
                                             <div className="w-24 h-16 rounded-md bg-background-light flex items-center justify-center overflow-hidden border">
                                                 {doc.thumbnailUrl ? (
-                                                    <img src={doc.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover"/>
+                                                    <img src={doc.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <BookOpenIcon className="w-8 h-8 text-text-light"/>
+                                                    <BookOpenIcon className="w-8 h-8 text-text-light" />
                                                 )}
                                             </div>
                                             <div className="flex items-center space-x-2 mt-1 text-xs text-text-light w-24 justify-around">
@@ -1177,28 +1207,28 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                                     <td className="px-4 py-3 text-sm">{doc.spaceName || '-'}</td>
                                     <td className="px-4 py-3 text-sm max-w-[150px]"><div className="flex flex-wrap gap-1">{doc.tags?.map(tag => <span key={tag} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">{tag}</span>)}</div></td>
                                     <td className="px-4 py-3 text-sm text-text-light">{new Date(doc.createdAt).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                                    <td className="px-4 py-3 text-right text-sm space-x-2 whitespace-nowrap"><button onClick={() => openPreview(doc)} title={t.preview} className="p-2 rounded-full hover:bg-gray-200"><EyeIcon className="w-5 h-5 text-text-light"/></button><button onClick={() => openDialog(doc)} title={t.edit} className="p-2 rounded-full hover:bg-gray-200"><PencilIcon className="w-5 h-5 text-text-light"/></button><button onClick={() => handleDelete(doc)} title={t.delete} className="p-2 rounded-full hover:bg-gray-200"><TrashIcon className="w-5 h-5 text-accent-red"/></button></td>
+                                    <td className="px-4 py-3 text-right text-sm space-x-2 whitespace-nowrap"><button onClick={() => openPreview(doc)} title={t.preview} className="p-2 rounded-full hover:bg-gray-200"><EyeIcon className="w-5 h-5 text-text-light" /></button><button onClick={() => openDialog(doc)} title={t.edit} className="p-2 rounded-full hover:bg-gray-200"><PencilIcon className="w-5 h-5 text-text-light" /></button><button onClick={() => handleDelete(doc)} title={t.delete} className="p-2 rounded-full hover:bg-gray-200"><TrashIcon className="w-5 h-5 text-accent-red" /></button></td>
                                 </tr>
                             ))
                         )}
                     </tbody>
                 </table>
             </div>
-            
+
             <div className="flex justify-between items-center mt-4">
                 <p className="text-sm text-text-light">
                     {t.showing} {totalDocuments > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} {t.to} {Math.min(currentPage * ITEMS_PER_PAGE, totalDocuments)} {t.of} {totalDocuments}
                 </p>
                 <div className="flex space-x-1">
-                    <button 
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                        disabled={currentPage === 1} 
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
                         className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50"
                     >
                         {t.prev}
                     </button>
-                    <button 
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages || totalPages === 0}
                         className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:bg-gray-50"
                     >
@@ -1206,12 +1236,12 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                     </button>
                 </div>
             </div>
-             {isDialogOpen && editingDocument && (
+            {isDialogOpen && editingDocument && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4" onClick={() => setIsDialogOpen(false)}>
                     <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-6xl h-[95vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <h2 className="text-xl font-bold p-4 border-b">{editingDocument.id === 'new' ? t.dialogCreateTitle : t.dialogEditTitle}</h2>
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                                 <div className="flex flex-col">
                                     <label className="block text-sm font-medium mb-1">{t.thumbnail}</label>
@@ -1237,13 +1267,13 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                             </div>
                             <div>
                                 <label className="block text-sm font-medium">{t.tags}</label>
-                                <div className="flex items-center gap-2 mt-1"><input type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }} placeholder={t.addTagPlaceholder} className="flex-grow p-2 border rounded-md"/></div>
+                                <div className="flex items-center gap-2 mt-1"><input type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }} placeholder={t.addTagPlaceholder} className="flex-grow p-2 border rounded-md" /></div>
                                 <div className="mt-2 flex flex-wrap gap-2">{(editingDocument.tags || []).map((tag, i) => (<span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-light text-primary-text">{tag}<button onClick={() => handleRemoveTag(tag)} className="ml-1.5 flex-shrink-0 text-primary hover:text-primary-hover">&times;</button></span>))}</div>
                             </div>
-                            
+
                             <div className="border-b border-gray-200"><nav className="-mb-px flex space-x-8" aria-label="Tabs"><button onClick={() => setActiveTab('vi')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'vi' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>{t.tabVi}</button><button onClick={() => setActiveTab('en')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'en' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>{t.tabEn}</button></nav></div>
-                            {activeTab === 'vi' && (<div className="space-y-4"><div><label className="block text-sm font-medium">{t.titleHeader}</label><div className="relative"><input ref={titleInputRef} type="text" value={editingDocument.title || ''} onChange={e => handleFormChange({ target: { name: 'title', value: e.target.value } } as any)} className="mt-1 w-full p-2 border rounded-md" /><button onClick={() => handleTranslate('title', 'en', 'vi')} disabled={translatingField === 'title'} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'title' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium">{t.summary}</label><div className="relative"><textarea value={editingDocument.summary || ''} onChange={e => handleFormChange({ target: { name: 'summary', value: e.target.value } } as any)} rows={3} className="mt-1 w-full p-2 border rounded-md"></textarea><button onClick={() => handleTranslate('summary', 'en', 'vi')} disabled={translatingField === 'summary'} className="absolute right-2 top-2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'summary' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium mb-1">{t.dialogContentLabel}</label><TextEditor initialHtml={editingDocument.content || ''} placeholder={t.dialogContentPlaceholder} onContentChange={html => handleFormChange({ target: { name: 'content', value: html } } as any)} onFileExtract={(file) => handleFileExtract(file, 'vi')} isExtracting={extractingFor === 'vi'} language={language} /></div><div className="pt-2"><label className="block text-sm font-medium mb-1">{t.uploadAudio}</label><div className="flex items-center gap-4"><input type="file" ref={fileInputRefs.audio} onChange={(e) => handleFileChange(e, 'audioUrl')} className="hidden" accept="audio/*" /><button type="button" onClick={() => fileInputRefs.audio.current?.click()} disabled={isSaving} className="px-4 py-2 text-sm border rounded-md">{isSaving ? t.saving : t.uploadAudio}</button>{editingDocument.audioUrl && <audio controls src={editingDocument.audioUrl} className="max-w-xs" />}<button onClick={() => handleGenerateAudio('vi')} disabled={isGeneratingAudioFor === 'vi' || !documentConfig} className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">{isGeneratingAudioFor === 'vi' ? <SpinnerIcon className="w-5 h-5"/> : <SoundWaveIcon className="w-5 h-5"/>}<span>{isGeneratingAudioFor === 'vi' ? t.generatingAudio : t.generateAudio}</span></button></div></div></div>)}
-                            {activeTab === 'en' && (<div className="space-y-4"><div><label className="block text-sm font-medium">{t.titleEn}</label><div className="relative"><input type="text" value={editingDocument.titleEn || ''} onChange={e => handleFormChange({ target: { name: 'titleEn', value: e.target.value } } as any)} className="mt-1 w-full p-2 border rounded-md" /><button onClick={() => handleTranslate('title', 'vi', 'en')} disabled={translatingField === 'title'} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'title' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium">{t.summaryEn}</label><div className="relative"><textarea value={editingDocument.summaryEn || ''} onChange={e => handleFormChange({ target: { name: 'summaryEn', value: e.target.value } } as any)} rows={3} className="mt-1 w-full p-2 border rounded-md"></textarea><button onClick={() => handleTranslate('summary', 'vi', 'en')} disabled={translatingField === 'summary'} className="absolute right-2 top-2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'summary' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium mb-1">{t.dialogContentLabelEn}</label><TextEditor initialHtml={editingDocument.contentEn || ''} placeholder={t.dialogContentPlaceholder} onContentChange={html => handleFormChange({ target: { name: 'contentEn', value: html } } as any)} onFileExtract={(file) => handleFileExtract(file, 'en')} isExtracting={extractingFor === 'en'} language={language} /></div><div className="pt-2"><label className="block text-sm font-medium mb-1">{t.uploadAudioEn}</label><div className="flex items-center gap-4"><input type="file" ref={fileInputRefs.audio_en} onChange={(e) => handleFileChange(e, 'audioUrlEn')} className="hidden" accept="audio/*" /><button type="button" onClick={() => fileInputRefs.audio_en.current?.click()} disabled={isSaving} className="px-4 py-2 text-sm border rounded-md">{isSaving ? t.saving : t.uploadAudioEn}</button>{editingDocument.audioUrlEn && <audio controls src={editingDocument.audioUrlEn} className="max-w-xs" />}<button onClick={() => handleGenerateAudio('en')} disabled={isGeneratingAudioFor === 'en' || !documentConfig} className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">{isGeneratingAudioFor === 'en' ? <SpinnerIcon className="w-5 h-5"/> : <SoundWaveIcon className="w-5 h-5"/>}<span>{isGeneratingAudioFor === 'en' ? t.generatingAudio : t.generateAudio}</span></button></div></div></div>)}
+                            {activeTab === 'vi' && (<div className="space-y-4"><div><label className="block text-sm font-medium">{t.titleHeader}</label><div className="relative"><input ref={titleInputRef} type="text" value={editingDocument.title || ''} onChange={e => handleFormChange({ target: { name: 'title', value: e.target.value } } as any)} className="mt-1 w-full p-2 border rounded-md" /><button onClick={() => handleTranslate('title', 'en', 'vi')} disabled={translatingField === 'title'} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'title' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium">{t.summary}</label><div className="relative"><textarea value={editingDocument.summary || ''} onChange={e => handleFormChange({ target: { name: 'summary', value: e.target.value } } as any)} rows={3} className="mt-1 w-full p-2 border rounded-md"></textarea><button onClick={() => handleTranslate('summary', 'en', 'vi')} disabled={translatingField === 'summary'} className="absolute right-2 top-2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'summary' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium mb-1">{t.dialogContentLabel}</label><TextEditor initialHtml={editingDocument.content || ''} placeholder={t.dialogContentPlaceholder} onContentChange={html => handleFormChange({ target: { name: 'content', value: html } } as any)} onFileExtract={(file) => handleFileExtract(file, 'vi')} isExtracting={extractingFor === 'vi'} language={language} /></div><div className="pt-2"><label className="block text-sm font-medium mb-1">{t.uploadAudio}</label><div className="flex items-center gap-4"><input type="file" ref={fileInputRefs.audio} onChange={(e) => handleFileChange(e, 'audioUrl')} className="hidden" accept="audio/*" /><button type="button" onClick={() => fileInputRefs.audio.current?.click()} disabled={isSaving} className="px-4 py-2 text-sm border rounded-md">{isSaving ? t.saving : t.uploadAudio}</button>{editingDocument.audioUrl && <audio controls src={editingDocument.audioUrl} className="max-w-xs" />}<button onClick={() => handleGenerateAudio('vi')} disabled={isGeneratingAudioFor === 'vi' || !documentConfig} className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">{isGeneratingAudioFor === 'vi' ? <SpinnerIcon className="w-5 h-5" /> : <SoundWaveIcon className="w-5 h-5" />}<span>{isGeneratingAudioFor === 'vi' ? t.generatingAudio : t.generateAudio}</span></button></div></div></div>)}
+                            {activeTab === 'en' && (<div className="space-y-4"><div><label className="block text-sm font-medium">{t.titleEn}</label><div className="relative"><input type="text" value={editingDocument.titleEn || ''} onChange={e => handleFormChange({ target: { name: 'titleEn', value: e.target.value } } as any)} className="mt-1 w-full p-2 border rounded-md" /><button onClick={() => handleTranslate('title', 'vi', 'en')} disabled={translatingField === 'title'} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'title' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium">{t.summaryEn}</label><div className="relative"><textarea value={editingDocument.summaryEn || ''} onChange={e => handleFormChange({ target: { name: 'summaryEn', value: e.target.value } } as any)} rows={3} className="mt-1 w-full p-2 border rounded-md"></textarea><button onClick={() => handleTranslate('summary', 'vi', 'en')} disabled={translatingField === 'summary'} className="absolute right-2 top-2 p-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50">{translatingField === 'summary' ? <SpinnerIcon className="w-4 h-4" /> : <GenerateIcon className="w-4 h-4" />}</button></div></div><div><label className="block text-sm font-medium mb-1">{t.dialogContentLabelEn}</label><TextEditor initialHtml={editingDocument.contentEn || ''} placeholder={t.dialogContentPlaceholder} onContentChange={html => handleFormChange({ target: { name: 'contentEn', value: html } } as any)} onFileExtract={(file) => handleFileExtract(file, 'en')} isExtracting={extractingFor === 'en'} language={language} /></div><div className="pt-2"><label className="block text-sm font-medium mb-1">{t.uploadAudioEn}</label><div className="flex items-center gap-4"><input type="file" ref={fileInputRefs.audio_en} onChange={(e) => handleFileChange(e, 'audioUrlEn')} className="hidden" accept="audio/*" /><button type="button" onClick={() => fileInputRefs.audio_en.current?.click()} disabled={isSaving} className="px-4 py-2 text-sm border rounded-md">{isSaving ? t.saving : t.uploadAudioEn}</button>{editingDocument.audioUrlEn && <audio controls src={editingDocument.audioUrlEn} className="max-w-xs" />}<button onClick={() => handleGenerateAudio('en')} disabled={isGeneratingAudioFor === 'en' || !documentConfig} className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">{isGeneratingAudioFor === 'en' ? <SpinnerIcon className="w-5 h-5" /> : <SoundWaveIcon className="w-5 h-5" />}<span>{isGeneratingAudioFor === 'en' ? t.generatingAudio : t.generateAudio}</span></button></div></div></div>)}
 
                         </div>
                         <div className="p-4 border-t flex justify-end gap-2 flex-shrink-0">
@@ -1258,8 +1288,8 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                     </div>
                 </div>
             )}
-             {isPreviewOpen && editingDocument && (
-                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4" onClick={() => setIsPreviewOpen(false)}>
+            {isPreviewOpen && editingDocument && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4" onClick={() => setIsPreviewOpen(false)}>
                     <div className="bg-background-panel rounded-lg shadow-xl w-full max-w-3xl h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <h2 className="text-xl font-bold p-4 border-b">{t.previewTitle}</h2>
                         <div className="flex-1 overflow-y-auto p-6">
@@ -1284,9 +1314,10 @@ export const FilesAndDocuments: React.FC<{ language: 'vi' | 'en', user: User }> 
                     spaces={manageableSpaces}
                     documentTypes={documentTypes}
                     documentAuthors={documentAuthors}
+                    initialSpaceId={filters.spaceId}
                 />
             )}
-             <DocumentConfigModal 
+            <DocumentConfigModal
                 isOpen={isConfigModalOpen}
                 onClose={() => setIsConfigModalOpen(false)}
                 initialConfig={documentConfig}

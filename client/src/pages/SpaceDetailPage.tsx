@@ -733,9 +733,9 @@ export const SpaceDetailPage: React.FC<SpaceDetailPageProps> = ({ user, onUserUp
                     <div className="detail-contact-card">
                         <h3>{t.contact}</h3>
                         <ul>
-                            <li><GlobeAltIcon className="w-5 h-5"/> <a href="https://plumvillage.org" target="_blank" rel="noopener noreferrer">{t.website}</a></li>
-                            <li><PhoneIcon className="w-5 h-5"/> <span>+33 5 53 58 48 58</span></li>
-                            <li><EnvelopeIcon className="w-5 h-5"/> <span>info@plumvillage.org</span></li>
+                            <li><GlobeAltIcon className="w-5 h-5"/> <a href="https://plumvillage.org" target="_blank" rel="noopener noreferrer">{center.website}</a></li>
+                            <li><PhoneIcon className="w-5 h-5"/> <span>{center.phoneNumber}</span></li>
+                            <li><EnvelopeIcon className="w-5 h-5"/> <span>{center.email}</span></li>
                         </ul>
                          <button className="join-btn">{t.joinCommunity}</button>
                     </div>

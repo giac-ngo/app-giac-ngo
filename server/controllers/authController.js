@@ -48,7 +48,7 @@ export const authController = {
             }
             const newUserPayload = {
                 name, email, password,
-                isActive: true, merits: 100,
+                isActive: true, merits: 0, requestsRemaining: 0,
                 avatarUrl: `https://i.pravatar.cc/150?u=${email}`,
                 roleIds: [3], // Default 'User' role
                 template: 'giacngo'
@@ -87,7 +87,7 @@ export const authController = {
             if (!user) {
                 return res.status(400).json({ message: 'Password reset token is invalid or has expired.' });
             }
-            await userModel.update(user.id, { 
+            await userModel.update(user.id, {
                 password,
                 resetToken: null,
                 resetTokenExpires: null
@@ -116,11 +116,11 @@ export const authController = {
                 const randomPassword = crypto.randomBytes(20).toString('hex');
                 user = await userModel.create({
                     name, email, password: randomPassword,
-                    avatarUrl: picture, isActive: true, merits: 100,
+                    avatarUrl: picture, isActive: true, merits: 0, requestsRemaining: 0,
                     roleIds: [3], template: 'giacngo'
                 });
             }
-            
+
             if (!user.isActive) {
                 return res.redirect('/#/login?error=account_disabled');
             }

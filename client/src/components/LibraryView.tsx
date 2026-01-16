@@ -61,16 +61,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const debounceTimeoutRef = useRef<number | null>(null);
 
-    const fetchDocuments = useCallback(async (pageNum: number, currentFilters: LibraryFilters, currentSpaceId: number | null | undefined, abortSignal: AbortSignal) => {
-        // CRITICAL FIX: If we are in a specific space (implied by spaceSlug) but currentSpaceId is not yet resolved (null/undefined),
-        // we must NOT fetch. Fetching with undefined results in global data, which is wrong for a specific space.
-        // We only fetch if:
-        // 1. spaceSlug is missing (Global context / Homepage)
-        // 2. OR spaceSlug exists AND currentSpaceId is a valid number.
-        if (spaceSlug && (currentSpaceId === null || currentSpaceId === undefined)) {
-            return;
-        }
-
+    const fetchDocuments = useCallback(async (pageNum: number, currentFilters: LibraryFilters, currentSpaceId: number | null | undefined, currentSpaceSlug: string | null | undefined, abortSignal: AbortSignal) => {
         if (pageNum === 1) {
             setIsLoading(true);
         } else {
@@ -78,23 +69,24 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
         }
 
         try {
-            const { data, total } = await apiService.getLibraryDocuments({ 
-                ...currentFilters, 
-                spaceId: currentSpaceId, 
-                page: pageNum, 
+            const { data, total } = await apiService.getLibraryDocuments({
+                ...currentFilters,
+                spaceId: typeof currentSpaceId === 'number' ? currentSpaceId : undefined,
+                spaceSlug: currentSpaceSlug || undefined,
+                page: pageNum,
                 limit: PAGE_SIZE,
                 signal: abortSignal
             });
-            
+
             if (abortSignal.aborted) return;
-            
+
             setDocuments(prev => pageNum === 1 ? data : [...prev, ...data]);
-            setHasMore( (pageNum * PAGE_SIZE) < total);
+            setHasMore((pageNum * PAGE_SIZE) < total);
             setPage(pageNum);
 
         } catch (err: any) {
             if (err.name !== 'AbortError') {
-              console.error('Failed to load documents:', err);
+                console.error('Failed to load documents:', err);
             }
         } finally {
             if (!abortSignal.aborted) {
@@ -105,28 +97,34 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
                 }
             }
         }
-    }, [spaceSlug]);
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
         setPage(1);
-        // Only reset documents if we are actually going to fetch (i.e. spaceId is resolved or we are global)
-        if (!spaceSlug || (spaceSlug && spaceId != null)) {
-             setDocuments([]);
-             setHasMore(true);
-             fetchDocuments(1, filters, spaceId, controller.signal);
+
+        // Only fetch if spaceId is resolved (not null/undefined)
+        if (typeof spaceId === 'number' || spaceSlug) {
+            setDocuments([]);
+            setHasMore(true);
+            fetchDocuments(1, filters, spaceId, spaceSlug, controller.signal);
+        } else {
+            // If spaceId is null and no spaceSlug, show empty state
+            setDocuments([]);
+            setHasMore(false);
+            setIsLoading(false);
         }
-        
+
         return () => controller.abort();
-    }, [filters, spaceId, fetchDocuments, spaceSlug]);
+    }, [filters, spaceId, spaceSlug, fetchDocuments]);
 
     const handleLoadMore = () => {
         if (!isLoading && !isLoadingMore && hasMore) {
             const controller = new AbortController();
-            fetchDocuments(page + 1, filters, spaceId, controller.signal);
+            fetchDocuments(page + 1, filters, spaceId, spaceSlug, controller.signal);
         }
     };
-    
+
     useEffect(() => {
         setSearchTerm(filters.search || '');
     }, [filters.search]);
@@ -177,7 +175,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
                             </div>
                             <div className="doc-card-content">
                                 <span className="doc-card-type">{language === 'en' && doc.typeEn ? doc.typeEn : doc.type}</span>
-                                <h3 className="doc-card-title">{language === 'en' && doc.titleEn ? doc.titleEn : doc.title}</h3>                                
+                                <h3 className="doc-card-title">{language === 'en' && doc.titleEn ? doc.titleEn : doc.title}</h3>
                                 <p className="doc-card-summary">
                                     {language === 'en' && doc.summaryEn ? doc.summaryEn : (doc.summary || '')}
                                 </p>
@@ -200,10 +198,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ filters, onFiltersChan
                         disabled={isLoadingMore}
                     >
                         {isLoadingMore ? (
-                           <>
-                            <SpinnerIcon className="w-5 h-5 animate-spin"/>
-                            {t.loadingMore}
-                           </>
+                            <>
+                                <SpinnerIcon className="w-5 h-5 animate-spin" />
+                                {t.loadingMore}
+                            </>
                         ) : (
                             t.loadMore
                         )}

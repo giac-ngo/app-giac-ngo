@@ -28,13 +28,16 @@ export const enrichUserWithPermissions = async (user) => {
         pool.query('SELECT ai_config_id, requests_remaining FROM user_owned_ais WHERE user_id = $1', [user.id]),
         pool.query('SELECT ai_config_id FROM ai_user_access WHERE user_id = $1', [user.id])
     ]);
-    
+
     const roles = rolesRes.rows.map(mapRowToCamelCase);
     const roleIds = roles.map(r => r.id);
     const permissions = new Set(roles.flatMap(r => r.permissions || []));
-    const ownedAis = ownedAisRes.rows.map(r => ({ aiConfigId: r.ai_config_id, requestsRemaining: r.requests_remaining }));
+    const ownedAis = ownedAisRes.rows.map(r => ({
+        aiConfigId: r.ai_config_id,
+        requestsRemaining: parseInt(r.requests_remaining, 10) || 0
+    }));
     const grantedAiConfigIds = grantedAisRes.rows.map(r => r.ai_config_id);
-    
+
     return { ...user, roleIds, permissions: Array.from(permissions), ownedAis, grantedAiConfigIds };
 }
 
@@ -60,7 +63,7 @@ export const userModel = {
         if (!user) return null;
         return enrichUserWithPermissions(user);
     },
-    
+
     async findByApiToken(token) {
         const res = await pool.query('SELECT * FROM users WHERE api_token = $1', [token]);
         const user = res.rows[0] ? mapRowToCamelCase(res.rows[0]) : null;
@@ -74,7 +77,7 @@ export const userModel = {
         if (!user) return null;
         return enrichUserWithPermissions(user);
     },
-    
+
     async findUserIdsByEmails(emails) {
         if (!emails || emails.length === 0) return [];
         const res = await pool.query('SELECT id FROM users WHERE email = ANY($1::text[])', [emails]);
@@ -122,7 +125,7 @@ export const userModel = {
                 throw new Error('Email, password, and name are required.');
             }
             const lowerEmail = email.toLowerCase();
-            
+
             const N = 8192, r = 8, p = 1, keylen = 64;
             const salt = crypto.randomBytes(8).toString('hex');
             const derivedKey = await new Promise((resolve, reject) => {
@@ -151,7 +154,7 @@ export const userModel = {
             const newUser = mapRowToCamelCase(res.rows[0]);
 
             if (roleIds && roleIds.length > 0) {
-                 await updateRolesForUser(newUser.id, roleIds, client);
+                await updateRolesForUser(newUser.id, roleIds, client);
             }
 
             await client.query('COMMIT');
@@ -167,7 +170,7 @@ export const userModel = {
     async update(id, userData) {
         const { roleIds, password, ...fieldsToUpdate } = userData;
         const client = await pool.connect();
-        
+
         try {
             await client.query('BEGIN');
 
@@ -187,7 +190,7 @@ export const userModel = {
                     }
                 }
             }
-    
+
             if (password) {
                 const N = 8192, r = 8, p = 1, keylen = 64;
                 const salt = crypto.randomBytes(8).toString('hex');
@@ -203,21 +206,21 @@ export const userModel = {
             if (fieldsToUpdate.apiKeys) {
                 const encryptedKeys = {};
                 for (const key in fieldsToUpdate.apiKeys) {
-                     if (fieldsToUpdate.apiKeys[key]) {
+                    if (fieldsToUpdate.apiKeys[key]) {
                         encryptedKeys[key] = cryptoService.encrypt(fieldsToUpdate.apiKeys[key]);
-                     } else {
+                    } else {
                         encryptedKeys[key] = '';
-                     }
+                    }
                 }
                 fieldsToUpdate.apiKeys = encryptedKeys;
             }
-    
+
             delete fieldsToUpdate.id;
             delete fieldsToUpdate.permissions;
             delete fieldsToUpdate.isAdmin;
             delete fieldsToUpdate.grantedAiConfigIds; // This is a derived field, do not save it
             delete fieldsToUpdate.ownedAis; // This is a derived field, do not save it
-    
+
             if (Object.keys(fieldsToUpdate).length > 0) {
                 const setClauses = Object.keys(fieldsToUpdate).map((key, i) => {
                     const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -226,18 +229,18 @@ export const userModel = {
                 const values = Object.values(fieldsToUpdate);
                 await client.query(`UPDATE users SET ${setClauses} WHERE id = $${values.length + 1}`, [...values, id]);
             }
-            
+
             if (roleIds !== undefined) {
-                 await updateRolesForUser(id, roleIds, client);
+                await updateRolesForUser(id, roleIds, client);
             }
-            
+
             const res = await client.query('SELECT * FROM users WHERE id = $1', [id]);
             await client.query('COMMIT');
-            
+
             if (res.rows.length === 0) throw new Error('User not found after update.');
             const updatedUser = mapRowToCamelCase(res.rows[0]);
             return enrichUserWithPermissions(updatedUser);
-    
+
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
@@ -261,7 +264,7 @@ export const userModel = {
         const expires = new Date(Date.now() + 3600000); // 1 hour expiry
         await pool.query('UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3', [token, expires, userId]);
     },
-    
+
     async deductRequest(userId) {
         const res = await pool.query(
             'UPDATE users SET requests_remaining = requests_remaining - 1 WHERE id = $1 AND requests_remaining > 0 RETURNING *',

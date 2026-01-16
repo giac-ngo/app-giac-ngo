@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import { getUserManagedSpaceIds, isAdmin } from '../middleware/authMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,34 +15,34 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const uploadsDir = path.join(projectRoot, 'uploads');
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const { spaceId, context = 'general' } = req.body;
-    // Sanitize to prevent path traversal
-    const safeContext = String(context).replace(/[^a-zA-Z0-9_-]/g, '_');
-    let dir;
+    destination: (req, file, cb) => {
+        const { spaceId, context = 'general' } = req.body;
+        // Sanitize to prevent path traversal
+        const safeContext = String(context).replace(/[^a-zA-Z0-9_-]/g, '_');
+        let dir;
 
-    if (spaceId && spaceId !== 'global' && spaceId !== 'system') {
-        const safeSpaceId = String(spaceId).replace(/[^a-zA-Z0-9_-]/g, '_');
-        dir = path.join(uploadsDir, `space-${safeSpaceId}`, safeContext);
-    } else {
-        // For system-level or non-space-specific files, place them in a subfolder within uploads
-        dir = path.join(uploadsDir, safeContext);
+        if (spaceId && spaceId !== 'global' && spaceId !== 'system') {
+            const safeSpaceId = String(spaceId).replace(/[^a-zA-Z0-9_-]/g, '_');
+            dir = path.join(uploadsDir, `space-${safeSpaceId}`, safeContext);
+        } else {
+            // For system-level or non-space-specific files, place them in a subfolder within uploads
+            dir = path.join(uploadsDir, safeContext);
+        }
+
+        try {
+            fs.mkdirSync(dir, { recursive: true });
+            cb(null, dir);
+        } catch (err) {
+            console.error("Error creating upload directory:", err);
+            cb(err);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        // Sanitize to prevent path traversal and other issues
+        const safeOriginalName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+        cb(null, `file-${uniqueSuffix}-${safeOriginalName}`);
     }
-    
-    try {
-        fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    } catch(err) {
-        console.error("Error creating upload directory:", err);
-        cb(err);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    // Sanitize to prevent path traversal and other issues
-    const safeOriginalName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `file-${uniqueSuffix}-${safeOriginalName}`);
-  }
 });
 
 const trainingFileFilter = (req, file, cb) => {
@@ -65,7 +66,7 @@ const trainingFileFilter = (req, file, cb) => {
     }
 };
 
-export const upload = multer({ 
+export const upload = multer({
     storage: storage,
     fileFilter: trainingFileFilter,
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
@@ -83,7 +84,7 @@ export const systemController = {
             res.status(500).json({ message: 'Không thể tải cấu hình hệ thống.' });
         }
     },
-    
+
     async updateSystemConfig(req, res) {
         try {
             const updatedConfig = await systemModel.updateConfig(req.body);
@@ -95,9 +96,14 @@ export const systemController = {
 
     async getDashboardStats(req, res) {
         try {
-            const stats = await systemModel.getDashboardStats();
+            let spaceIds = null;
+            if (req.user && !isAdmin(req.user)) {
+                spaceIds = await getUserManagedSpaceIds(req.user.id);
+            }
+            const stats = await systemModel.getDashboardStats(spaceIds);
             res.json(stats);
         } catch (error) {
+            console.error("Dashboard Status Error:", error);
             res.status(500).json({ message: 'Không thể tải dữ liệu dashboard.' });
         }
     },
@@ -111,7 +117,7 @@ export const systemController = {
         const filePaths = [`/uploads/${relativePath}`];
         res.json({ filePaths });
     },
-    
+
     async getAvailableModels(req, res) {
         const { provider } = req.params;
         const { userId } = req.query;
@@ -121,13 +127,14 @@ export const systemController = {
         try {
             const userIdNum = parseInt(Array.isArray(userId) ? userId[0] : userId, 10);
             const user = await userModel.findById(userIdNum);
-            
+
             if (provider === 'gpt') {
                 const apiKey = user?.apiKeys?.gpt || process.env.GPT_API_KEY || process.env.VITE_GPT_API_KEY;
                 if (!apiKey) return res.status(400).json({ message: `Vui lòng thêm API key cá nhân cho ${provider.toUpperCase()} trong Cài đặt.` });
                 res.json(await gptService.listModels(apiKey));
             } else if (provider === 'gemini') {
-                res.json(['gemini-2.5-flash', 'gemini-2.5-pro']);}
+                res.json(['gemini-2.5-flash', 'gemini-2.5-pro']);
+            }
             else if (provider === 'vertex') {
                 res.json(['projects/343195597322/locations/us-central1/endpoints/6040161629629317120']);
             } else if (provider === 'grok') {
@@ -155,7 +162,7 @@ export const systemController = {
             if (!apiKey) {
                 return res.status(400).json({ message: `API Key for ${provider} not configured.` });
             }
-            
+
             let audioContent = '';
             if (provider === 'gemini') {
                 audioContent = await geminiService.generateTts(text, apiKey, model, voice);
@@ -189,11 +196,11 @@ export const systemController = {
 
             let translatedText = '';
             const service = provider === 'gemini' ? geminiService : gptService;
-            
+
             if (!service || typeof service.translateText !== 'function') {
-                 return res.status(400).json({ message: `Unsupported translation provider: ${provider}` });
+                return res.status(400).json({ message: `Unsupported translation provider: ${provider}` });
             }
-            
+
             translatedText = await service.translateText(text, targetLanguage, apiKey, model, contextPrompt);
 
             res.json({ translatedText });

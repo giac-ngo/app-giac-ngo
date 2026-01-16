@@ -37,7 +37,7 @@ export const aiConfigController = {
             res.status(500).json({ message: 'Không thể tải danh sách AI để quản lý.' });
         }
     },
-    
+
     async getAiConfigsBySpaceId(req, res) {
         try {
             const spaceId = parseInt(req.params.id, 10);
@@ -55,18 +55,18 @@ export const aiConfigController = {
     async createAiConfig(req, res) {
         try {
             const data = { ...req.body };
-            
+
             // Non-admins (Content Managers) cannot create public AIs directly.
             if (req.user && !req.user.permissions.includes('roles')) {
                 data.isPublic = false;
-                
+
                 // Also verify they own the space they're assigning to.
                 const spaceRes = await pool.query('SELECT user_id FROM spaces WHERE id = $1', [data.spaceId]);
                 if (spaceRes.rows.length === 0 || spaceRes.rows[0].user_id !== req.user.id) {
-                     return res.status(403).json({ message: 'You can only create AIs for spaces you own.' });
+                    return res.status(403).json({ message: 'You can only create AIs for spaces you own.' });
                 }
             }
-            
+
             const newConfig = await aiConfigModel.create(data);
             const fullNewConfig = await aiConfigModel.findById(newConfig.id);
             res.status(201).json(fullNewConfig);
@@ -78,7 +78,7 @@ export const aiConfigController = {
 
     async updateAiConfig(req, res) {
         try {
-             const aiId = parseInt(req.params.id, 10);
+            const aiId = parseInt(req.params.id, 10);
             const aiConfig = await aiConfigModel.findById(aiId);
             if (!aiConfig) {
                 return res.status(404).json({ message: 'AI not found.' });
@@ -86,18 +86,18 @@ export const aiConfigController = {
 
             const isSuperAdmin = req.user.permissions.includes('roles');
             const isOwner = req.user.id === aiConfig.ownerId;
-            
+
             if (!isSuperAdmin && !isOwner) {
                 return res.status(403).json({ message: 'Forbidden: You do not have permission to edit this AI.' });
             }
 
             const payload = { ...req.body };
 
-            // Only super admins can make an AI public.
-            if (payload.isPublic && !isSuperAdmin) {
-                return res.status(403).json({ message: 'Forbidden: Only administrators can make an AI public.' });
+            // Only super admins can update isPublic. Remove it from payload for non-admins.
+            if (!isSuperAdmin) {
+                delete payload.isPublic;
             }
-            
+
             // Content managers must assign to a space they own.
             if (!isSuperAdmin && payload.spaceId) {
                 const spaceRes = await pool.query('SELECT user_id FROM spaces WHERE id = $1', [payload.spaceId]);
@@ -123,30 +123,47 @@ export const aiConfigController = {
             if (!aiConfig) {
                 return res.status(404).json({ message: 'AI config not found.' });
             }
-            
+
+            // Check permissions
+            const isSuperAdmin = req.user.permissions.includes('roles');
+            const isOwner = req.user.id === aiConfig.ownerId;
+
+            if (!isSuperAdmin && !isOwner) {
+                // If not owner, check if user owns the space the AI belongs to
+                if (aiConfig.spaceId) {
+                    const spaceRes = await pool.query('SELECT user_id FROM spaces WHERE id = $1', [aiConfig.spaceId]);
+                    if (spaceRes.rows.length === 0 || spaceRes.rows[0].user_id !== req.user.id) {
+                        return res.status(403).json({ message: 'Forbidden: You do not have permission to delete this AI.' });
+                    }
+                } else {
+                    return res.status(403).json({ message: 'Forbidden: You do not have permission to delete this AI.' });
+                }
+            }
+
             const owner = await userModel.findById(aiConfig.ownerId);
             if (owner && owner.apiKeys) {
                 if (owner.apiKeys.gpt) {
                     weaviateService.deleteDataByAiConfigId('gpt', aiId, owner.apiKeys.gpt).catch(err => console.error(`Failed to cleanup Weaviate GPT data for deleted AI ${aiId}:`, err));
                 }
                 if (owner.apiKeys.gemini) {
-                     weaviateService.deleteDataByAiConfigId('gemini', aiId, owner.apiKeys.gemini).catch(err => console.error(`Failed to cleanup Weaviate Gemini data for deleted AI ${aiId}:`, err));
+                    weaviateService.deleteDataByAiConfigId('gemini', aiId, owner.apiKeys.gemini).catch(err => console.error(`Failed to cleanup Weaviate Gemini data for deleted AI ${aiId}:`, err));
                 }
             } else {
-                 console.error(`Owner or API keys not found for AI config ${aiId}, cannot clean up Weaviate data.`);
+                console.error(`Owner or API keys not found for AI config ${aiId}, cannot clean up Weaviate data.`);
             }
-            
+
             await aiConfigModel.delete(aiId);
             res.status(204).send();
         } catch (error) {
+            console.error("Error deleting AI:", error);
             res.status(500).json({ message: 'Lỗi khi xóa AI.' });
         }
     },
-    
+
     async purchaseAi(req, res) {
         const aiId = parseInt(req.params.id, 10);
         const { userId } = req.body;
-        
+
         if (isNaN(aiId) || !userId) {
             return res.status(400).json({ message: 'Valid AI ID and User ID are required.' });
         }
@@ -162,7 +179,7 @@ export const aiConfigController = {
     async claimFreeAi(req, res) {
         const aiId = parseInt(req.params.id, 10);
         const { userId } = req.body;
-        
+
         if (isNaN(aiId) || !userId) {
             return res.status(400).json({ message: 'Valid AI ID and User ID are required.' });
         }

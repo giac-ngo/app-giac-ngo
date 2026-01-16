@@ -213,7 +213,7 @@ const dharmaRadioDataVi: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Thiền Định và Tâm An',
       subtitle: 'Thảo luận về thực hành thiền định hàng ngày',
       host: 'Thầy Minh Tuệ',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
       tags: ['#Thiền', '#Tâm An', '#Thực Hành'],
       viewers: 18
     },
@@ -222,7 +222,7 @@ const dharmaRadioDataVi: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Kinh Kim Cương - Giảng Giải',
       subtitle: 'Giảng giải chi tiết về Kinh Kim Cương',
       host: 'Cô Thanh Hương',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg',
       tags: ['#Kinh Điển', '#Giảng Giải'],
       viewers: 156
     }
@@ -233,7 +233,7 @@ const dharmaRadioDataVi: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Vô Ngã và Giải Thoát',
       subtitle: 'Khám phá khái niệm vô ngã trong Phật giáo',
       host: 'Thầy Giác Minh',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg',
       tags: ['#Vô Ngã', '#Triết Học'],
       countdown: '1h 59m',
       notifications: 0
@@ -243,7 +243,7 @@ const dharmaRadioDataVi: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Niệm Phật A Di Đà',
       subtitle: 'Hướng dẫn thực hành niệm Phật',
       host: 'Thầy Minh Tuệ',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
       tags: ['#Niệm Phật', '#Tịnh Độ'],
       countdown: '2h 59m',
       notifications: 0
@@ -258,7 +258,7 @@ const dharmaRadioDataEn: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Meditation and Peace of Mind',
       subtitle: 'Discussion on daily meditation practice',
       host: 'Master Minh Tue',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
       tags: ['#Meditation', '#Peace', '#Practice'],
       viewers: 18
     },
@@ -267,7 +267,7 @@ const dharmaRadioDataEn: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Diamond Sutra - Commentary',
       subtitle: 'Detailed commentary on the Diamond Sutra',
       host: 'Sister Thanh Huong',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg',
       tags: ['#Sutra', '#Commentary'],
       viewers: 156
     }
@@ -278,7 +278,7 @@ const dharmaRadioDataEn: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Non-Self and Liberation',
       subtitle: 'Exploring the concept of non-self in Buddhism',
       host: 'Master Giac Minh',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg',
       tags: ['#NonSelf', '#Philosophy'],
       countdown: '1h 59m',
       notifications: 0
@@ -288,7 +288,7 @@ const dharmaRadioDataEn: { live: DharmaSession[]; upcoming: DharmaSession[] } = 
       title: 'Chanting Amitabha Buddha',
       subtitle: 'Guidance on the practice of chanting',
       host: 'Master Minh Tue',
-      hostAvatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
+      hostAvatar: 'https://docs.giac.ngo/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg',
       tags: ['#Chanting', '#PureLand'],
       countdown: '2h 59m',
       notifications: 0
@@ -640,25 +640,25 @@ export const HomePage: React.FC<HomePageProps> = ({ user, language, setLanguage,
       const sessionWithDetails: DharmaSession = {
         ...session,
         speakers: [
-          { name: 'Cô Thanh Hương', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
-          { name: 'Anh Minh Đức', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
-          { name: 'Chị Hồng Nhung', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-          { name: 'Anh Quang Minh', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/The%20Beginner\'s%20Guide%20to%20Meditation%20for%20Men_1761842289235-CYkMJ34d.jpg' },
-          { name: 'Chị Phương Anh', avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
+          { name: 'Cô Thanh Hương', avatar: 'https://docs.giac.ngo/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
+          { name: 'Anh Minh Đức', avatar: 'https://docs.giac.ngo/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
+          { name: 'Chị Hồng Nhung', avatar: 'https://docs.giac.ngo/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
+          { name: 'Anh Quang Minh', avatar: 'https://docs.giac.ngo/assets/The%20Beginner\'s%20Guide%20to%20Meditation%20for%20Men_1761842289235-CYkMJ34d.jpg' },
+          { name: 'Chị Phương Anh', avatar: 'https://docs.giac.ngo/assets/Buddhist%20nun_1761842289237-CXSfy62N.jpg' },
         ],
         listeners: [
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(4)_1761842289234-BNNk7mTm.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/The%20Beginner\'s%20Guide%20to%20Meditation%20for%20Men_1761842289235-CYkMJ34d.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Meditation_1761842289236-DE-uea8o.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Forest%20Meditation%20Moment%20%E2%80%93%20Calm%20Mind%20Retreat%20Vibes_1761842289236-D340EJhb.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(2)_1761842289237-BT8SKPQR.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(1)_1761842289238-DTtc48SN.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download_1761842289238-CEtoAj6c.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/3bacb184-32f1-4538-91c4-375a56b5ea47_1761842289239-BsITZY_l.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
-          { avatar: 'https://buddhist-agentic-network-bankericc.replit.app/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/download%20(4)_1761842289234-BNNk7mTm.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/The%20Beginner\'s%20Guide%20to%20Meditation%20for%20Men_1761842289235-CYkMJ34d.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/%E2%99%A5_1761842289235-C98RGl3j.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/Meditation_1761842289236-DE-uea8o.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/Forest%20Meditation%20Moment%20%E2%80%93%20Calm%20Mind%20Retreat%20Vibes_1761842289236-D340EJhb.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/download%20(2)_1761842289237-BT8SKPQR.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/download%20(1)_1761842289238-DTtc48SN.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/download_1761842289238-CEtoAj6c.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/Master%20Shi%20HengYi_1761842289239-COg8pgCb.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/3bacb184-32f1-4538-91c4-375a56b5ea47_1761842289239-BsITZY_l.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/download%20(3)_1761842289236-CIol8nsh.jpg' },
+          { avatar: 'https://docs.giac.ngo/assets/6bed521b-69ca-4b5d-a603-9d2361bff5f7_1761842289240-6qma_YQ-.jpg' },
         ],
 
       };

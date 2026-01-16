@@ -1,3 +1,4 @@
+
 // server/models/space.model.js
 import { pool, mapRowToCamelCase } from '../db.js';
 import { userModel, enrichUserWithPermissions } from './user.model.js';
@@ -14,7 +15,7 @@ const BASE_SPACE_QUERY = `
 
 export const spaceModel = {
     async findAll() {
-        const res = await pool.query(BASE_SPACE_QUERY + ' ORDER BY s."rank" ASC');
+        const res = await pool.query(BASE_SPACE_QUERY + ' ORDER BY s.space_sort ASC NULLS LAST');
         return res.rows.map(mapRowToCamelCase);
     },
 
@@ -30,24 +31,24 @@ export const spaceModel = {
     },
 
     async create(data) {
-        const { userId, rank, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn } = data;
+        const { userId, spaceSort, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn, website, phoneNumber, email } = data;
         const res = await pool.query(
-            `INSERT INTO spaces (user_id, rank, slug, name, name_en, description, description_en, image_url, location_text, location_text_en, members_count, views, likes, rating, tags, tags_en, type_id, space_color, status, status_en, event, event_en)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING *`,
-            [userId, rank, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn]
+            `INSERT INTO spaces (user_id, space_sort, slug, name, name_en, description, description_en, image_url, location_text, location_text_en, members_count, views, likes, rating, tags, tags_en, type_id, space_color, status, status_en, event, event_en, website, phone_number, email)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING *`,
+            [userId, spaceSort, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn, website, phoneNumber, email]
         );
         return mapRowToCamelCase(res.rows[0]);
     },
 
     async update(id, data) {
-        const { userId, rank, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn } = data;
+        const { userId, spaceSort, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn, website, phoneNumber, email } = data;
         const res = await pool.query(
             `UPDATE spaces SET
-                user_id = $1, rank = $2, slug = $3, name = $4, name_en = $5, description = $6, description_en = $7, image_url = $8, 
+                user_id = $1, space_sort = $2, slug = $3, name = $4, name_en = $5, description = $6, description_en = $7, image_url = $8, 
                 location_text = $9, location_text_en = $10, members_count = $11, views = $12, likes = $13, rating = $14, tags = $15, tags_en = $16, 
-                type_id = $17, space_color = $18, status = $19, status_en = $20, event = $21, event_en = $22
-             WHERE id = $23 RETURNING *`,
-            [userId, rank, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn, id]
+                type_id = $17, space_color = $18, status = $19, status_en = $20, event = $21, event_en = $22, website = $23, phone_number = $24, email = $25
+             WHERE id = $26 RETURNING *`,
+            [userId, spaceSort, slug, name, nameEn, description, descriptionEn, imageUrl, locationText, locationTextEn, membersCount, views, likes, rating, tags, tagsEn, typeId, spaceColor, status, statusEn, event, eventEn, website, phoneNumber, email, id]
         );
         return mapRowToCamelCase(res.rows[0]);
     },

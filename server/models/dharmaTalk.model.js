@@ -3,10 +3,10 @@ import { pool, mapRowToCamelCase } from '../db.js';
 
 export const dharmaTalkModel = {
     async create(data) {
-        const { spaceId, title, titleEn, subtitle, speaker, speakerAvatarUrl, url, duration, date, tags, tagsEn, status, statusEn } = data;
+        const { spaceId, title, titleEn, subtitle, subtitleEn, speaker, speakerAvatarUrl, url, urlEn, duration, date, tags, tagsEn, status, statusEn } = data;
         const res = await pool.query(
-            'INSERT INTO dharma_talks (space_id, title, title_en, subtitle, speaker, speaker_avatar_url, url, duration, date, tags, tags_en, status, status_en) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
-            [spaceId, title, titleEn, subtitle, speaker, speakerAvatarUrl, url, duration, date, tags, tagsEn, status, statusEn]
+            'INSERT INTO dharma_talks (space_id, title, title_en, subtitle, subtitle_en, speaker, speaker_avatar_url, url, url_en, duration, date, tags, tags_en, status, status_en) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
+            [spaceId, title, titleEn, subtitle, subtitleEn, speaker, speakerAvatarUrl, url, urlEn, duration, date, tags, tagsEn, status, statusEn]
         );
         return mapRowToCamelCase(res.rows[0]);
     },
@@ -19,9 +19,11 @@ export const dharmaTalkModel = {
             title: 'title',
             titleEn: 'title_en',
             subtitle: 'subtitle',
+            subtitleEn: 'subtitle_en',
             speaker: 'speaker',
             speakerAvatarUrl: 'speaker_avatar_url',
             url: 'url',
+            urlEn: 'url_en',
             duration: 'duration',
             date: 'date',
             tags: 'tags',
@@ -59,9 +61,14 @@ export const dharmaTalkModel = {
         const res = await pool.query('DELETE FROM dharma_talks WHERE id = $1 RETURNING *', [id]);
         return mapRowToCamelCase(res.rows[0]);
     },
-    
+
     async incrementLikes(id) {
-        const res = await pool.query('UPDATE dharma_talks SET likes = likes + 1 WHERE id = $1 RETURNING likes', [id]);
+        const res = await pool.query('UPDATE dharma_talks SET likes = COALESCE(likes, 0) + 1 WHERE id = $1 RETURNING likes', [id]);
+        return res.rows[0];
+    },
+
+    async incrementViews(id) {
+        const res = await pool.query('UPDATE dharma_talks SET views = COALESCE(views, 0) + 1 WHERE id = $1 RETURNING views', [id]);
         return res.rows[0];
     },
 };

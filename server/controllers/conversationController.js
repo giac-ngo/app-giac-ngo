@@ -11,7 +11,7 @@ export const conversationController = {
             // Though we check on the frontend, a server-side check is good practice.
             return res.status(400).json({ message: 'User ID is required.' });
         }
-        
+
         try {
             const userIdNum = parseInt(userId, 10);
 
@@ -53,7 +53,7 @@ export const conversationController = {
             res.status(500).json({ message: 'Failed to fetch trained conversations.' });
         }
     },
-    
+
     async getTestConversationsByAiId(req, res) {
         try {
             const aiId = parseInt(req.params.id, 10);
@@ -65,7 +65,7 @@ export const conversationController = {
             res.status(500).json({ message: 'Failed to fetch test conversations.' });
         }
     },
-    
+
     async getLatestConversationByAiId(req, res) {
         const { userId } = req.body;
         try {
@@ -79,9 +79,40 @@ export const conversationController = {
 
     async getAllConversations(req, res) {
         try {
-            const conversations = await conversationModel.findAll();
+            const { getUserManagedSpaceIds, isAdmin } = await import('../middleware/authMiddleware.js');
+            const { aiConfigModel } = await import('../models/aiConfig.model.js'); // Need AI config model to check spaces
+
+            let conversations = await conversationModel.findAll();
+
+            if (req.user && !isAdmin(req.user)) {
+                // Regular User: Only see conversations for AIs in their managed spaces.
+                const userSpaceIds = await getUserManagedSpaceIds(req.user.id);
+
+                // Get all AIs in these spaces (or we could fetch all AIs and filter, but simpler to filter conversations if we verify AI's space)
+                // However, conversations usually have aiConfigId.
+                // We need to know which aiConfigId belongs to allowed spaces.
+
+                // Fetch all manageable AIs for this user to get their IDs.
+                // Re-using aiConfigModel logic might be cleaner if possible, or manual query.
+                // Let's manually filter since we have conversation objects which might include AI info or we look it up.
+                // Assuming conversations have aiConfigId.
+
+                // Optimization: Get properly filtered list of AI IDs first.
+                // But simplified approach:
+                // 1. Get all AI configs (cached/small enough) or just fetch all manageable AIs.
+                const manageableAis = await aiConfigModel.findManageableForUser(req.user);
+                const allowedAiIds = new Set(manageableAis.map(ai => ai.id));
+
+                conversations = conversations.filter(conv => {
+                    // If conversation has no AI (deleted?), maybe hide?
+                    if (!conv.aiConfigId) return false;
+                    return allowedAiIds.has(conv.aiConfigId);
+                });
+            }
+
             res.json(conversations);
         } catch (error) {
+            console.error("Error fetching all conversations:", error);
             res.status(500).json({ message: 'Không thể tải tất cả hội thoại.' });
         }
     },
@@ -117,7 +148,7 @@ export const conversationController = {
             res.status(500).json({ message: 'Lỗi khi cập nhật hội thoại.' });
         }
     },
-    
+
     async deleteConversation(req, res) {
         try {
             await conversationModel.delete(req.params.id);
@@ -137,7 +168,7 @@ export const conversationController = {
             res.status(500).json({ message: 'Failed to rename conversation.' });
         }
     },
-    
+
     async updateConversationTrainingStatus(req, res) {
         const { isTrained } = req.body;
         if (typeof isTrained !== 'boolean') {
@@ -150,7 +181,7 @@ export const conversationController = {
             res.status(500).json({ message: 'Failed to update training status.' });
         }
     },
-    
+
     async setMessageFeedback(req, res) {
         const { conversationId, messageId } = req.params;
         const { feedback } = req.body;
@@ -158,7 +189,7 @@ export const conversationController = {
         if (!['liked', 'disliked', null].includes(feedback)) {
             return res.status(400).json({ message: 'Invalid feedback type.' });
         }
-        
+
         const client = await pool.connect();
         try {
             await client.query('BEGIN');

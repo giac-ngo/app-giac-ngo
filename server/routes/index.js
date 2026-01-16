@@ -22,6 +22,7 @@ import libraryRoutes from './libraryRoutes.js';
 import commentRoutes from './commentRoutes.js';
 import spacesRoutes from './spacesRoutes.js';
 import dharmaTalksRoutes from './dharmaTalksRoutes.js';
+import meditationRoutes from './meditationRoutes.js';
 import spaceTypesRoutes from './spaceTypesRoutes.js';
 
 const router = Router();
@@ -44,6 +45,11 @@ router.use(commentRoutes);
 router.use('/spaces', spacesRoutes);
 router.use('/space-types', spaceTypesRoutes);
 router.use('/dharma-talks', dharmaTalksRoutes);
+router.use('/meditations', meditationRoutes);
+
+// External API Routes
+import { chatController } from '../controllers/chatController.js';
+router.post('/v1/chat', chatController.sendMessageJson);
 
 
 // The '/translate' route is correctly handled in systemRoutes.js

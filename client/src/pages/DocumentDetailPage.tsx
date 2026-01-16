@@ -1,10 +1,10 @@
 // client/src/pages/DocumentDetailPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { Document, User } from '../types';
 import { useToast } from '../components/ToastProvider';
-import { ChevronLeftIcon, UserIcon, CalendarIcon, EyeIcon, ThumbsUpIcon, ChevronRightIcon } from '../components/Icons';
+import { ChevronLeftIcon, UserIcon, CalendarIcon, EyeIcon, ThumbsUpIcon, ChevronRightIcon, PlayIcon, PauseIcon } from '../components/Icons';
 
 const translations = {
     vi: {
@@ -50,6 +50,86 @@ const translations = {
 interface DocumentDetailPageProps {
     user: User | null;
 }
+
+const CustomAudioPlayer: React.FC<{ audioUrl: string }> = ({ audioUrl }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const onPlay = () => setIsPlaying(true);
+        const onPause = () => setIsPlaying(false);
+        const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+        const onLoadedMetadata = () => setDuration(audio.duration);
+        const onEnded = () => setIsPlaying(false);
+
+        audio.addEventListener('play', onPlay);
+        audio.addEventListener('pause', onPause);
+        audio.addEventListener('timeupdate', onTimeUpdate);
+        audio.addEventListener('loadedmetadata', onLoadedMetadata);
+        audio.addEventListener('ended', onEnded);
+
+        return () => {
+            audio.removeEventListener('play', onPlay);
+            audio.removeEventListener('pause', onPause);
+            audio.removeEventListener('timeupdate', onTimeUpdate);
+            audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+            audio.removeEventListener('ended', onEnded);
+        };
+    }, []);
+
+    const togglePlay = () => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play();
+            }
+        }
+    };
+
+    const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (audioRef.current && duration) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percent = Math.min(Math.max(x / rect.width, 0), 1);
+            audioRef.current.currentTime = percent * duration;
+        }
+    };
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    };
+
+    const progress = duration ? (currentTime / duration) * 100 : 0;
+
+    return (
+        <div className="custom-audio-player flex items-center bg-gray-100 p-3 rounded-xl mt-4 w-full mb-8">
+            <audio ref={audioRef} src={audioUrl} />
+            <button onClick={togglePlay} className="play-pause-btn p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors mr-3">
+                {isPlaying ? <PauseIcon className="w-6 h-6 text-primary" /> : <PlayIcon className="w-6 h-6 text-primary" />}
+            </button>
+            <div className="progress-container flex-1 mx-2">
+                <div className="progress-bar-bg h-2 bg-gray-300 rounded-full cursor-pointer relative overflow-hidden" onClick={handleSeek}>
+                    <div
+                        className="progress-bar-fill h-full bg-primary absolute top-0 left-0 transition-all duration-100"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1 font-medium">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
     const language: 'vi' | 'en' = (localStorage.getItem('language') as 'vi' | 'en') || 'vi';
@@ -101,7 +181,7 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
 
     if (isLoading) return <div className="loading-container">{t.loading}</div>;
     if (!document) return <div className="loading-container">{t.notFound}</div>;
-    
+
     const title = language === 'en' && document.titleEn ? document.titleEn : document.title;
     const content = language === 'en' && document.contentEn ? document.contentEn : document.content;
 
@@ -109,16 +189,18 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
     const nextLabel = document.type === 'Kệ' ? t.nextVerse : t.nextStory;
     const prevTitle = language === 'en' && document.prevTitleEn ? document.prevTitleEn : document.prevTitle;
     const nextTitle = language === 'en' && document.nextTitleEn ? document.nextTitleEn : document.nextTitle;
-    
+
     const effectiveSpaceSlug = spaceSlug || document.spaceSlug || 'giac-ngo';
+
+    const audioUrl = language === 'en' && document.audioUrlEn ? document.audioUrlEn : document.audioUrl;
 
     return (
         <div className="document-detail-page">
             <div className="document-detail-container">
                 <Link to={`/${effectiveSpaceSlug}/library`} className="back-link">
-                    <ChevronLeftIcon className="w-5 h-5"/> {t.backToList}
+                    <ChevronLeftIcon className="w-5 h-5" /> {t.backToList}
                 </Link>
-                
+
                 <article className="document-content-card">
                     {document.thumbnailUrl && <img src={document.thumbnailUrl} alt={title} className="document-thumbnail" />}
                     <h1 className="document-title">{title}</h1>
@@ -131,20 +213,9 @@ const DocumentDetailPage: React.FC<DocumentDetailPageProps> = ({ user }) => {
                         </button>
                     </div>
 
-                    {(document.audioUrl || document.audioUrlEn) && (
-                        <div className="document-audio-player">
-                            {document.audioUrl && (
-                                <div className="audio-control">
-                                    <label>{t.audioVi}</label>
-                                    <audio controls src={document.audioUrl} />
-                                </div>
-                            )}
-                            {document.audioUrlEn && (
-                                <div className="audio-control">
-                                    <label>{t.audioEn}</label>
-                                    <audio controls src={document.audioUrlEn} />
-                                </div>
-                            )}
+                    {audioUrl && (
+                        <div className="document-audio-player-container">
+                            <CustomAudioPlayer audioUrl={audioUrl} />
                         </div>
                     )}
 

@@ -29,7 +29,7 @@ async function getApiKeyForAi(aiConfig) {
 
     const owner = await userModel.findById(aiConfig.ownerId);
     if (!owner) throw new Error(`AI owner with ID ${aiConfig.ownerId} not found.`);
-    
+
     const apiKey = owner.apiKeys?.[aiConfig.modelType];
     if (!apiKey) throw new Error(`Owner's API key for ${aiConfig.modelType.toUpperCase()} is missing.`);
 
@@ -39,7 +39,45 @@ async function getApiKeyForAi(aiConfig) {
 export const chatController = {
     async sendMessageStream(req, res) {
         // Use authenticated user from req.user instead of userId from body to prevent impersonation.
-        const { aiConfig, messages, conversationId, isTestChat, language, clientAiMessageId, guestTurnCount } = req.body;
+        let { aiConfig, aiConfigId, messages, message, conversationId, isTestChat, language, clientAiMessageId, guestTurnCount } = req.body;
+
+        // Support both 'messages' and 'message' field names (for external API compatibility)
+        if (!messages && message) {
+            // If message is a string, convert to messages array
+            if (typeof message === 'string') {
+                messages = [{
+                    id: `msg-${Date.now()}`,
+                    sender: 'user',
+                    text: message,
+                    timestamp: Date.now()
+                }];
+            } else if (Array.isArray(message)) {
+                // If message is already an array, use it as messages
+                messages = message;
+            } else {
+                messages = message;
+            }
+        }
+
+        // Support lookup by aiConfigId if full config object is not provided (for external API calls)
+        if (!aiConfig && aiConfigId) {
+            const { aiConfigModel } = await import('../models/aiConfig.model.js');
+            aiConfig = await aiConfigModel.findById(aiConfigId);
+            if (!aiConfig) {
+                res.status(404).json({ error: "AI Config not found." });
+                return;
+            }
+        } else if (!aiConfig) {
+            res.status(400).json({ error: "aiConfig or aiConfigId is required." });
+            return;
+        }
+
+        // Validate messages array
+        if (!messages || !Array.isArray(messages) || messages.length === 0) {
+            res.status(400).json({ error: "message is required." });
+            return;
+        }
+
         const currentUser = req.user; // This will be null for guests.
         const userId = currentUser ? currentUser.id : null;
 
@@ -79,7 +117,7 @@ export const chatController = {
                         requestChargeMethod = 'none';
                     } else {
                         const isUniversallyFree = aiConfig.isPublic && !aiConfig.requiresSubscription && !aiConfig.purchaseCost && !aiConfig.meritCost;
-                        
+
                         if (!isUniversallyFree) {
                             const perAiRequestCount = await aiConfigModel.getUserRequestCount(currentUser.id, aiConfig.id);
                             if (perAiRequestCount !== null && perAiRequestCount > 0) {
@@ -122,7 +160,7 @@ export const chatController = {
                     requestChargeMethod = 'none'; // Guests are not charged in the DB
                 }
             }
-            
+
             const apiKey = await getApiKeyForAi(aiConfig);
             console.log(apiKey);
             const lastUserMessage = finalMessages.findLast(m => m.sender === 'user');
@@ -140,24 +178,24 @@ export const chatController = {
                     const { text, thought } = finalMessage;
                     const aiMessage = { id: clientAiMessageId || `ai-${Date.now()}`, text, sender: 'ai', timestamp: Date.now(), thought: thought || undefined };
                     const allFinalMessages = [...finalMessages, aiMessage];
-                   
+
                     if (conversationId) {
                         await conversationModel.update(conversationId, allFinalMessages);
                     } else if (typeof aiConfig.id === 'number') {
                         // Create conversation. For guests, userId is null.
                         const newConv = await conversationModel.create({
-                            userId: currentUser?.id || null, 
+                            userId: currentUser?.id || null,
                             userName: currentUser?.name || 'Guest',
-                            aiConfigId: aiConfig.id, 
-                            messages: allFinalMessages, 
+                            aiConfigId: aiConfig.id,
+                            messages: allFinalMessages,
                             isTestChat,
                         });
                         finalConvId = newConv.id;
                     }
-                    
+
                     let updatedUser = null;
-                     if (currentUser && !isTestChat) {
-                         switch (requestChargeMethod) {
+                    if (currentUser && !isTestChat) {
+                        switch (requestChargeMethod) {
                             case 'ai_specific':
                                 await aiConfigModel.decrementUserRequestCount(currentUser.id, aiConfig.id);
                                 updatedUser = await userModel.findById(currentUser.id); // Re-fetch user to get the latest state
@@ -168,9 +206,9 @@ export const chatController = {
                             case 'merit_cost':
                                 updatedUser = await billingModel.addMerits(currentUser.id, -aiConfig.meritCost, null, 'ai_usage');
                                 break;
-                         }
+                        }
                     }
-                     
+
                     res.write(`data: ${JSON.stringify({ conversationId: finalConvId, done: true, updatedUser: mapAndSanitizeUser(updatedUser), text, thought })}\n\n`);
                     res.end();
                 } catch (error) {
@@ -187,18 +225,18 @@ export const chatController = {
             onError(error);
         }
     },
-    
+
     async estimateContext(req, res) {
         try {
             const { aiConfig, userMessage, userId } = req.body;
             if (!aiConfig) {
                 return res.status(400).json({ message: 'AI config is required.' });
             }
-            
+
             // Allow estimation without user for guests, or require user if preferred.
             // For now, let's allow it if we can get an API key.
             const apiKey = await getApiKeyForAi(aiConfig);
-            
+
             let ragContext = '';
             if (apiKey && userMessage) {
                 try {
@@ -208,7 +246,7 @@ export const chatController = {
                     }
                 } catch (e) { console.warn("Weaviate search failed during estimation:", e.message); }
             }
-            
+
             const systemPrompt = aiConfig.trainingContent || '';
 
             // Get detailed training data breakdown
@@ -232,6 +270,118 @@ export const chatController = {
             res.json({ systemPrompt, qaContext, fileContext, documentContext, ragContext });
         } catch (error) {
             res.status(500).json({ message: error.message || 'Failed to estimate context tokens.' });
+        }
+    },
+
+    /**
+     * Non-streaming endpoint for external APIs (Facebook, n8n, etc.)
+     * Returns plain JSON response instead of Server-Sent Events
+     */
+    async sendMessageJson(req, res) {
+        try {
+            let { aiConfigId, message, language = 'vi' } = req.body;
+
+            // Validate input
+            if (!aiConfigId) {
+                return res.status(400).json({ error: 'aiConfigId is required' });
+            }
+            if (!message || typeof message !== 'string') {
+                return res.status(400).json({ error: 'message (string) is required' });
+            }
+
+            // Fetch AI config
+            const aiConfig = await aiConfigModel.findById(aiConfigId);
+            if (!aiConfig) {
+                return res.status(404).json({ error: 'AI Config not found' });
+            }
+
+            // Convert message to messages array
+            const messages = [{
+                id: `msg-${Date.now()}`,
+                sender: 'user',
+                text: message,
+                timestamp: Date.now()
+            }];
+
+            // Get API key
+            const apiKey = await getApiKeyForAi(aiConfig);
+
+            // Prepare messages with file attachment handling
+            const finalMessages = [...messages];
+            const lastMessage = finalMessages[finalMessages.length - 1];
+            if (lastMessage.sender === 'user' && lastMessage.fileAttachment) {
+                const { url, name } = lastMessage.fileAttachment;
+                const text = await fileParserService.extractText(url, name);
+                lastMessage.text = `File "${name}" content:\n${text}\n\nUser prompt: "${lastMessage.text || ''}"`;
+                delete lastMessage.fileAttachment;
+            }
+
+            // Get RAG context
+            let retrievedContext = '';
+            const lastUserMessage = finalMessages.findLast(m => m.sender === 'user');
+            if (lastUserMessage?.text && apiKey) {
+                try {
+                    const results = await weaviateService.search(aiConfig.modelType, aiConfig.id, lastUserMessage.text, apiKey);
+                    if (results?.length > 0) {
+                        retrievedContext = "--- Relevant Information ---\n" + results.map(r => r.content).join('\n\n') + "\n--- End of Information ---\n\n";
+                    }
+                } catch (e) {
+                    console.warn("Weaviate search failed:", e.message);
+                }
+            }
+
+            // Collect response
+            let fullResponseText = '';
+            let responseThought = null;
+            let hasError = false;
+            let errorMessage = '';
+
+            const onChunk = (chunk) => {
+                fullResponseText += chunk;
+            };
+
+            const onEnd = async (finalMessage) => {
+                const { text, thought } = finalMessage;
+                fullResponseText = text || fullResponseText;
+                responseThought = thought;
+            };
+
+            const onError = (error) => {
+                hasError = true;
+                errorMessage = error.message || 'An error occurred';
+            };
+
+            // Call AI service
+            const service = { gemini: geminiService, gpt: gptService, grok: grokService, vertex: vertexService }[aiConfig.modelType];
+            if (!service) {
+                return res.status(400).json({ error: `Unsupported model type: ${aiConfig.modelType}` });
+            }
+
+            await service.sendMessageStream(
+                aiConfig,
+                finalMessages.slice(-8),
+                apiKey,
+                { onChunk, onEnd, onError },
+                language,
+                retrievedContext
+            );
+
+            // Check for errors
+            if (hasError) {
+                return res.status(500).json({ error: errorMessage });
+            }
+
+            // Return plain JSON response
+            res.json({
+                message: fullResponseText,
+                thought: responseThought || undefined
+            });
+
+        } catch (error) {
+            console.error('External chat error:', error);
+            res.status(500).json({
+                error: error.message || 'An error occurred while processing your request'
+            });
         }
     }
 };

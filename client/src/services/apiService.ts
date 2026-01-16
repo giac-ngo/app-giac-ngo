@@ -1,6 +1,6 @@
 // client/src/services/apiService.ts
 
-import { User, AIConfig, SystemConfig, Conversation, Message, ModelType, PricingPlan, Transaction, Role, DashboardStats, TrainingDataSource, KoiiTask, Document, Tag, DocumentAuthor, DocumentType, DocumentTopic, SocialFeedPost, Comment, DocumentConfig, Space, DharmaTalk, WithdrawalRequest, SpaceOwnerData, SpaceType } from '../types';
+import { User, AIConfig, SystemConfig, Conversation, Message, ModelType, PricingPlan, Transaction, Role, DashboardStats, TrainingDataSource, KoiiTask, Document, Tag, DocumentAuthor, DocumentType, DocumentTopic, SocialFeedPost, Comment, DocumentConfig, Space, DharmaTalk, WithdrawalRequest, SpaceOwnerData, SpaceType, MeditationSession } from '../types';
 
 const getAuthToken = (): string | null => {
     try {
@@ -586,13 +586,16 @@ export const apiService = {
     },
     getLibraryRecommended: (): Promise<{ topKe: Document[], topTruyen: Document[] }> => authedFetch('/api/library/recommended').then(handleResponse),
     getLibrarySidebarData: (): Promise<any> => authedFetch('/api/library/sidebar').then(handleResponse),
-    getLibraryFilters: (spaceId?: number | null, filters?: { typeId?: number; authorId?: number; topicsPage?: number; topicsLimit?: number; }): Promise<any> => {
+    getLibraryFilters: (spaceIdOrSlug?: number | string | null, filters?: { typeId?: number; authorId?: number; topicsPage?: number; topicsLimit?: number; }): Promise<any> => {
         const params: Record<string, any> = {
-            spaceId: spaceId,
+            ...(typeof spaceIdOrSlug === 'string' ? { spaceSlug: spaceIdOrSlug } : { spaceId: spaceIdOrSlug }),
             ...(filters || {}),
+            _t: Date.now() // Cache buster
         };
         const query = createSearchParams(params).toString();
-        return authedFetch(`/api/library/filters?${query}`).then(handleResponse);
+        return authedFetch(`/api/library/filters?${query}`, {
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+        }).then(handleResponse);
     },
     /**
      * Get paginated library documents with support for pagination and Abort signal.
@@ -677,6 +680,36 @@ export const apiService = {
     },
     likeDharmaTalk: (id: number): Promise<{ likes: number }> => {
         return authedFetch(`/api/dharma-talks/${id}/like`, { method: 'POST' }).then(handleResponse);
+    },
+    incrementDharmaTalkView: (id: number): Promise<{ views: number }> => {
+        return authedFetch(`/api/dharma-talks/${id}/view`, { method: 'POST' }).then(handleResponse);
+    },
+
+    // --- Meditation ---
+    getAllMeditations: (): Promise<MeditationSession[]> => {
+        return authedFetch('/api/meditations').then(handleResponse);
+    },
+
+    getMeditationBySpaceId: (spaceId: number): Promise<MeditationSession | null> => {
+        return fetch(`/api/meditations/space/${spaceId}`).then(res => res.json());
+    },
+
+    createMeditation: (formData: FormData): Promise<MeditationSession> => {
+        return authedFetch('/api/meditations', {
+            method: 'POST',
+            body: formData,
+        }).then(handleResponse);
+    },
+
+    updateMeditation: (id: number, formData: FormData): Promise<MeditationSession> => {
+        return authedFetch(`/api/meditations/${id}`, {
+            method: 'PUT',
+            body: formData,
+        }).then(handleResponse);
+    },
+
+    deleteMeditation: (id: number): Promise<MeditationSession> => {
+        return authedFetch(`/api/meditations/${id}`, { method: 'DELETE' }).then(handleResponse);
     },
     getWithdrawalRequests: (): Promise<WithdrawalRequest[]> => authedFetch('/api/admin/withdrawals').then(handleResponse),
     processWithdrawalRequest: (id: number, action: 'approve' | 'reject'): Promise<WithdrawalRequest> => {

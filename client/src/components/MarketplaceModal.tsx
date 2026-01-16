@@ -58,7 +58,7 @@ function AgentPurchaseCard({ ai, user, onPurchase, isPurchasing, language }: Age
 
     const name = language === 'en' && ai.nameEn ? ai.nameEn : ai.name;
     const description = language === 'en' && ai.descriptionEn ? ai.descriptionEn : ai.description;
-    
+
     let priceDisplay;
     if (isFreeToOwn) {
         if (ai.meritCost && ai.meritCost > 0) {
@@ -85,7 +85,16 @@ function AgentPurchaseCard({ ai, user, onPurchase, isPurchasing, language }: Age
     } else if (!user) {
         button = <Link to="/login" className="w-full block text-center bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600">{t.loginToBuy}</Link>;
     } else if (isFreeToOwn) {
-        button = <button disabled className="w-full bg-blue-500 text-white py-2 rounded-md">{t.free}</button>;
+        // Free AI - allow user to claim it
+        button = (
+            <button
+                onClick={() => onPurchase(ai.id)}
+                disabled={isPurchasing}
+                className="w-full bg-primary text-text-on-primary py-2 rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50"
+            >
+                {isPurchasing ? '...' : t.free}
+            </button>
+        );
     } else if (!canAfford) {
         button = <button disabled className="w-full bg-gray-400 text-white py-2 rounded-md cursor-not-allowed">{t.insufficientMerits}</button>;
     } else {
@@ -122,9 +131,10 @@ interface MarketplaceModalProps {
     onUserUpdate: (updatedData: Partial<User>) => void;
     language: 'vi' | 'en';
     prioritizedAiId?: string | null;
+    spaceId?: number | null;
 }
 
-export function MarketplaceModal({ isOpen, onClose, user, onUserUpdate, language, prioritizedAiId }: MarketplaceModalProps) {
+export function MarketplaceModal({ isOpen, onClose, user, onUserUpdate, language, prioritizedAiId, spaceId }: MarketplaceModalProps) {
     const [publicAis, setPublicAis] = useState<AIConfig[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPurchasing, setIsPurchasing] = useState(false);
@@ -138,7 +148,12 @@ export function MarketplaceModal({ isOpen, onClose, user, onUserUpdate, language
             setError(null);
             apiService.getAiConfigs(user)
                 .then(data => {
-                    const allPublicAis = (data || []).filter(ai => ai.isPublic);
+                    // Filter by public and optionally by spaceId
+                    const allPublicAis = (data || []).filter(ai => {
+                        if (!ai.isPublic) return false;
+                        if (spaceId && ai.spaceId !== spaceId) return false;
+                        return true;
+                    });
                     if (prioritizedAiId) {
                         allPublicAis.sort((a, b) => {
                             if (String(a.id) === prioritizedAiId) return -1;
@@ -160,13 +175,29 @@ export function MarketplaceModal({ isOpen, onClose, user, onUserUpdate, language
             const { updatedUser } = await apiService.purchaseAi(aiId, user.id as number);
             onUserUpdate(updatedUser);
             showToast(t.purchaseSuccess, 'success');
+
+            // Reload AI list to update owned status
+            const data = await apiService.getAiConfigs(updatedUser);
+            const allPublicAis = (data || []).filter(ai => {
+                if (!ai.isPublic) return false;
+                if (spaceId && ai.spaceId !== spaceId) return false;
+                return true;
+            });
+            if (prioritizedAiId) {
+                allPublicAis.sort((a, b) => {
+                    if (String(a.id) === prioritizedAiId) return -1;
+                    if (String(b.id) === prioritizedAiId) return 1;
+                    return 0;
+                });
+            }
+            setPublicAis(allPublicAis);
         } catch (err: any) {
             showToast(t.purchaseError.replace('{message}', err.message), 'error');
         } finally {
             setIsPurchasing(false);
         }
     };
-    
+
     if (!isOpen) return null;
 
     return (
@@ -176,7 +207,7 @@ export function MarketplaceModal({ isOpen, onClose, user, onUserUpdate, language
                 <div className="text-center flex-shrink-0">
                     <h2 className="text-3xl font-bold text-text-main">{t.title}</h2>
                     <p className="mt-2 text-text-light">{t.subtitle}</p>
-                     {user && (
+                    {user && (
                         <p className="text-lg text-text-main mt-2 font-semibold">{t.balance}: <span className="text-primary">{user.merits ?? t.unlimited} merits</span></p>
                     )}
                 </div>

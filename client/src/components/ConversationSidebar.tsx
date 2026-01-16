@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AIConfig, Conversation, User, SystemConfig, ViewMode, LibraryFilters, Space } from '../types';
 import { apiService } from '../services/apiService';
 import { useToast } from './ToastProvider';
-import { LanguageIcon, CryptoIcon,  LogoutIcon, PencilIcon, TrashIcon, HelmetIcon, LoginIcon, SpinnerIcon } from './Icons';
+import { LanguageIcon, CryptoIcon, LogoutIcon, PencilIcon, TrashIcon, HelmetIcon, LoginIcon, SpinnerIcon } from './Icons';
 import { LibraryMenu } from './LibraryMenu';
 
 interface ConversationSidebarProps {
@@ -125,13 +125,13 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
-    
+
     const [renamingId, setRenamingId] = useState<number | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const userMenuRef = useRef<HTMLDivElement>(null);
     const hasAdminPermission = user?.permissions?.some(p => p !== 'user-billing');
     const currentTheme = user?.template || systemConfig.template;
-    const logoUrl = systemConfig.templateSettings[currentTheme].logoUrl || currentSpace?.imageUrl;
+    const logoUrl = currentSpace?.imageUrl || systemConfig.templateSettings[currentTheme].logoUrl;
 
     const fetchConversations = useCallback(async (pageNum: number, abortSignal: AbortSignal) => {
         if (!user || !currentAiConfig || typeof currentAiConfig.id !== 'number') {
@@ -148,11 +148,11 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                 page: pageNum,
                 limit: CONVERSATIONS_PAGE_SIZE
             });
-            
+
             const { data, total } = response;
 
             if (abortSignal.aborted) return;
-            
+
             setConversations(prev => pageNum === 1 ? data : [...prev, ...data]);
             setHasMore((pageNum * CONVERSATIONS_PAGE_SIZE) < total);
         } catch (error) {
@@ -160,7 +160,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                 showToast('Failed to load conversations', 'error');
             }
         } finally {
-             if (!abortSignal.aborted) {
+            if (!abortSignal.aborted) {
                 setIsLoading(false);
             }
         }
@@ -181,7 +181,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
             setPage(prev => prev + 1);
         }
     };
-    
+
     useEffect(() => {
         if (page > 1) {
             const controller = new AbortController();
@@ -189,7 +189,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
             return () => controller.abort();
         }
     }, [page, fetchConversations]);
-    
+
     const handleRename = async (id: number) => {
         if (!renameValue.trim()) {
             setRenamingId(null);
@@ -197,7 +197,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
         }
         try {
             await apiService.renameConversation(id, renameValue);
-            setConversations(prev => prev.map(c => c.id === id ? { ...c, messages: [{...c.messages[0], text: renameValue}, ...c.messages.slice(1)] } : c));
+            setConversations(prev => prev.map(c => c.id === id ? { ...c, messages: [{ ...c.messages[0], text: renameValue }, ...c.messages.slice(1)] } : c));
             showToast(t.renameSuccess, 'success');
         } catch (error) {
             showToast(t.renameError, 'error');
@@ -214,10 +214,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                 return { count: ownedAiDetail.requestsRemaining.toLocaleString(language), label: t.aiRequestsLeft };
             }
         }
-        const subRequests = user.requestsRemaining === null ? t.unlimited : (user.requestsRemaining ?? 0).toLocaleString(language);
+        const subRequests = user.requestsRemaining !== null && user.requestsRemaining < 0 ? t.unlimited : (user.requestsRemaining ?? 0).toLocaleString(language);
         return { count: subRequests, label: t.requestsLeft };
     }, [user, currentAiConfig, language, t]);
-    
+
     const isOwned = React.useMemo(() => {
         if (!user || !currentAiConfig) return false;
         return user.ownedAis?.some(ai => ai.aiConfigId === currentAiConfig.id);
@@ -233,7 +233,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
 
     const renderSidebarContent = () => {
         if (isSidebarCollapsed) return null;
-        switch(viewMode) {
+        switch (viewMode) {
             case 'chat':
                 return (
                     <div className="flex flex-col gap-4 flex-grow min-h-0">
@@ -242,7 +242,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                                 {t.newChat}
                             </button>
                         </div>
-                        
+
                         {!user ? (
                             <p className="px-3 text-center text-sm text-text-light">{t.loginToChat}</p>
                         ) : (
@@ -250,12 +250,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                                 <div className="px-3"><h3 className="text-xs font-semibold uppercase text-text-light">{t.recentChats}</h3></div>
                                 <div className="overflow-y-auto flex-grow min-h-0 conversation-list" ref={listRef} onScroll={handleScroll}>
                                     {isLoading && page === 1 && <div className="p-4 text-center"><SpinnerIcon className="w-6 h-6 animate-spin text-primary mx-auto" /></div>}
-                                    
+
                                     {conversations.map(conv => (
-                                         <div key={conv.id} className={`conversation-item-wrapper ${selectedConversationId === conv.id ? 'active' : ''}`}>
+                                        <div key={conv.id} className={`conversation-item-wrapper ${selectedConversationId === conv.id ? 'active' : ''}`}>
                                             <button onClick={() => onSelectConversation(conv)} className="conversation-item">
                                                 {renamingId === conv.id ? (
-                                                    <input 
+                                                    <input
                                                         type="text"
                                                         value={renameValue}
                                                         onChange={e => setRenameValue(e.target.value)}
@@ -295,13 +295,13 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
     return (
         <aside className={`conversation-sidebar ${isSidebarCollapsed ? 'conversation-sidebar-collapsed' : 'w-80'} bg-background-panel flex flex-col h-full flex-shrink-0 border-r border-border-color`}>
             <header className="sidebar-header">
-                 {!isSidebarCollapsed && (
-                    <Link to={`/${spaceSlug}`} className="logo-link">
+                {!isSidebarCollapsed && (
+                    <Link to={`/${spaceSlug}/chat`} className="logo-link">
                         <img src={logoUrl} alt="Logo" className="logo" />
                     </Link>
                 )}
-                <button 
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+                <button
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                     className="sidebar-toggle-btn"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,7 +311,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
             </header>
 
             <div className="flex-grow min-h-0 flex flex-col">
-                 <div className="quick-actions-container">
+                <div className="quick-actions-container">
                     <div className="quick-actions-grid">
                         <Link to={`/${spaceSlug}/chat`} className={`quick-action-btn ${viewMode === 'chat' ? 'active' : ''}`} title={t.chatMode}>
                             <img src="/themes/giacngo/2.png" alt={t.chatMode} className="w-full h-full object-contain p-3" />
@@ -354,7 +354,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                                     </div>
                                 </div>
                                 <div className="user-info-stats">
-                                    <div><span>{user.merits === null ? t.unlimited : (user.merits ?? 0).toLocaleString(language)}</span>{t.meritsLeft}</div>
+                                    <div><span>{user.merits !== null && user.merits < 0 ? t.unlimited : (user.merits ?? 0).toLocaleString(language)}</span>{t.meritsLeft}</div>
                                     {shouldShowRequests && <div><span>{relevantRequests.count}</span>{relevantRequests.label}</div>}
                                 </div>
                                 <div className="user-info-actions">
@@ -362,12 +362,15 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                                         <CryptoIcon className="w-4 h-4" /> {t.donation}
                                     </button>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')} className="btn-secondary-new">
-                                            <LanguageIcon className="w-4 h-4"/> {language === 'vi' ? 'English' : 'Tiếng Việt'}
-                                        </button>
+                                        <div className="user-menu-language-switcher">
+                                            <div className="user-menu-language-switcher-pill">
+                                                <button onClick={() => setLanguage('vi')} className={language === 'vi' ? 'active' : ''}>VIE</button>
+                                                <button onClick={() => setLanguage('en')} className={language === 'en' ? 'active' : ''}>ENG</button>
+                                            </div>
+                                        </div>
                                         {hasAdminPermission && (
                                             <button onClick={onGoToAdmin} className="btn-secondary-new">
-                                                <HelmetIcon className="w-4 h-4"/> {t.adminPage}
+                                                <HelmetIcon className="w-4 h-4" /> {t.adminPage}
                                             </button>
                                         )}
                                     </div>
@@ -382,36 +385,28 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = (props) =
                 ) : (
                     isSidebarCollapsed ? (
                         <div className="flex flex-col items-center gap-y-2 py-2">
-                             <button onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')} className="p-2 text-text-light hover:bg-background-light rounded-full" title={language === 'vi' ? 'English' : 'Tiếng Việt'}>
+                            <button onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')} className="p-2 text-text-light hover:bg-background-light rounded-full" title={language === 'vi' ? 'English' : 'Tiếng Việt'}>
                                 <LanguageIcon className="w-6 h-6" />
                             </button>
-                             <button onClick={onGoToLogin} className="p-2 text-text-light hover:bg-background-light rounded-full" title={t.login}>
+                            <button onClick={onGoToLogin} className="p-2 text-text-light hover:bg-background-light rounded-full" title={t.login}>
                                 <LoginIcon className="w-6 h-6" />
                             </button>
                         </div>
                     ) : (
                         <div className="p-4 flex flex-col gap-4">
-                             <div className="flex justify-center">
-                                <div className="language-switcher-sidebar">
-                                    <button
-                                        className={language === 'vi' ? 'active' : ''}
-                                        onClick={() => setLanguage('vi')}
-                                    >
-                                        VI
-                                    </button>
-                                    <button
-                                        className={language === 'en' ? 'active' : ''}
-                                        onClick={() => setLanguage('en')}
-                                    >
-                                        EN
-                                    </button>
+                            <div className="flex justify-center">
+                                <div className="user-menu-language-switcher">
+                                    <div className="user-menu-language-switcher-pill">
+                                        <button onClick={() => setLanguage('vi')} className={language === 'vi' ? 'active' : ''}>VIE</button>
+                                        <button onClick={() => setLanguage('en')} className={language === 'en' ? 'active' : ''}>ENG</button>
+                                    </div>
                                 </div>
                             </div>
                             <button onClick={onGoToLogin} className="btn-new-chat-plus w-full">
-                                <LoginIcon className="w-5 h-5 mr-2"/>
+                                <LoginIcon className="w-5 h-5 mr-2" />
                                 {t.loginOrRegister}
                             </button>
-                           
+
                         </div>
                     )
                 )}

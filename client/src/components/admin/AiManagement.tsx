@@ -1,7 +1,7 @@
 
 // client/src/components/admin/AiManagement.tsx
 import React, { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
-import { AIConfig, Message, User, TrainingDataSource, KoiiTask, Conversation, Document, Tag, Space, ModelType } from '../../types';
+import { AIConfig, Message, User, TrainingDataSource, KoiiTask, Conversation, Document, Tag, Space } from '../../types';
 import { apiService } from '../../services/apiService';
 import { useToast } from '../ToastProvider';
 import { ExpandIcon, PaperclipIcon, BrainwaveIcon, KoiiIcon, TrashIcon, InfoIcon, BookOpenIcon, PlusIcon, SpinnerIcon } from '../Icons';
@@ -398,7 +398,7 @@ const KoiiTaskStatusDisplay: React.FC<{ status: KoiiTask | null, language: 'vi' 
                         <span className={`font-semibold text-sm ${color}`}>{text}</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">{t.lastUpdate}: {lastUpdate}</p>
-                     {status?.status === 'failed' && <p className="text-xs text-red-500 mt-1 truncate" title={status.errorMessage}>Error: {status.errorMessage}</p>}
+                    {status?.status === 'failed' && <p className="text-xs text-red-500 mt-1 truncate" title={status.errorMessage}>Error: {status.errorMessage}</p>}
                 </div>
             </div>
         </div>
@@ -439,7 +439,7 @@ const TrainingDataModal: React.FC<{
                 <div className="p-4 border-b border-border-color flex-shrink-0 flex justify-between items-center">
                     <h2 className="text-xl font-bold">{title}</h2>
                     {type === 'file' && onFileChange && (
-                         <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2">
                             <button
                                 type="button"
                                 onClick={onSummarizeAll}
@@ -457,7 +457,7 @@ const TrainingDataModal: React.FC<{
                 </div>
                 <div className="flex-grow p-4 overflow-y-auto space-y-3">
                     {data.length === 0 && (!stagedFiles || stagedFiles.length === 0) && (
-                         <div className="flex items-center justify-center h-full text-center text-sm text-text-light">{type === 'qa' ? t.noQA : t.noFiles}</div>
+                        <div className="flex items-center justify-center h-full text-center text-sm text-text-light">{type === 'qa' ? t.noQA : t.noFiles}</div>
                     )}
                     {stagedFiles?.map((file, index) => (
                         <div key={`staged-${index}`} className="flex justify-between items-center bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg text-sm">
@@ -470,7 +470,7 @@ const TrainingDataModal: React.FC<{
                     ))}
                     {data.map(item => (
                         <div key={item.id} className="group relative p-3 bg-background-light rounded-lg text-sm border border-border-color">
-                           <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-3">
                                 <div className="mt-1.5 flex-shrink-0">{getStatusIcon(item)}</div>
                                 <div className="flex-1">
                                     {type === 'qa' && (
@@ -486,7 +486,7 @@ const TrainingDataModal: React.FC<{
                                         </>
                                     )}
                                     {type === 'file' && (
-                                         <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
                                             <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold" title={item.fileName}>{item.fileName}</a>
                                             {!item.summary && !isQaFile(item.fileName) && (
                                                 <div className="text-yellow-500 cursor-help" title={t.largeFileWarning}>
@@ -497,8 +497,8 @@ const TrainingDataModal: React.FC<{
                                     )}
                                 </div>
                                 {!isFormDisabled && <button onClick={() => onDelete(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="absolute top-2 right-2 p-1 rounded-full bg-gray-300 text-white opacity-0 group-hover:opacity-100 hover:bg-accent-red disabled:opacity-50"><TrashIcon className="w-4 h-4" /></button>}
-                           </div>
-                             {type === 'file' && item.summary ? (
+                            </div>
+                            {type === 'file' && item.summary ? (
                                 <div className="mt-2 pt-2 border-t border-border-color w-full">
                                     <p className="text-xs font-semibold text-text-light mb-1">{t.aiSummary}</p>
                                     <p className="text-xs text-gray-600 italic">
@@ -552,12 +552,12 @@ const SelectDocumentModal: React.FC<{
                 apiService.getDocuments(),
                 apiService.getAllTags()
             ])
-            .then(([docs, tags]) => {
-               setAllDocuments(docs.data || []);
-                setAllTags(tags || []);
-            })
-            .catch(() => showToast('Failed to fetch library data', 'error'))
-            .finally(() => setIsLoading(false));
+                .then(([docs, tags]) => {
+                    setAllDocuments(docs.data || []);
+                    setAllTags(tags || []);
+                })
+                .catch(() => showToast('Failed to fetch library data', 'error'))
+                .finally(() => setIsLoading(false));
         } else {
             // Reset state when closed
             setSelectedDocIds(new Set());
@@ -577,8 +577,8 @@ const SelectDocumentModal: React.FC<{
             return newSet;
         });
     };
-    
-     const handleToggleTag = (tagName: string) => {
+
+    const handleToggleTag = (tagName: string) => {
         setSelectedTags(prev => {
             const newSet = new Set(prev);
             if (newSet.has(tagName)) {
@@ -611,7 +611,7 @@ const SelectDocumentModal: React.FC<{
     const availableDocuments = useMemo(() => {
         return allDocuments
             .filter(doc => !existingLinkedDocIds.includes(doc.id as number))
-            .filter(doc => 
+            .filter(doc =>
                 (doc.title || '').toLowerCase().includes(searchTerm.toLowerCase())
             )
             .filter(doc => {
@@ -630,7 +630,7 @@ const SelectDocumentModal: React.FC<{
                     <p className="text-sm text-text-light mt-1">{t.description}</p>
                 </div>
                 <div className="p-4 border-b border-border-color">
-                     <input
+                    <input
                         type="text"
                         placeholder={t.searchPlaceholder}
                         value={searchTerm}
@@ -639,14 +639,13 @@ const SelectDocumentModal: React.FC<{
                     />
                     <div className="mt-2 flex flex-wrap gap-2">
                         {allTags.map(tag => (
-                            <button 
+                            <button
                                 key={tag.id}
                                 onClick={() => handleToggleTag(tag.name)}
-                                className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
-                                    selectedTags.has(tag.name) 
-                                    ? 'bg-primary text-white border-primary' 
+                                className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${selectedTags.has(tag.name)
+                                    ? 'bg-primary text-white border-primary'
                                     : 'bg-background-light border-border-color hover:bg-gray-200'
-                                }`}
+                                    }`}
                             >
                                 {tag.name}
                             </button>
@@ -701,8 +700,8 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const [selectedAi, setSelectedAi] = useState<AIConfig | null>(null);
     const [pristineAi, setPristineAi] = useState<AIConfig | null>(null); // For checking unsaved changes
     const [trainingData, setTrainingData] = useState<TrainingDataSource[]>([]);
-    const [activeTab, setActiveTab] = useState<'configuration' | 'training' | 'tags'>('configuration');
-    
+    const [activeTab, setActiveTab] = useState<'configuration' | 'training' | 'tags' | 'api'>('configuration');
+
     // Chat states
     const [allMessages, setAllMessages] = useState<Message[]>([]);
     const [displayedMessages, setDisplayedMessages] = useState<Message[]>([]);
@@ -730,7 +729,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
     const [summarizingId, setSummarizingId] = useState<number | null>(null);
     const [isSummarizingAll, setIsSummarizingAll] = useState(false);
-    
+
     const [koiiTaskStatus, setKoiiTaskStatus] = useState<KoiiTask | null>(null);
     const [isSubmittingToKoii, setIsSubmittingToKoii] = useState(false);
     const [trainingPairIndex, setTrainingPairIndex] = useState<number | null>(null);
@@ -758,6 +757,13 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
     const [trainingFilter, setTrainingFilter] = useState<'all' | 'indexed' | 'not_indexed'>('all');
 
+    // Initialize spaceIdFilter: empty for admin (show all), user's space for regular users
+    const [spaceIdFilter, setSpaceIdFilter] = useState<string>(() => {
+        if (user.permissions?.includes('roles')) return ''; // Admin sees all by default
+        // Regular user: will be set after spaces load
+        return '';
+    });
+
     const { showToast } = useToast();
     const t = translations[language];
 
@@ -778,14 +784,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         }
         return allSpaces.filter(space => space.userId === user.id);
     }, [allSpaces, user]);
-    
+
+    const filteredAiList = useMemo(() => {
+        if (!spaceIdFilter) return aiList;
+        return aiList.filter(ai => String(ai.spaceId) === spaceIdFilter);
+    }, [aiList, spaceIdFilter]);
+
     const isFormDirty = useCallback(() => {
         if (!selectedAi || !pristineAi) return false;
         if (stagedFiles.length > 0) return true;
-        
+
         const normalizedPristine = { ...pristineAi, suggestedQuestions: normalizePostgresArray(pristineAi.suggestedQuestions), suggestedQuestionsEn: normalizePostgresArray(pristineAi.suggestedQuestionsEn) };
         const normalizedSelected = { ...selectedAi, suggestedQuestions: normalizePostgresArray(selectedAi.suggestedQuestions), suggestedQuestionsEn: normalizePostgresArray(selectedAi.suggestedQuestionsEn) };
-        
+
         return JSON.stringify(normalizedPristine) !== JSON.stringify(normalizedSelected);
     }, [selectedAi, pristineAi, stagedFiles]);
 
@@ -812,7 +823,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             pollingIntervalRef.current = null;
         }
     };
-    
+
     useEffect(() => {
         stopPolling();
 
@@ -837,7 +848,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         return () => stopPolling();
     }, [selectedAi?.id]);
 
-    
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -850,6 +861,14 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 setAiList(configs || []);
                 setAllUsers(users || []);
                 setAllSpaces(spaces || []);
+
+                // Set default space for regular users
+                if (!user.permissions?.includes('roles') && spaces && spaces.length > 0) {
+                    const userSpace = spaces.find(s => s.userId === user.id);
+                    if (userSpace) {
+                        setSpaceIdFilter(String(userSpace.id));
+                    }
+                }
 
                 if (configs && configs.length > 0) {
                     const firstAi = configs[0];
@@ -887,31 +906,31 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 setTrainedPairs(new Set());
             }
         };
-    
+
         const fetchConversations = () => {
             setIsChatHistoryLoading(true);
             setAllMessages([]);
             setDisplayedMessages([]);
             setTestConversationId(null);
             if (selectedAi && typeof selectedAi.id === 'number') {
-                apiService.getTestConversationsForAI(selectedAi.id,Number(user.id))
+                apiService.getTestConversationsForAI(selectedAi.id, Number(user.id))
                     .then((conversations: Conversation[]) => {
                         let fullHistory: Message[] = [];
                         let latestConversationId: number | null = null;
                         if (conversations && conversations.length > 0) {
                             fullHistory = conversations.flatMap(c => c.messages);
                             fullHistory.sort((a, b) => a.timestamp - b.timestamp);
-                            
-                            const latestConversation = conversations.sort((a,b) => b.startTime - a.startTime)[0];
+
+                            const latestConversation = conversations.sort((a, b) => b.startTime - a.startTime)[0];
                             if (latestConversation) {
                                 latestConversationId = latestConversation.id;
                             }
                         }
-                        
+
                         setTestConversationId(latestConversationId);
                         setAllMessages(fullHistory);
                         setDisplayedMessages(fullHistory.slice(-INITIAL_MESSAGES_COUNT));
-                        
+
                         setTimeout(() => {
                             const container = chatContainerRef.current;
                             if (container) container.scrollTop = container.scrollHeight;
@@ -925,10 +944,10 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         setIsChatHistoryLoading(false);
                     });
             } else {
-                 setIsChatHistoryLoading(false);
+                setIsChatHistoryLoading(false);
             }
         };
-        
+
         fetchTrainingDataForCurrentAI();
         fetchConversations();
     }, [selectedAi?.id, user.id, showToast]);
@@ -963,7 +982,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 setIsModelsLoading(false);
             }
         };
-        
+
         fetchModelsFromServer();
     }, [selectedAi?.id, selectedAi?.modelType, user.apiKeys, language, user.id, t.addKeyForProvider, t.modelLoadError]);
 
@@ -993,24 +1012,24 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             }
             setNewMessage(finalTranscript + interimTranscript);
         };
-        
+
         recognition.onend = () => {
             setIsRecording(false);
             textBeforeRecording.current = finalTranscript;
         };
-        
+
         recognition.onerror = (event: any) => {
             console.error('Speech recognition error:', event.error);
             setIsRecording(false);
         };
 
         recognitionRef.current = recognition;
-        
+
         return () => {
             recognition.stop();
         };
     }, [language]);
-    
+
     useEffect(() => {
         if (!selectedAi) {
             setEstimatedChars(null);
@@ -1027,7 +1046,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         const totalChars = systemChars + qaChars + fileChars + documentChars + historyChars + currentMessageChars;
 
         setEstimatedChars({ system: systemChars, qa: qaChars, file: fileChars, document: documentChars, history: historyChars, currentMessage: currentMessageChars, total: totalChars });
-        
+
     }, [newMessage, selectedAi, trainingData, allMessages]);
 
 
@@ -1037,7 +1056,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             if (displayedMessages.length < allMessages.length) {
                 setIsLoadingMore(true);
                 prevScrollHeightRef.current = container.scrollHeight;
-    
+
                 setTimeout(() => {
                     const newCount = displayedMessages.length + MESSAGE_BATCH_SIZE;
                     setDisplayedMessages(allMessages.slice(-newCount));
@@ -1045,7 +1064,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             }
         }
     };
-    
+
     const handleNavigationAttempt = (action: () => void) => {
         if (isFormDirty()) {
             if (window.confirm(t.unsavedChangesBody)) {
@@ -1070,7 +1089,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 showToast(t.addKeyForProvider.replace('{provider}', 'GEMINI'), 'error');
                 return;
             }
-    
+
             const newAi: AIConfig = {
                 id: `new-${Date.now()}`, name: t.newAi, nameEn: 'New AI', description: "", descriptionEn: "", avatarUrl: "", trainingContent: "", suggestedQuestions: [], suggestedQuestionsEn: [], tags: [], modelType: 'gemini', modelName: 'gemini-3-flash-preview', ownerId: user.id as number, isPublic: false, isTrialAllowed: false, requiresSubscription: false, maxOutputTokens: 8000, thinkingBudget: 2000, spaceId: (manageableSpaces[0]?.id as number) || null,
             };
@@ -1085,7 +1104,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         if (!selectedAi || isFormDisabled) return;
         const { name, value, type } = e.target;
-        
+
         let processedValue: any = value;
 
         if (type === 'checkbox') {
@@ -1097,18 +1116,18 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             const questions = value.split('\n');
             if (questions.length > 4) {
                 showToast(t.suggestedQuestionsLimit, 'error');
-                return; 
+                return;
             }
             processedValue = questions.filter(q => q.trim() !== '');
         } else if (name === 'spaceId') {
             processedValue = value === '' ? null : parseInt(value, 10);
         }
-    
+
         const updatedAi = { ...selectedAi, [name]: processedValue };
         if (name === 'modelType') {
             updatedAi.modelName = '';
         }
-        
+
         setSelectedAi(updatedAi);
     };
 
@@ -1131,7 +1150,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         setIsSaving(true);
         try {
             const isNew = typeof selectedAi.id === 'string' && selectedAi.id.startsWith('new-');
-    
+
             let savedAi: AIConfig;
             if (isNew) {
                 const { id, ...payload } = selectedAi;
@@ -1139,7 +1158,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             } else {
                 savedAi = await apiService.updateAiConfig(selectedAi as AIConfig);
             }
-    
+
             let newSources: TrainingDataSource[] = [];
             if (stagedFiles.length > 0) {
                 if (typeof savedAi.id === 'string') {
@@ -1155,7 +1174,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 newSources = await Promise.all(uploadPromises);
                 setIsUploading(false);
             }
-    
+
             if (isNew && allMessages.some(m => m.sender === 'user')) {
                 try {
                     await apiService.createConversation(savedAi.id, allMessages, user);
@@ -1164,19 +1183,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                     showToast("AI saved, but failed to save the test conversation.", 'error');
                 }
             }
-    
+
             setStagedFiles([]);
             setTrainingData(prev => [...prev, ...newSources]);
             setAiList(prevList => prevList.map(ai => ai.id === selectedAi.id ? savedAi : ai));
             setSelectedAi(savedAi);
             setPristineAi(savedAi);
-            
+
             if (isNew) {
                 setAllMessages([]);
                 setDisplayedMessages([]);
                 setTestConversationId(null);
             }
-    
+
             showToast(t.saveSuccess);
         } catch (error) {
             console.error("Lỗi khi lưu AI:", error);
@@ -1192,10 +1211,10 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         setAiToDelete(selectedAi);
         setIsDeleteConfirmModalOpen(true);
     };
-    
+
     const handleConfirmDelete = async () => {
         if (!aiToDelete || typeof aiToDelete.id !== 'number') return;
-    
+
         try {
             await apiService.deleteAiConfig(aiToDelete.id);
             const newList = aiList.filter(ai => ai.id !== aiToDelete.id);
@@ -1245,23 +1264,23 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault();
         if ((!newMessage.trim() && !imagePreview && !fileAttachment) || !selectedAi) return;
-        
+
         const userMessage: Message = { id: `msg-${Date.now()}`, text: newMessage, sender: 'user', timestamp: Date.now(), imageUrl: imagePreview || undefined, fileAttachment: fileAttachment || undefined };
         const updatedAllMessages = [...allMessages, userMessage];
-        
+
         const aiMessageId = `ai-${Date.now()}`;
         const newAiMessage: Message = { id: aiMessageId, text: '', sender: 'ai', timestamp: Date.now() };
 
         setAllMessages(prev => [...prev, userMessage, newAiMessage]);
         setDisplayedMessages(prev => [...prev, userMessage, newAiMessage]);
-        
+
         setNewMessage('');
         setImagePreview(null);
         setFileAttachment(null);
         setIsTyping(true);
-        
+
         let streamBuffer = '';
-        
+
         await apiService.sendMessageStream(selectedAi, updatedAllMessages, user, testConversationId, {
             onChunk: (chunk: string) => {
                 streamBuffer += chunk;
@@ -1269,10 +1288,10 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 const currentThought = thoughtMatch ? thoughtMatch[1].trim() : '';
                 const textWithoutThought = streamBuffer.replace(/<thought>[\s\S]*?<\/thought>/, '').trimStart();
 
-                const updateMessage = (messages: Message[]) => messages.map(msg => 
-                    msg.id === aiMessageId 
-                    ? { ...msg, text: textWithoutThought, thought: currentThought } 
-                    : msg
+                const updateMessage = (messages: Message[]) => messages.map(msg =>
+                    msg.id === aiMessageId
+                        ? { ...msg, text: textWithoutThought, thought: currentThought }
+                        : msg
                 );
                 setAllMessages(prev => updateMessage(prev));
                 setDisplayedMessages(prev => updateMessage(prev));
@@ -1282,19 +1301,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 if (newConversationId && testConversationId === null) {
                     setTestConversationId(newConversationId);
                 }
-                
+
                 if (finalMessage) {
-                    const updateFinalMessage = (messages: Message[]) => messages.map(msg => 
-                        msg.id === aiMessageId 
-                        ? { ...msg, text: finalMessage.text, thought: finalMessage.thought || undefined } 
-                        : msg
+                    const updateFinalMessage = (messages: Message[]) => messages.map(msg =>
+                        msg.id === aiMessageId
+                            ? { ...msg, text: finalMessage.text, thought: finalMessage.thought || undefined }
+                            : msg
                     );
                     setAllMessages(prev => updateFinalMessage(prev));
                     setDisplayedMessages(prev => updateFinalMessage(prev));
                 }
             },
             onError: (errorMsg: string) => {
-                 const updateMessage = (messages: Message[]) => messages.map(msg => msg.id === aiMessageId ? { ...msg, text: `Lỗi: ${errorMsg}` } : msg);
+                const updateMessage = (messages: Message[]) => messages.map(msg => msg.id === aiMessageId ? { ...msg, text: `Lỗi: ${errorMsg}` } : msg);
                 setAllMessages(prev => updateMessage(prev));
                 setDisplayedMessages(prev => updateMessage(prev));
                 setIsTyping(false);
@@ -1311,20 +1330,20 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
     const handleToggleTrainPair = async (aiMessage: Message) => {
         if (!selectedAi || typeof selectedAi.id !== 'number' || trainingPairIndex !== null) return;
-    
+
         const msgId = aiMessage.id;
         const actualIndex = allMessages.findIndex(m => m.id === msgId);
-        
+
         if (actualIndex < 1 || allMessages[actualIndex - 1].sender !== 'user') return;
-    
+
         const question = allMessages[actualIndex - 1].text.trim();
         const answer = aiMessage.text.trim();
         const thought = aiMessage.thought;
         const pairKey = `${question}|||${answer}`;
         const isAlreadyTrained = trainedPairs.has(pairKey);
-    
+
         setTrainingPairIndex(actualIndex);
-    
+
         if (isAlreadyTrained) {
             try {
                 await apiService.deleteTrainingQaDataSource(Number(selectedAi.id), question, answer);
@@ -1347,7 +1366,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 showToast(t.trainRequestFailed.replace('{error}', (error as Error).message), 'error');
             }
         }
-    
+
         setTrainingPairIndex(null);
     };
 
@@ -1373,24 +1392,24 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         const filesToSummarize = trainingData.filter(
             d => d.type === 'file' && !d.summary && typeof d.id === 'number' && !isQaFile(d.fileName)
         );
-    
+
         if (filesToSummarize.length === 0) {
             showToast(t.noFilesToSummarize, 'info');
             return;
         }
-    
+
         setIsSummarizingAll(true);
         showToast(`Bắt đầu tóm tắt ${filesToSummarize.length} file...`, 'info');
-    
+
         let successCount = 0;
         let failureCount = 0;
         const newTrainingData = [...trainingData];
-    
+
         for (const file of filesToSummarize) {
             try {
                 setSummarizingId(file.id as number);
                 const updatedSource = await apiService.generateSummaryForDataSource(file.id as number);
-                
+
                 const index = newTrainingData.findIndex(d => d.id === file.id);
                 if (index !== -1) {
                     newTrainingData[index] = updatedSource;
@@ -1406,13 +1425,13 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         }
 
         setTrainingData(newTrainingData);
-    
+
         if (failureCount > 0) {
             showToast(`Hoàn tất! Tóm tắt thành công ${successCount} file, thất bại ${failureCount} file.`, 'error');
         } else {
             showToast(`Tóm tắt thành công ${successCount} file!`, 'success');
         }
-    
+
         setIsSummarizingAll(false);
     };
 
@@ -1422,7 +1441,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         if (deletingIds.has(id)) {
             return;
         }
-    
+
         setDeletingIds(prev => new Set(prev).add(id));
         try {
             await apiService.deleteTrainingDataSource(id);
@@ -1439,10 +1458,10 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             });
         }
     };
-    
+
     const handleDeleteLinkedDocument = async (documentId: number) => {
         if (!selectedAi || typeof selectedAi.id !== 'number' || typeof documentId !== 'number') return;
-        
+
         const internalId = -documentId;
         setDeletingIds(prev => new Set(prev).add(internalId));
         try {
@@ -1468,7 +1487,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             reader.readAsDataURL(e.target.files[0]);
         }
     };
-    
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || !selectedAi || isFormDisabled) return;
         const file = e.target.files[0];
@@ -1487,9 +1506,9 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
         formData.append('type', 'file');
 
         setIsUploading(true);
-        
+
         // Timeout promise to reject if upload takes too long (e.g. 60s)
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Upload timed out')), 60000)
         );
 
@@ -1508,19 +1527,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                 setTrainingData(prev => [res, ...prev]);
                 showToast(t.addedToTraining, 'success');
             }
-        } catch (error: any) { 
+        } catch (error: any) {
             console.error("Upload error:", error);
             if (error.message === 'Upload timed out') {
                 showToast(t.uploadTimeout || 'File upload timed out.', 'error');
             } else {
-                showToast(t.uploadError, 'error'); 
+                showToast(t.uploadError, 'error');
             }
-        } finally { 
+        } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
-    
+
     const handleManualQASubmit = async () => {
         if (!selectedAi || typeof selectedAi.id !== 'number' || !manualQA.question.trim() || !manualQA.answer.trim()) return;
         setIsSaving(true);
@@ -1540,13 +1559,13 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
     const handleSubmitToKoii = useCallback(async () => {
         if (!selectedAi || typeof selectedAi.id !== 'number') return;
-        
+
         setIsSubmittingToKoii(true);
         try {
             await apiService.submitKoiiTask(selectedAi.id);
             showToast(t.syncQueued, 'info');
             setKoiiTaskStatus({ status: 'pending', updatedAt: new Date().toISOString() });
-            
+
             stopPolling();
             pollingIntervalRef.current = window.setInterval(async () => {
                 try {
@@ -1567,16 +1586,16 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
             setIsSubmittingToKoii(false);
         }
     }, [selectedAi, showToast, t.syncQueued]);
-    
+
     const handleRemoveStagedFile = (indexToRemove: number) => {
         setStagedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
     };
 
     const handleAddTag = () => { if (!selectedAi || isFormDisabled || !tagInput.trim()) return; setSelectedAi(prev => prev ? { ...prev, tags: [...prev.tags, tagInput.trim()] } : null); setTagInput(''); };
     const handleRemoveTag = (tag: string) => setSelectedAi(prev => prev ? { ...prev, tags: prev.tags.filter(t => t !== tag) } : null);
-    
+
     const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } };
-    
+
     const handleToggleRecording = () => {
         const recognition = recognitionRef.current;
         if (!recognition) {
@@ -1643,8 +1662,22 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                     <h2 className="text-lg font-semibold">{t.aiList}</h2>
                     <button onClick={handleAddNewAi} className="px-3 py-1.5 text-sm font-medium text-text-on-primary bg-primary rounded-md hover:bg-primary-hover">+</button>
                 </div>
+                {manageableSpaces.length > 0 && (
+                    <div className="p-3 border-b border-border-color">
+                        <select
+                            value={spaceIdFilter}
+                            onChange={(e) => setSpaceIdFilter(e.target.value)}
+                            className="w-full p-2 border border-border-color rounded-md text-sm"
+                        >
+                            {isSuperAdmin && <option value="">Tất cả không gian</option>}
+                            {manageableSpaces.map(space => (
+                                <option key={space.id} value={space.id}>{space.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 <div className="flex-1 overflow-y-auto">
-                    {aiList.sort((a, b) => a.name.localeCompare(b.name)).map(ai => (
+                    {filteredAiList.sort((a, b) => a.name.localeCompare(b.name)).map(ai => (
                         <div key={ai.id} onClick={() => handleSelectAi(ai)} className={`flex items-start p-3 cursor-pointer hover:bg-background-light border-b border-border-color ${selectedAi?.id === ai.id ? 'bg-primary-light' : 'hover:bg-background-light'}`}>
                             <img src={ai.avatarUrl} alt={ai.name} className="w-10 h-10 rounded-full mr-3 flex-shrink-0 object-cover" />
                             <div className="flex-grow overflow-hidden">
@@ -1670,7 +1703,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                     <div className={`border-r border-border-color relative flex flex-col h-full transition-all duration-300 ease-in-out ${isChatExpanded ? 'w-1/3' : 'w-3/5'}`}>
                         {isApiKeyMissing && <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-10 flex items-center justify-center"><p className="p-4 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-200">{t.addKeyForProvider.replace('{provider}', selectedAi.modelType.toUpperCase())}</p></div>}
                         {(!canEdit && !isApiKeyMissing) && <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-10 flex items-center justify-center"><p className="p-4 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-200">{t.readOnly}</p></div>}
-                        
+
                         <div className="flex-grow overflow-y-auto p-6">
                             <div className="flex items-start space-x-6">
                                 <div className="flex-shrink-0 flex flex-col items-center space-y-2">
@@ -1707,12 +1740,13 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="border-b border-border-color my-6">
                                 <nav className="-mb-px flex space-x-6">
                                     <button onClick={() => setActiveTab('configuration')} className={`py-3 px-1 font-semibold border-b-2 ${activeTab === 'configuration' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.tabConfiguration}</button>
                                     <button onClick={() => setActiveTab('training')} className={`py-3 px-1 font-semibold border-b-2 ${activeTab === 'training' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.tabTraining}</button>
                                     <button onClick={() => setActiveTab('tags')} className={`py-3 px-1 font-semibold border-b-2 ${activeTab === 'tags' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.tabTagsAndSuggestions}</button>
+                                    <button onClick={() => setActiveTab('api')} className={`py-3 px-1 font-semibold border-b-2 ${activeTab === 'api' ? 'border-primary text-primary' : 'border-transparent text-text-light hover:text-text-main'}`}>{t.apiEndpoint}</button>
                                 </nav>
                             </div>
 
@@ -1748,13 +1782,13 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                             <>
                                                 <div>
                                                     <label className="block text-sm font-medium text-text-main">{t.maxOutputTokensLabel}</label>
-                                                    <input type="number" name="maxOutputTokens" value={selectedAi.maxOutputTokens ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses} placeholder="e.g. 4096"/>
+                                                    <input type="number" name="maxOutputTokens" value={selectedAi.maxOutputTokens ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses} placeholder="e.g. 4096" />
                                                     <p className="text-xs text-text-light mt-1">{t.maxOutputTokensDesc}</p>
                                                 </div>
                                                 {(selectedAi.modelType === 'gemini' || selectedAi.modelType === 'vertex') && (
                                                     <div>
                                                         <label className="block text-sm font-medium text-text-main">{t.thinkingBudgetLabel}</label>
-                                                        <input type="number" name="thinkingBudget" value={selectedAi.thinkingBudget ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses} placeholder="e.g. 2000"/>
+                                                        <input type="number" name="thinkingBudget" value={selectedAi.thinkingBudget ?? ''} onChange={handleInputChange} disabled={isFormDisabled} className={inputClasses} placeholder="e.g. 2000" />
                                                         <p className="text-xs text-text-light mt-1">{t.thinkingBudgetDesc}</p>
                                                     </div>
                                                 )}
@@ -1774,19 +1808,19 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                         <h3 className="font-bold text-lg text-[#991b1b]">{t.trainingDataSources}</h3>
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => fileInputRef.current?.click()} disabled={isUploading || isFormDisabled} className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#dcd5bc] bg-white rounded-full hover:bg-white/50 disabled:opacity-50">
-                                                {isUploading ? <SpinnerIcon className="w-4 h-4 animate-spin"/> : <PaperclipIcon className="w-4 h-4"/>}
+                                                {isUploading ? <SpinnerIcon className="w-4 h-4 animate-spin" /> : <PaperclipIcon className="w-4 h-4" />}
                                                 {t.uploadFile}
                                             </button>
                                             <div className="relative">
                                                 <button onClick={() => setIsManualQAOpen(p => !p)} disabled={isFormDisabled} className="flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#dcd5bc] bg-white rounded-full hover:bg-white/50 disabled:opacity-50">
-                                                    <PlusIcon className="w-4 h-4"/>
+                                                    <PlusIcon className="w-4 h-4" />
                                                     {t.manualInput}
                                                 </button>
                                                 {isManualQAOpen && (
                                                     <div className="absolute top-full right-0 mt-2 w-96 bg-white border border-[#dcd5bc] rounded-xl shadow-2xl z-50 p-4 animate-fade-in">
                                                         <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Nhập tay Q&A</p>
-                                                        <input placeholder="Câu hỏi..." className="w-full p-2.5 text-base border border-border-color rounded-md mb-2" value={manualQA.question} onChange={e => setManualQA(p => ({...p, question: e.target.value}))}/>
-                                                        <textarea placeholder="Câu trả lời..." className="w-full p-2.5 text-base border border-border-color rounded-md mb-2" rows={5} value={manualQA.answer} onChange={e => setManualQA(p => ({...p, answer: e.target.value}))}/>
+                                                        <input placeholder="Câu hỏi..." className="w-full p-2.5 text-base border border-border-color rounded-md mb-2" value={manualQA.question} onChange={e => setManualQA(p => ({ ...p, question: e.target.value }))} />
+                                                        <textarea placeholder="Câu trả lời..." className="w-full p-2.5 text-base border border-border-color rounded-md mb-2" rows={5} value={manualQA.answer} onChange={e => setManualQA(p => ({ ...p, answer: e.target.value }))} />
                                                         <button onClick={handleManualQASubmit} disabled={isSaving} className="w-full py-2 bg-[#991b1b] text-white rounded-lg text-sm font-bold disabled:opacity-50">
                                                             {isSaving ? t.saving : t.save}
                                                         </button>
@@ -1806,7 +1840,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                     <div>
                                         <div className="flex items-center justify-between"><label className="block text-sm font-medium text-text-main">{t.additionalTrainingContent}</label><button onClick={() => setIsQaModalOpen(true)} title={t.expand} className="p-1 text-text-light hover:text-primary"><ExpandIcon className="w-4 h-4" /></button></div>
                                         <div className="mt-1 block w-full p-2 bg-background-panel border border-border-color rounded-md shadow-sm h-48 overflow-y-auto space-y-2">
-                                            {qaTrainingData.length > 0 ? ( qaTrainingData.map(item => (<div key={item.id} className="group relative p-2 bg-background-light rounded-md text-sm flex items-start gap-2"><div className="mt-1.5">{getStatusIcon(item)}</div><div className="flex-1"><p><strong className="font-semibold text-primary-text">{t.question}:</strong> {item.question}</p><p><strong className="font-semibold text-primary-text">{t.answer}:</strong> {item.answer}</p>{item.thought && (<div className="mt-2 text-xs text-gray-600 border-t border-gray-200 pt-1 italic"><strong>{t.aiThought}:</strong> {item.thought}</div>)}</div>{!isFormDisabled && <button onClick={() => handleDeleteTrainingData(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="absolute top-1 right-1 p-0.5 rounded-full bg-gray-300 text-white opacity-0 group-hover:opacity-100 hover:bg-accent-red disabled:opacity-50">&times;</button>}</div>))) : (<div className="flex items-center justify-center h-full text-center text-xs text-text-light">{t.noQA}</div>)}
+                                            {qaTrainingData.length > 0 ? (qaTrainingData.map(item => (<div key={item.id} className="group relative p-2 bg-background-light rounded-md text-sm flex items-start gap-2"><div className="mt-1.5">{getStatusIcon(item)}</div><div className="flex-1"><p><strong className="font-semibold text-primary-text">{t.question}:</strong> {item.question}</p><p><strong className="font-semibold text-primary-text">{t.answer}:</strong> {item.answer}</p>{item.thought && (<div className="mt-2 text-xs text-gray-600 border-t border-gray-200 pt-1 italic"><strong>{t.aiThought}:</strong> {item.thought}</div>)}</div>{!isFormDisabled && <button onClick={() => handleDeleteTrainingData(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="absolute top-1 right-1 p-0.5 rounded-full bg-gray-300 text-white opacity-0 group-hover:opacity-100 hover:bg-accent-red disabled:opacity-50">&times;</button>}</div>))) : (<div className="flex items-center justify-center h-full text-center text-xs text-text-light">{t.noQA}</div>)}
                                         </div>
                                     </div>
                                     <div>
@@ -1814,12 +1848,12 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                         <div className="border border-border-color rounded-lg p-2 h-40 flex flex-col mt-1">
                                             <div className="flex-grow min-h-0 overflow-y-auto space-y-1 pr-1">
                                                 {stagedFiles.map((file, index) => (<div key={index} className="flex justify-between items-center bg-blue-50 border border-blue-200 px-2 py-1 rounded-md text-sm"><span className="text-blue-800 truncate" title={file.name}>{file.name}</span><div className='flex items-center'><span className="text-xs text-blue-600 mr-2">{t.pendingUpload}</span><button onClick={() => handleRemoveStagedFile(index)} className="text-blue-700 hover:text-accent-red-hover flex-shrink-0 text-lg leading-none">&times;</button></div></div>))}
-                                                {fileTrainingData.map((item) => (<div key={item.id} className="flex flex-col items-start bg-background-light px-2 py-2 rounded-md text-sm group"><div className="flex justify-between items-center w-full"><div className="flex items-center gap-2 flex-1 overflow-hidden">{getStatusIcon(item)}<a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate font-medium" title={item.fileName}>{item.fileName}</a>{!item.summary && !isQaFile(item.fileName) && (<div className="text-yellow-500 cursor-help" title={t.largeFileWarning}><InfoIcon className="w-4 h-4" /></div>)}</div>{!isFormDisabled && (<button onClick={() => handleDeleteTrainingData(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="ml-2 text-text-light hover:text-accent-red flex-shrink-0 leading-none disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity" title={t.delete}><TrashIcon className="w-4 h-4"/></button>)}</div>{item.summary ? (<div className="mt-2 pt-2 border-t border-border-color w-full"><p className="text-xs font-semibold text-text-light mb-1">{t.aiSummary}</p><p className="text-xs text-gray-600 italic">{item.summary.length > 100 ? `${item.summary.substring(0, 100)}...` : item.summary}</p></div>) : (typeof item.id === 'number' && !isFormDisabled && !isQaFile(item.fileName) && (<div className="mt-2 pt-2 border-t border-border-color w-full"><button onClick={() => handleGenerateSummary(item.id as number)} disabled={summarizingId === item.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait">{summarizingId === item.id ? t.generatingSummary : t.generateSummary}</button></div>))}</div>))}
+                                                {fileTrainingData.map((item) => (<div key={item.id} className="flex flex-col items-start bg-background-light px-2 py-2 rounded-md text-sm group"><div className="flex justify-between items-center w-full"><div className="flex items-center gap-2 flex-1 overflow-hidden">{getStatusIcon(item)}<a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate font-medium" title={item.fileName}>{item.fileName}</a>{!item.summary && !isQaFile(item.fileName) && (<div className="text-yellow-500 cursor-help" title={t.largeFileWarning}><InfoIcon className="w-4 h-4" /></div>)}</div>{!isFormDisabled && (<button onClick={() => handleDeleteTrainingData(item.id)} disabled={typeof item.id === 'number' && deletingIds.has(item.id)} className="ml-2 text-text-light hover:text-accent-red flex-shrink-0 leading-none disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity" title={t.delete}><TrashIcon className="w-4 h-4" /></button>)}</div>{item.summary ? (<div className="mt-2 pt-2 border-t border-border-color w-full"><p className="text-xs font-semibold text-text-light mb-1">{t.aiSummary}</p><p className="text-xs text-gray-600 italic">{item.summary.length > 100 ? `${item.summary.substring(0, 100)}...` : item.summary}</p></div>) : (typeof item.id === 'number' && !isFormDisabled && !isQaFile(item.fileName) && (<div className="mt-2 pt-2 border-t border-border-color w-full"><button onClick={() => handleGenerateSummary(item.id as number)} disabled={summarizingId === item.id} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-wait">{summarizingId === item.id ? t.generatingSummary : t.generateSummary}</button></div>))}</div>))}
                                                 {fileTrainingData.length === 0 && stagedFiles.length === 0 && <div className="flex items-center justify-center h-full"><p className="text-xs text-center text-text-light">{t.noFiles}</p></div>}
                                             </div>
                                         </div>
                                     </div>
-                                     {documentTrainingData.length > 0 && (
+                                    {documentTrainingData.length > 0 && (
                                         <div>
                                             <label className="block text-sm font-medium text-text-main">{t.linkedDocuments}</label>
                                             <div className="border border-border-color rounded-lg p-2 h-40 flex flex-col mt-1">
@@ -1827,12 +1861,12 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                                     {documentTrainingData.map(item => (
                                                         <div key={`doc-${item.documentId}`} className="flex justify-between items-center bg-green-50 px-2 py-1 rounded-md text-sm group">
                                                             <div className="flex items-center gap-2 flex-1 overflow-hidden">
-                                                                <BookOpenIcon className="w-4 h-4 text-green-700 flex-shrink-0"/>
+                                                                <BookOpenIcon className="w-4 h-4 text-green-700 flex-shrink-0" />
                                                                 <span className="text-green-800 truncate font-medium" title={item.documentName}>{item.documentName}</span>
                                                             </div>
                                                             {!isFormDisabled && (
-                                                                <button 
-                                                                    onClick={() => handleDeleteLinkedDocument(item.documentId!)} 
+                                                                <button
+                                                                    onClick={() => handleDeleteLinkedDocument(item.documentId!)}
                                                                     disabled={deletingIds.has(-item.documentId!)}
                                                                     className="ml-2 text-text-light hover:text-accent-red flex-shrink-0 leading-none disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                     title={t.delete}
@@ -1849,7 +1883,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                 </div>
                             )}
 
-                             {activeTab === 'tags' && (
+                            {activeTab === 'tags' && (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div>
@@ -1879,9 +1913,66 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                 </div>
                             )}
 
+                            {activeTab === 'api' && (
+                                <div className="space-y-6">
+                                    <p className="text-sm text-text-light">{t.apiEndpointDesc}</p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-main">{t.endpointUrl}</label>
+                                        <div className="mt-1 flex rounded-md shadow-sm">
+                                            <input type="text" readOnly value={`${window.location.origin}/api/v1/chat`} className="flex-1 block w-full rounded-md px-3 py-2 bg-gray-100 border-border-color text-text-light" />
+                                            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/api/v1/chat`); showToast(t.copied, 'success'); }} className="ml-2 px-4 py-2 border border-border-color rounded-md text-sm font-medium text-text-main bg-white hover:bg-gray-50">{t.copy}</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-main">API Token ({isSuperAdmin ? 'Admin' : t.owner})</label>
+                                        <div className="mt-1 flex rounded-md shadow-sm">
+                                            <input type="password" readOnly value={user.apiToken || ''} className="flex-1 block w-full rounded-md px-3 py-2 bg-gray-100 border-border-color text-text-light" />
+                                            <button onClick={() => { navigator.clipboard.writeText(user.apiToken || ''); showToast(t.copied, 'success'); }} className="ml-2 px-4 py-2 border border-border-color rounded-md text-sm font-medium text-text-main bg-white hover:bg-gray-50">{t.copy}</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-main mb-2">{language === 'vi' ? 'Yêu cầu (Request)' : 'Request'}</label>
+                                        <pre className="p-3 bg-gray-900 text-gray-100 rounded-md text-xs overflow-x-auto font-mono">
+                                            {language === 'vi' ? `POST /api/v1/chat
+Content-Type: application/json
+Authorization: Bearer ${(user.apiToken || 'YOUR_API_TOKEN')}
+
+{
+  "aiConfigId": ${selectedAi.id},
+  "message": "Xin chào!",
+  "language": "vi"
+}` : `POST /api/v1/chat
+Content-Type: application/json
+Authorization: Bearer ${(user.apiToken || 'YOUR_API_TOKEN')}
+
+{
+  "aiConfigId": ${selectedAi.id},
+  "message": "Hello!",
+  "language": "en"
+}`}
+                                        </pre>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-main mb-2">{language === 'vi' ? 'Phản hồi (Response)' : 'Response'}</label>
+                                        <pre className="p-3 bg-gray-900 text-green-400 rounded-md text-xs overflow-x-auto font-mono">
+                                            {language === 'vi' ? `{
+  "message": "Xin chào! Tôi có thể giúp gì cho bạn?"
+}` : `{
+  "message": "Hello! How can I help you?"
+}`}
+                                        </pre>
+                                        <p className="mt-2 text-xs text-text-light whitespace-pre-line">
+                                            {language === 'vi'
+                                                ? '• message: Nội dung tin nhắn (bắt buộc)\n• language: "vi" hoặc "en" (mặc định: "vi")\n• Phản hồi: JSON thuần (không streaming)'
+                                                : '• message: Message content (required)\n• language: "vi" or "en" (default: "vi")\n• Response: Plain JSON (non-streaming)'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
 
-                         <div className="flex-shrink-0 p-4 border-t border-border-color bg-background-content space-y-4">
+                        <div className="flex-shrink-0 p-4 border-t border-border-color bg-background-content space-y-4">
                             <div className="flex flex-col lg:flex-row gap-6">
                                 <div className="lg:w-1/2">
                                     <KoiiTaskStatusDisplay status={koiiTaskStatus} language={language} />
@@ -1907,7 +1998,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                             </div>
                             <div className="flex justify-between items-center">
                                 <div className="space-y-2">
-                                     <div>
+                                    <div>
                                         <label className="flex items-center"><input type="checkbox" name="isTrialAllowed" checked={selectedAi.isTrialAllowed} onChange={handleInputChange} disabled={isFormDisabled} className="w-4 h-4 text-primary bg-background-panel border-border-color rounded focus:ring-primary disabled:cursor-not-allowed" /><span className="ml-3 text-sm font-medium text-text-main">{t.trialAllowed}</span></label>
                                         <p className="text-xs text-text-light ml-7">{t.trialAllowedDesc}</p>
                                     </div>
@@ -1920,9 +2011,9 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                 </div>
                                 <div className="flex items-center space-x-3">
                                     <button onClick={handleSubmitToKoii} disabled={isSubmittingToKoii || ['pending', 'processing'].includes(koiiTaskStatus?.status || '') || isFormDisabled || isFormDirty()}
-                                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-md disabled:opacity-50"
-                                            title={isFormDirty() ? t.unsavedChangesBody : undefined}>
-                                        <KoiiIcon className="w-5 h-5"/>
+                                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-md disabled:opacity-50"
+                                        title={isFormDirty() ? t.unsavedChangesBody : undefined}>
+                                        <KoiiIcon className="w-5 h-5" />
                                         {isSubmittingToKoii ? t.syncing : t.submitToKoii}
                                     </button>
                                     {canEdit && typeof selectedAi.id === 'number' && (
@@ -1959,47 +2050,48 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                                         const isAlreadyTrained = pairKey ? trainedPairs.has(pairKey) : false;
 
                                         return (
-                                        <div key={msg.id || index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`p-3 rounded-lg max-w-lg ${msg.sender === 'user' ? 'bg-primary text-white' : 'bg-white shadow-sm'}`}>
-                                                <div className="markdown-content whitespace-pre-wrap"><ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown></div>
-                                                {msg.sender === 'ai' && msg.thought && (
-                                                    <details className="mt-2 text-xs">
-                                                        <summary className="cursor-pointer font-semibold">{t.aiThought}</summary>
-                                                        <pre className="mt-1 p-2 bg-gray-100 rounded text-gray-600 whitespace-pre-wrap font-sans">{msg.thought}</pre>
-                                                    </details>
-                                                )}
-                                                {msg.sender === 'ai' && pairKey && (
-                                                     <div className="mt-2 text-right">
-                                                         <button 
-                                                             onClick={() => handleToggleTrainPair(msg)}
-                                                             disabled={trainingPairIndex !== null}
-                                                             className={`px-2 py-1 text-xs rounded ${isAlreadyTrained ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
-                                                         >
-                                                             {trainingPairIndex === allMessagesIndex ? t.trainingPair : isAlreadyTrained ? t.untrainPair : t.addToTraining}
-                                                         </button>
-                                                     </div>
-                                                )}
+                                            <div key={msg.id || index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`p-3 rounded-lg max-w-lg ${msg.sender === 'user' ? 'bg-primary text-white' : 'bg-white shadow-sm'}`}>
+                                                    <div className="markdown-content whitespace-pre-wrap"><ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown></div>
+                                                    {msg.sender === 'ai' && msg.thought && (
+                                                        <details className="mt-2 text-xs">
+                                                            <summary className="cursor-pointer font-semibold">{t.aiThought}</summary>
+                                                            <pre className="mt-1 p-2 bg-gray-100 rounded text-gray-600 whitespace-pre-wrap font-sans">{msg.thought}</pre>
+                                                        </details>
+                                                    )}
+                                                    {msg.sender === 'ai' && pairKey && (
+                                                        <div className="mt-2 text-right">
+                                                            <button
+                                                                onClick={() => handleToggleTrainPair(msg)}
+                                                                disabled={trainingPairIndex !== null}
+                                                                className={`px-2 py-1 text-xs rounded ${isAlreadyTrained ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
+                                                            >
+                                                                {trainingPairIndex === allMessagesIndex ? t.trainingPair : isAlreadyTrained ? t.untrainPair : t.addToTraining}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )})}
+                                        )
+                                    })}
                                     {isTyping && <div className="flex justify-start"><div className="p-3 rounded-lg bg-white shadow-sm"><div className="typing-indicator"><span></span><span></span><span></span></div></div></div>}
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
-                        
-                         <div className="flex-shrink-0 p-4 border-t border-l border-border-color bg-background-panel">
+
+                        <div className="flex-shrink-0 p-4 border-t border-l border-border-color bg-background-panel">
                             <form onSubmit={handleSendMessage} className="relative">
-                                {imagePreview && ( <div className="image-preview-container"><img src={imagePreview} alt="Preview" className="image-preview-thumb" /><button type="button" onClick={() => setImagePreview(null)} className="image-preview-remove-btn">&times;</button></div>)}
-                                {fileAttachment && ( <div className="image-preview-container"><div className="file-preview-thumb"><PaperclipIcon className="w-8 h-8 text-text-light" /><span className="text-xs text-text-light truncate">{fileAttachment.name}</span></div><button type="button" onClick={() => setFileAttachment(null)} className="image-preview-remove-btn">&times;</button></div>)}
+                                {imagePreview && (<div className="image-preview-container"><img src={imagePreview} alt="Preview" className="image-preview-thumb" /><button type="button" onClick={() => setImagePreview(null)} className="image-preview-remove-btn">&times;</button></div>)}
+                                {fileAttachment && (<div className="image-preview-container"><div className="file-preview-thumb"><PaperclipIcon className="w-8 h-8 text-text-light" /><span className="text-xs text-text-light truncate">{fileAttachment.name}</span></div><button type="button" onClick={() => setFileAttachment(null)} className="image-preview-remove-btn">&times;</button></div>)}
                                 <div className="chat-input-wrapper">
-                                    <button onClick={() => testChatFileInputRef.current?.click()} type="button" disabled={isFormDisabled} className="chat-input-icon-btn"><PaperclipIcon className="w-5 h-5"/></button>
-                                    <textarea ref={textareaRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleTextareaKeyDown} placeholder={placeholderText} disabled={isFormDisabled || isTyping} className="chat-input-field" rows={1}/>
+                                    <button onClick={() => testChatFileInputRef.current?.click()} type="button" disabled={isFormDisabled} className="chat-input-icon-btn"><PaperclipIcon className="w-5 h-5" /></button>
+                                    <textarea ref={textareaRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleTextareaKeyDown} placeholder={placeholderText} disabled={isFormDisabled || isTyping} className="chat-input-field" rows={1} />
                                     <button onClick={handleToggleRecording} type="button" disabled={isFormDisabled} className={`chat-input-icon-btn ${isRecording ? 'text-accent-red' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg></button>
                                     <button type="submit" disabled={isTyping || (!newMessage.trim() && !imagePreview && !fileAttachment) || isFormDisabled} className="chat-send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11Z"></path></svg></button>
                                 </div>
                             </form>
-                            <input ref={testChatFileInputRef} type="file" className="hidden" accept="image/*,.doc,.docx,.pdf,.txt" onChange={handleTestChatFileSelect}/>
+                            <input ref={testChatFileInputRef} type="file" className="hidden" accept="image/*,.doc,.docx,.pdf,.txt" onChange={handleTestChatFileSelect} />
                         </div>
                     </div>
                 </div>
@@ -2009,7 +2101,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
 
             {selectedAi && (
                 <>
-                    <TrainingDataModal 
+                    <TrainingDataModal
                         isOpen={isQaModalOpen}
                         onClose={() => setIsQaModalOpen(false)}
                         title={`${t.qaDataFor} ${selectedAi.name}`}
@@ -2021,7 +2113,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         type="qa"
                         getStatusIcon={getStatusIcon}
                     />
-                    <TrainingDataModal 
+                    <TrainingDataModal
                         isOpen={isTrainingDataModalOpen}
                         onClose={() => setIsTrainingDataModalOpen(false)}
                         title={t.manageTrainingFiles}
@@ -2042,7 +2134,7 @@ export const AiManagement: React.FC<{ language: 'vi' | 'en', user: User }> = ({ 
                         isSummarizingAll={isSummarizingAll}
                         filesNeedingSummaryCount={filesNeedingSummaryCount}
                     />
-                     <SelectDocumentModal
+                    <SelectDocumentModal
                         isOpen={isDocModalOpen}
                         onClose={() => setIsDocModalOpen(false)}
                         onAdd={(newDocs) => {

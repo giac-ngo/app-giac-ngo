@@ -45,6 +45,7 @@ const translations = {
             'finetune': 'Fine-tune Dữ liệu',
             'settings': 'Cài đặt',
             'comments': 'Quản lý Bình luận',
+            'meditation': 'Quản lý Thiền',
         }
     },
     en: {
@@ -74,6 +75,7 @@ const translations = {
             'files': 'Files & Documents',
             'spaces': 'Space Management',
             'dharma-talks': 'Dharma Talk Management',
+            'meditation': 'Meditation Management',
             'ai': 'AI Management',
             'users': 'User Management',
             'roles': 'Permissions',
@@ -92,9 +94,9 @@ const translations = {
 
 type PermissionKey = keyof typeof translations['vi']['permissionLabels'];
 
-const permissionGroups: { titleKey: keyof Omit<typeof translations['vi'], 'permissionLabels' | 'title' | 'loading' | 'roleList' | 'newRole' | 'noRoleSelected' | 'roleName' | 'permissions' | 'save' | 'saving' | 'delete' | 'confirmDelete' | 'saveSuccess' | 'saveError' | 'deleteSuccess' | 'deleteError' | 'fetchError'>; icon: React.FC<{className?: string}>; permissions: PermissionKey[] }[] = [
+const permissionGroups: { titleKey: keyof Omit<typeof translations['vi'], 'permissionLabels' | 'title' | 'loading' | 'roleList' | 'newRole' | 'noRoleSelected' | 'roleName' | 'permissions' | 'save' | 'saving' | 'delete' | 'confirmDelete' | 'saveSuccess' | 'saveError' | 'deleteSuccess' | 'deleteError' | 'fetchError'>; icon: React.FC<{ className?: string }>; permissions: PermissionKey[] }[] = [
     { titleKey: 'groupSystem', icon: SettingsIcon, permissions: ['dashboard', 'settings', 'templates'] },
-    { titleKey: 'groupContent', icon: BookOpenIcon, permissions: ['files', 'spaces', 'dharma-talks', 'comments'] },
+    { titleKey: 'groupContent', icon: BookOpenIcon, permissions: ['files', 'spaces', 'dharma-talks', 'comments', 'meditation'] },
     { titleKey: 'groupAi', icon: AiIcon, permissions: ['ai', 'conversations', 'finetune'] },
     { titleKey: 'groupUsers', icon: UsersIcon, permissions: ['users', 'roles'] },
     { titleKey: 'groupFinance', icon: BillingIcon, permissions: ['pricing', 'user-billing', 'space-billing', 'manual-billing'] },
@@ -134,7 +136,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
             setSelectedRole({ ...selectedRole, [field]: value });
         }
     };
-    
+
     const handlePermissionChange = (permission: string) => {
         if (selectedRole) {
             const currentPermissions = selectedRole.permissions || [];
@@ -144,7 +146,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
             handleFormChange('permissions', newPermissions);
         }
     };
-    
+
     const handleSave = async () => {
         if (!selectedRole || !selectedRole.name?.trim()) return;
         setIsSaving(true);
@@ -165,7 +167,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
             setIsSaving(false);
         }
     };
-    
+
     const handleDelete = async () => {
         if (!selectedRole || selectedRole.id === 'new') return;
         if (window.confirm(t.confirmDelete.replace('{name}', selectedRole.name || ''))) {
@@ -191,7 +193,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
             <span className="text-sm text-text-main">{t.permissionLabels[permissionKey]}</span>
         </label>
     );
-    
+
     return (
         <div className="flex h-full bg-background-light">
             <aside className="w-80 border-r border-border-color bg-background-panel flex flex-col h-full">
@@ -200,7 +202,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
                     <button onClick={handleNewRole} className="px-3 py-1 text-sm bg-primary text-text-on-primary rounded-md hover:bg-primary-hover">{t.newRole}</button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                     {isLoading ? <p className="p-4">{t.loading}</p> : (
+                    {isLoading ? <p className="p-4">{t.loading}</p> : (
                         <ul>
                             {roles.map(role => (
                                 <li key={role.id}>
@@ -215,7 +217,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
             </aside>
 
             <main className="bg-background-panel flex-1 overflow-y-auto p-8">
-                 {selectedRole ? (
+                {selectedRole ? (
                     <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-text-main">{t.roleName}</label>
@@ -228,7 +230,7 @@ export const RoleManagement: React.FC<{ language: 'vi' | 'en' }> = ({ language }
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-text-main mb-2">{t.permissions}</label>
-                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {permissionGroups.map((group) => {
                                     const Icon = group.icon;
                                     return (

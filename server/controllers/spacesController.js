@@ -1,5 +1,6 @@
 // server/controllers/spacesController.js
 import { spaceModel } from '../models/space.model.js';
+import { isAdmin } from '../middleware/authMiddleware.js';
 
 // Add a local helper function to sanitize user data before sending it to the client.
 const mapAndSanitizeUser = (user) => {
@@ -12,6 +13,11 @@ export const spacesController = {
     async getAllSpaces(req, res) {
         try {
             const spaces = await spaceModel.findAll();
+
+            if (req.user && !isAdmin(req.user)) {
+                const mySpaces = spaces.filter(space => space.userId === req.user.id);
+                return res.json(mySpaces);
+            }
             res.json(spaces);
         } catch (error) {
             console.error('Error fetching spaces:', error);
@@ -63,7 +69,7 @@ export const spacesController = {
             } else if (!spaceData.tags) {
                 spaceData.tags = [];
             }
-             if (spaceData.tagsEn && typeof spaceData.tagsEn === 'string') {
+            if (spaceData.tagsEn && typeof spaceData.tagsEn === 'string') {
                 spaceData.tagsEn = spaceData.tagsEn.split(',').map(t => t.trim()).filter(Boolean);
             } else if (!spaceData.tagsEn) {
                 spaceData.tagsEn = [];
@@ -76,6 +82,11 @@ export const spacesController = {
             if (spaceData.rating) spaceData.rating = parseFloat(spaceData.rating);
             if (spaceData.userId) spaceData.userId = parseInt(spaceData.userId, 10);
 
+
+            // Enforce ownership if not admin
+            if (req.user && !isAdmin(req.user)) {
+                return res.status(403).json({ message: 'Forbidden: Only admins can create spaces.' });
+            }
 
             const newSpace = await spaceModel.create(spaceData);
             res.status(201).json(newSpace);
@@ -91,6 +102,19 @@ export const spacesController = {
             if (isNaN(id)) {
                 return res.status(400).json({ message: 'Invalid ID.' });
             }
+
+            // Check existing space for ownership
+            const existingSpace = await spaceModel.findById(id);
+            if (!existingSpace) {
+                return res.status(404).json({ message: 'Space not found.' });
+            }
+
+            if (req.user && !isAdmin(req.user)) {
+                if (existingSpace.userId !== req.user.id) {
+                    return res.status(403).json({ message: 'Forbidden: You do not have permission to edit this space.' });
+                }
+            }
+
             const spaceData = { ...req.body };
             if (req.file) {
                 spaceData.imageUrl = `/uploads/${req.file.filename}`;
@@ -99,7 +123,7 @@ export const spacesController = {
             if (spaceData.tags && typeof spaceData.tags === 'string') {
                 spaceData.tags = spaceData.tags.split(',').map(t => t.trim()).filter(Boolean);
             }
-             if (spaceData.tagsEn && typeof spaceData.tagsEn === 'string') {
+            if (spaceData.tagsEn && typeof spaceData.tagsEn === 'string') {
                 spaceData.tagsEn = spaceData.tagsEn.split(',').map(t => t.trim()).filter(Boolean);
             }
             // Convert numbers
@@ -110,6 +134,10 @@ export const spacesController = {
             if (spaceData.rating) spaceData.rating = parseFloat(spaceData.rating);
             if (spaceData.userId) spaceData.userId = parseInt(spaceData.userId, 10);
 
+            // Prevent non-admin from changing ownership
+            if (req.user && !isAdmin(req.user)) {
+                delete spaceData.userId;
+            }
 
             const updatedSpace = await spaceModel.update(id, spaceData);
             res.json(updatedSpace);
@@ -125,6 +153,19 @@ export const spacesController = {
             if (isNaN(id)) {
                 return res.status(400).json({ message: 'Invalid ID.' });
             }
+
+            // Check existing space for ownership
+            const existingSpace = await spaceModel.findById(id);
+            if (!existingSpace) {
+                return res.status(404).json({ message: 'Space not found.' });
+            }
+
+            if (req.user && !isAdmin(req.user)) {
+                if (existingSpace.userId !== req.user.id) {
+                    return res.status(403).json({ message: 'Forbidden: You do not have permission to delete this space.' });
+                }
+            }
+
             await spaceModel.delete(id);
             res.status(204).send();
         } catch (error) {
@@ -159,7 +200,7 @@ export const spacesController = {
             res.status(500).json({ message: 'Failed to fetch dharma talks for this space.' });
         }
     },
-    
+
     async getDocumentsBySpaceId(req, res) {
         try {
             const spaceId = parseInt(req.params.id, 10);
@@ -177,11 +218,11 @@ export const spacesController = {
     async makeOffering(req, res) {
         const spaceId = parseInt(req.params.id, 10);
         const { amount, userId } = req.body;
-    
+
         if (isNaN(spaceId) || !amount || amount <= 0 || !userId) {
             return res.status(400).json({ message: 'Valid Space ID, amount, and User ID are required.' });
         }
-    
+
         try {
             const { updatedUser } = await spaceModel.makeOffering(spaceId, userId, amount);
             res.json({ updatedUser: mapAndSanitizeUser(updatedUser) });

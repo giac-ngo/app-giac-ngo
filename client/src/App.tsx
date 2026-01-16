@@ -49,7 +49,7 @@ const App: React.FC = () => {
       return null;
     }
   });
-  
+
   const [language, setLanguage] = useState<'vi' | 'en'>(() => {
     return (localStorage.getItem('language') as 'vi' | 'en') || 'vi';
   });
@@ -72,31 +72,31 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('language', language);
   }, [language]);
-  
+
   useEffect(() => {
     if (!systemConfig) return;
     const themeToApply = user?.template || systemConfig.template || 'w5g';
     document.documentElement.setAttribute('data-theme', themeToApply);
-    
+
     // Logic to dynamically update favicon removed to keep static favicon from index.html
   }, [user, systemConfig]);
 
   useEffect(() => {
     apiService.getSystemConfig()
-        .then(config => {
-            if (!config) {
-                throw new Error("System configuration not found or is null.");
-            }
-            setSystemConfig(config);
-        })
-        .catch(err => {
-            console.error("Failed to load system config", err);
-            const message = err instanceof Error ? err.message : String(err);
-            setError(`Could not load system configuration. Please try again later. (${message})`);
-        })
-        .finally(() => setIsLoading(false));
+      .then(config => {
+        if (!config) {
+          throw new Error("System configuration not found or is null.");
+        }
+        setSystemConfig(config);
+      })
+      .catch(err => {
+        console.error("Failed to load system config", err);
+        const message = err instanceof Error ? err.message : String(err);
+        setError(`Could not load system configuration. Please try again later. (${message})`);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
-  
+
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     localStorage.setItem('user', JSON.stringify(loggedInUser));
@@ -105,110 +105,111 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    navigate('/login');
+    // Save current path to redirect back after login
+    navigate('/login', { state: { from: location } });
   };
 
   const handleGoToLogin = () => {
     navigate('/login', { state: { from: location } });
   };
-  
+
   const handleSystemConfigUpdate = (newConfig: SystemConfig) => {
     setSystemConfig(newConfig);
   };
 
   const handleUserUpdate = (updatedData: Partial<User>) => {
     setUser(currentUser => {
-        if (!currentUser) return null;
-        const newUser = { ...currentUser, ...updatedData };
-        localStorage.setItem('user', JSON.stringify(newUser));
-        return newUser;
+      if (!currentUser) return null;
+      const newUser = { ...currentUser, ...updatedData };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
     });
   };
-  
+
   if (isLoading) {
     return <div className="page-loader">Loading application...</div>;
   }
-  
+
   if (error) {
-     return <div className="page-loader text-accent-red">{error}</div>;
+    return <div className="page-loader text-accent-red">{error}</div>;
   }
-  
+
   return (
-      <ToastProvider>
-        <div className="App">
-          {systemConfig ? (
-            <Routes>
-              {/* Static & Auth Routes */}
-              <Route path="/about" element={<AboutPage language={language} />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/career" element={<CareerPage />} />
-              <Route path="/donation" element={<DonationPage user={user} onUserUpdate={handleUserUpdate} />} />
-              <Route path="/donation/success" element={<DonationSuccessPage onUserUpdate={handleUserUpdate} />} />
-              <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} language={language} />} />
-              <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleLogin} language={language} />} />
-              <Route path="/reset-password" element={<ResetPasswordPage language={language} />} />
-              <Route path="/auth/callback" element={<AuthCallbackPage onLogin={handleLogin} />} />
+    <ToastProvider>
+      <div className="App">
+        {systemConfig ? (
+          <Routes>
+            {/* Static & Auth Routes */}
+            <Route path="/about" element={<AboutPage language={language} />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/career" element={<CareerPage />} />
+            <Route path="/donation" element={<DonationPage user={user} onUserUpdate={handleUserUpdate} />} />
+            <Route path="/donation/success" element={<DonationSuccessPage onUserUpdate={handleUserUpdate} />} />
+            <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} language={language} />} />
+            <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage onRegister={handleLogin} language={language} />} />
+            <Route path="/reset-password" element={<ResetPasswordPage language={language} />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage onLogin={handleLogin} />} />
 
-              {/* Docs Routes - Nested structure for Outlet */}
-              <Route path="/docs" element={<DocsLayout language={language} setLanguage={setLanguage} />}>
-                <Route index element={<Navigate to="quick-start" replace />} />
-                <Route path="manifesto" element={<Manifesto />} />
-                <Route path="mandala-merit" element={<MandalaMerit />} />
-                <Route path="merit-tokenomics" element={<MeritTokenomics />} />
-                <Route path="path-of-unraveling" element={<PathOfUnraveling />} />
-                <Route path="tech-stack" element={<TechStack />} />
-                <Route path="overview" element={<Overview />} />
-                <Route path="models" element={<AgentModels />} />
-                <Route path="quick-start" element={<QuickStart />} />
-                <Route path="pricing" element={<TokenPricing />} />
-              </Route>
+            {/* Docs Routes - Nested structure for Outlet */}
+            <Route path="/docs" element={<DocsLayout language={language} setLanguage={setLanguage} />}>
+              <Route index element={<Navigate to="quick-start" replace />} />
+              <Route path="manifesto" element={<Manifesto />} />
+              <Route path="mandala-merit" element={<MandalaMerit />} />
+              <Route path="merit-tokenomics" element={<MeritTokenomics />} />
+              <Route path="path-of-unraveling" element={<PathOfUnraveling />} />
+              <Route path="tech-stack" element={<TechStack />} />
+              <Route path="overview" element={<Overview />} />
+              <Route path="models" element={<AgentModels />} />
+              <Route path="quick-start" element={<QuickStart />} />
+              <Route path="pricing" element={<TokenPricing />} />
+            </Route>
 
-              {/* Admin Route (must be before dynamic slug routes) */}
-              <Route path="/:spaceSlug/admin/:section?" element={
-                <ProtectedRoute user={user}>
-                  {user && <AdminPage 
-                    user={user} 
-                    onLogout={handleLogout} 
-                    language={language} 
-                    setLanguage={setLanguage} 
-                    systemConfig={systemConfig} 
-                    onSystemConfigUpdate={handleSystemConfigUpdate} 
-                    onUserUpdate={handleUserUpdate} 
-                  />}
-                </ProtectedRoute>
-              } />
+            {/* Admin Route (must be before dynamic slug routes) */}
+            <Route path="/:spaceSlug/admin/:section?" element={
+              <ProtectedRoute user={user}>
+                {user && <AdminPage
+                  user={user}
+                  onLogout={handleLogout}
+                  language={language}
+                  setLanguage={setLanguage}
+                  systemConfig={systemConfig}
+                  onSystemConfigUpdate={handleSystemConfigUpdate}
+                  onUserUpdate={handleUserUpdate}
+                />}
+              </ProtectedRoute>
+            } />
 
-              {/* Content Routes */}
-              <Route path="/:spaceSlug/library/:id" element={<DocumentDetailPage user={user} />} />
-              
-              {/* Dynamic Slug-based Routes (Order is important) */}
-              <Route path="/:spaceSlug/:view" element={
-                 <PracticeSpacePage
-                    user={user}
-                    systemConfig={systemConfig}
-                    onLogout={handleLogout}
-                    // FIX: Pass the `handleGoToLogin` function to the `onGoToLogin` prop of `PracticeSpacePage` to resolve the 'Cannot find name' error.
-                    onGoToLogin={handleGoToLogin}
-                    language={language}
-                    setLanguage={setLanguage}
-                    onUserUpdate={handleUserUpdate}
-                />
-              } />
-              <Route path="/:spaceSlug" element={
-                  <SpaceDetailPage user={user} onUserUpdate={handleUserUpdate} />
-              } />
+            {/* Content Routes */}
+            <Route path="/:spaceSlug/library/:id" element={<DocumentDetailPage user={user} />} />
 
-              {/* Home and Fallback */}
-              <Route path="/" element={<HomePage user={user} language={language} setLanguage={setLanguage} systemConfig={systemConfig} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          ) : (
-            <div className="page-loader">Loading configuration...</div>
-          )}
-        </div>
-      </ToastProvider>
+            {/* Dynamic Slug-based Routes (Order is important) */}
+            <Route path="/:spaceSlug/:view" element={
+              <PracticeSpacePage
+                user={user}
+                systemConfig={systemConfig}
+                onLogout={handleLogout}
+                // FIX: Pass the `handleGoToLogin` function to the `onGoToLogin` prop of `PracticeSpacePage` to resolve the 'Cannot find name' error.
+                onGoToLogin={handleGoToLogin}
+                language={language}
+                setLanguage={setLanguage}
+                onUserUpdate={handleUserUpdate}
+              />
+            } />
+            <Route path="/:spaceSlug" element={
+              <SpaceDetailPage user={user} onUserUpdate={handleUserUpdate} />
+            } />
+
+            {/* Home and Fallback */}
+            <Route path="/" element={<HomePage user={user} language={language} setLanguage={setLanguage} systemConfig={systemConfig} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        ) : (
+          <div className="page-loader">Loading configuration...</div>
+        )}
+      </div>
+    </ToastProvider>
   );
 };
 

@@ -350,6 +350,7 @@ export interface Space {
   views?: number;
   likes?: number;
   rating?: number;
+  rank?: number;
   tags: string[];
   tagsEn?: string[];
   typeId?: number | null;
@@ -363,6 +364,9 @@ export interface Space {
   meritsSold: number;
   event?: string;
   eventEn?: string;
+  website?: string;
+  phoneNumber?: string;
+  email?: string;
 }
 
 export interface DharmaTalk {
@@ -371,9 +375,11 @@ export interface DharmaTalk {
   title: string;
   titleEn?: string;
   subtitle?: string;
+  subtitleEn?: string;
   speaker?: string;
   speakerAvatarUrl?: string;
   url?: string;
+  urlEn?: string;
   duration?: number;
   date?: string;
   views?: number;
@@ -385,6 +391,19 @@ export interface DharmaTalk {
   statusEn?: string;
   notifications?: number;
   createdAt?: string;
+}
+
+export interface MeditationSession {
+  id: number;
+  spaceId: number;
+  title: string;
+  titleEn?: string;
+  description?: string;
+  descriptionEn?: string;
+  audioUrl: string;
+  audioUrlEn?: string;
+  duration: number; // in seconds
+  spaceName?: string;
 }
 
 export interface WithdrawalRequest {

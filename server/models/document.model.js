@@ -20,8 +20,8 @@ export const updateTagsForDocument = async (documentId, tags, client = pool) => 
 export const documentModel = {
     // --- Document CRUD ---
     async find(filters) {
-        const { title, authorId, typeId, topicId, tagId, isLibrary, typeName, authorName, topicName, limit, offset, sortBy, sortOrder, spaceId } = filters || {};
-        
+        const { title, authorId, typeId, topicId, tagId, isLibrary, typeName, authorName, topicName, limit, offset, sortBy, sortOrder, spaceId, spaceIds } = filters || {};
+
         const selectClause = `
             SELECT 
                 d.*, 
@@ -52,7 +52,8 @@ export const documentModel = {
         const whereClauses = [];
         let paramIndex = 1;
 
-        if (isLibrary) { whereClauses.push(`dt.name IN ('Kệ', 'Câu Chuyện')`); }
+        // Removed hardcoded type filter to allow all document types in library view
+        // if (isLibrary) { whereClauses.push(`dt.name IN ('Kệ', 'Câu Chuyện')`); }
         if (title) { whereClauses.push(`(d.title ILIKE $${paramIndex} OR d.title_en ILIKE $${paramIndex})`); params.push(`%${title}%`); paramIndex++; }
         if (authorId) { whereClauses.push(`d.author_id = $${paramIndex++}`); params.push(authorId); }
         if (typeId) { whereClauses.push(`d.type_id = $${paramIndex++}`); params.push(typeId); }
@@ -65,11 +66,19 @@ export const documentModel = {
                 params.push(spaceId);
             }
         }
+        if (spaceIds && spaceIds.length > 0) {
+            whereClauses.push(`d.space_id = ANY($${paramIndex++})`);
+            params.push(spaceIds);
+        }
         if (typeName) { whereClauses.push(`dt.name = $${paramIndex++}`); params.push(typeName); }
         if (authorName) { whereClauses.push(`da.name = $${paramIndex++}`); params.push(authorName); }
         if (topicName && topicName !== 'Mục Lục') { whereClauses.push(`d_topics.name = $${paramIndex++}`); params.push(topicName); }
         if (tagId) { whereClauses.push(`d.id IN (SELECT document_id FROM document_tags WHERE tag_id = $${paramIndex++})`); params.push(tagId); }
-        
+        if (filters.excludeTypeNames && filters.excludeTypeNames.length > 0) {
+            whereClauses.push(`dt.name != ALL($${paramIndex++})`);
+            params.push(filters.excludeTypeNames);
+        }
+
         const whereClauseString = whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : '';
 
         // Count query needs to join to filter correctly
@@ -80,9 +89,9 @@ export const documentModel = {
             LEFT JOIN document_topics d_topics ON d.topic_id = d_topics.id
         `;
         const countQuery = `SELECT COUNT(DISTINCT d.id) ${countFromClause} ${whereClauseString}`;
-        
+
         let dataQuery = selectClause + fromClause + whereClauseString + ` GROUP BY d.id, s.id, da.id, dt.id, d_topics.id`;
-        
+
         if (sortBy && sortOrder) {
             if (sortBy === 'views') { // Special case for homepage library, sort by multiple criteria
                 dataQuery += ` ORDER BY d.views DESC, d.likes DESC, d.rating DESC`;
@@ -104,23 +113,23 @@ export const documentModel = {
             dataQuery += ` OFFSET $${paramIndex++}`;
             dataParams.push(offset);
         }
-        
+
         const [countResult, dataResult] = await Promise.all([
             pool.query(countQuery, params),
             pool.query(dataQuery, dataParams)
         ]);
-        
+
         const total = parseInt(countResult.rows[0].count, 10);
         const data = dataResult.rows.map(mapRowToCamelCase);
-        
+
         return { data, total };
     },
-    
+
     async findById(id) {
         const res = await pool.query('SELECT * FROM documents WHERE id = $1', [id]);
         return mapRowToCamelCase(res.rows[0]);
     },
-    
+
     async create(docData, tags = []) {
         const client = await pool.connect();
         try {
@@ -135,9 +144,9 @@ export const documentModel = {
             if (tags.length > 0) {
                 await updateTagsForDocument(newDoc.id, tags, client);
             }
-            
+
             await client.query('COMMIT');
-            
+
             const finalDocRes = await pool.query(`
                 SELECT 
                     d.*, 
@@ -165,21 +174,21 @@ export const documentModel = {
             client.release();
         }
     },
-    
+
     async update(id, docData, tags) {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            const { 
-                id: docId, 
+            const {
+                id: docId,
                 author,
-                authorEn, 
+                authorEn,
                 type,
                 typeEn,
                 topic,
                 topicEn,
-                createdAt, 
-                spaceName, 
+                createdAt,
+                spaceName,
                 spaceSlug,
                 comments,
                 prevId,
@@ -189,7 +198,7 @@ export const documentModel = {
                 prevTitleEn,
                 nextTitleEn,
                 updatedAt,
-                ...fieldsToUpdate 
+                ...fieldsToUpdate
             } = docData;
 
             if (Object.keys(fieldsToUpdate).length > 0) {
@@ -200,13 +209,13 @@ export const documentModel = {
                 const values = Object.values(fieldsToUpdate);
                 await client.query(`UPDATE documents SET ${setClauses} WHERE id = $${values.length + 1}`, [...values, id]);
             }
-            
+
             if (tags !== undefined) {
                 await updateTagsForDocument(id, tags, client);
             }
-            
+
             await client.query('COMMIT');
-            
+
             const finalDocRes = await pool.query(`
                  SELECT 
                     d.*, 
@@ -225,7 +234,7 @@ export const documentModel = {
                 WHERE d.id = $1
                 GROUP BY d.id, s.name, da.name, dt.name, d_topics.name
             `, [id]);
-            
+
             if (finalDocRes.rows.length === 0) throw new Error(`Document with ID ${id} not found.`);
             return mapRowToCamelCase(finalDocRes.rows[0]);
 
@@ -236,11 +245,11 @@ export const documentModel = {
             client.release();
         }
     },
-    
+
     async delete(id) {
         await pool.query('DELETE FROM documents WHERE id = $1', [id]);
     },
-    
+
     async incrementLikes(id) {
         const res = await pool.query('UPDATE documents SET likes = likes + 1 WHERE id = $1 RETURNING likes', [id]);
         return res.rows[0];
@@ -251,7 +260,7 @@ export const documentModel = {
         const res = await pool.query('SELECT * FROM tags ORDER BY name ASC');
         return res.rows.map(mapRowToCamelCase);
     },
-    
+
     // --- Categories (Authors, Types, Topics) ---
     async _findCategory(tableName, spaceId) {
         if (tableName === 'document_topics') {
@@ -260,8 +269,11 @@ export const documentModel = {
             if (spaceId) {
                 if (spaceId === 'global') {
                     query += ' WHERE t.space_id IS NULL';
+                } else if (Array.isArray(spaceId)) {
+                    query += ' WHERE (t.space_id = ANY($1) OR t.space_id IS NULL)';
+                    params.push(spaceId);
                 } else {
-                    query += ' WHERE t.space_id = $1 OR t.space_id IS NULL';
+                    query += ' WHERE (t.space_id = $1 OR t.space_id IS NULL)';
                     params.push(spaceId);
                 }
             }
@@ -275,8 +287,11 @@ export const documentModel = {
         if (spaceId) {
             if (spaceId === 'global') {
                 query += ' WHERE space_id IS NULL';
+            } else if (Array.isArray(spaceId)) {
+                query += ' WHERE (space_id = ANY($1) OR space_id IS NULL)';
+                params.push(spaceId);
             } else {
-                query += ' WHERE space_id = $1 OR space_id IS NULL';
+                query += ' WHERE (space_id = $1 OR space_id IS NULL)';
                 params.push(spaceId);
             }
         }
@@ -298,13 +313,13 @@ export const documentModel = {
                 placeholders.push(`$${i++}`);
             }
         }
-        
+
         if (columns.length === 0) {
             throw new Error("No data provided for category creation.");
         }
-        
+
         const query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
-        
+
         const res = await pool.query(query, values);
         return mapRowToCamelCase(res.rows[0]);
     },
@@ -322,7 +337,7 @@ export const documentModel = {
 
         const values = fields.map(key => data[key]);
         const res = await pool.query(
-            `UPDATE ${tableName} SET ${setClauses} WHERE id = $${fields.length + 1} RETURNING *`, 
+            `UPDATE ${tableName} SET ${setClauses} WHERE id = $${fields.length + 1} RETURNING *`,
             [...values, id]
         );
         return mapRowToCamelCase(res.rows[0]);
@@ -348,7 +363,7 @@ export const documentModel = {
         }
         await pool.query(`DELETE FROM ${tableName} WHERE id = $1`, [id]);
     },
-    
+
     // --- Linking ---
     async linkToAi(aiConfigId, documentIds) {
         if (!documentIds || documentIds.length === 0) return;
@@ -360,7 +375,7 @@ export const documentModel = {
     async unlinkFromAi(aiConfigId, documentId) {
         await pool.query('DELETE FROM ai_config_documents WHERE ai_config_id = $1 AND document_id = $2', [aiConfigId, documentId]);
     },
-    
+
     // --- Document Config ---
     async getConfig() {
         const res = await pool.query('SELECT * FROM document_config WHERE id = 1 LIMIT 1');
