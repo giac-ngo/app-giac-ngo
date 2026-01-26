@@ -15,11 +15,10 @@ Mỗi "Không gian" (Space) là một khu vực độc lập dành cho một ph�
 Trái tim của ứng dụng là các AI Agent thông minh:
 *   **Trò chuyện theo ngữ cảnh (Contextual Chat)**: AI hiểu và trả lời dựa trên kho dữ liệu (Kinh sách, bài giảng) riêng của từng Không gian.
 *   **Đa phương thức (Multimodal)**:
-    *   **Nhận dạng giọng nói (STT)**: Tích hợp server Python Whisper chuyên biệt cho tốc độ và độ chính xác cực cao, hỗ trợ real-time cho tiếng Việt và tiếng Anh.
+    *   **Nhận dạng giọng nói (STT)**: Hỗ trợ nhập liệu bằng giọng nói tiếng Việt và tiếng Anh trực tiếp qua trình duyệt.
     *   **Đọc văn bản (TTS)**: AI có thể đọc câu trả lời bằng giọng đọc tự nhiên.
-    *   **Xử lý hình ảnh & OCR**: Người dùng có thể gửi ảnh hoặc dán ảnh trực tiếp từ clipboard để AI phân tích, trích xuất văn bản và giải đáp.
+    *   **Xử lý hình ảnh & OCR**: Người dùng có thể gửi ảnh để AI phân tích, trích xuất văn bản và giải đáp.
     *   **Xử lý tài liệu**: Upload file (PDF, Docx) để AI tóm tắt hoặc trích xuất nội dung vào kho RAG.
-*   **Suy luận Trace (Reasoning)**: Hiển thị quá trình "suy nghĩ" của AI (Thought process) trước khi đưa ra câu trả lời cuối cùng, giúp tăng tính minh bạch và độ tin cậy.
 *   **Lịch sử hội thoại**: Lưu trữ và quản lý các đoạn chat cũ, cho phép xem lại bất cứ lúc nào.
 
 ### 3. 📚 Thư Viện Pháp Bảo (Digital Library)
@@ -117,27 +116,23 @@ Hệ thống CMS mạnh mẽ hỗ trợ đa ngôn ngữ (Việt/Anh) và đa ph�
     *   Quản lý key riêng cho từng model (Gemini, Vertex, GPT, Grok) để tách biệt chi phí hoặc tăng limit.
     *   Tạo **Personal Access Token** để tích hợp với các ứng dụng bên thứ 3.
 *   **Cấu hình Giao diện**: Tùy chỉnh Logo, tên hiển thị cho các template khác nhau.
-2: 
-3: ---
-4: 
-5: ## 💻 Công nghệ Sử dụng (Tech Stack)
-6: 
-7: ### Frontend
-8: *   **React.js (Vite)** + **TypeScript**
-9: *   **Tailwind CSS** (Styling)
-10: *   **Framer Motion** (Animations)
-11: 
-12: ### Backend
-13: *   **Node.js (Express)**: Server điều phối chính.
-14: *   **Python (FastAPI)**: Server chuyên trách xử lý AI, Speech-to-Text (Whisper).
-15: *   **PostgreSQL**: Cơ sở dữ liệu quan hệ chính.
-16: *   **Supabase**: Quản lý database và xác thực.
-17: *   **Weaviate**: Vector Database phục vụ tìm kiếm ngữ cảnh (RAG).
-18: 
-19: ### AI & APIs
-20: *   **LLMs**: Google Gemini (Flash/Pro), OpenAI GPT-4o, Grok.
-21: *   **Payment**: Stripe API.
-22: *   **Blockchain**: Koii Network (Decentralized AI tasks).
+## 💻 Công nghệ Sử dụng (Tech Stack)
+
+### Frontend
+*   **React.js (Vite)** + **TypeScript**
+*   **Tailwind CSS** (Styling)
+*   **Framer Motion** (Animations)
+
+### Backend
+*   **Node.js (Express)**: Server điều phối chính.
+*   **PostgreSQL**: Cơ sở dữ liệu quan hệ chính.
+*   **Supabase**: Quản lý database và xác thực.
+*   **Weaviate**: Vector Database phục vụ tìm kiếm ngữ cảnh (RAG).
+
+### AI & APIs
+*   **LLMs**: Google Gemini (Flash/Pro), OpenAI GPT-4o, Grok.
+*   **Payment**: Stripe API.
+*   **Blockchain**: Koii Network (Decentralized AI tasks).
 
 ---
 
