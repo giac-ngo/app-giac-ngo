@@ -15,23 +15,25 @@ Mỗi "Không gian" (Space) là một khu vực độc lập dành cho một ph�
 Trái tim của ứng dụng là các AI Agent thông minh:
 *   **Trò chuyện theo ngữ cảnh (Contextual Chat)**: AI hiểu và trả lời dựa trên kho dữ liệu (Kinh sách, bài giảng) riêng của từng Không gian.
 *   **Đa phương thức (Multimodal)**:
-    *   **Nhận dạng giọng nói**: Hỗ trợ nhập liệu bằng giọng nói (Speech-to-Text) tiếng Việt và tiếng Anh.
-    *   **Đọc văn bản (Text-to-Speech)**: AI có thể đọc câu trả lời bằng giọng đọc tự nhiên.
-    *   **Xử lý hình ảnh**: Người dùng có thể gửi ảnh để AI phân tích và giải đáp.
-    *   **Xử lý tài liệu**: Upload file (PDF, Docx) để AI tóm tắt hoặc trích xuất nội dung.
+    *   **Nhận dạng giọng nói (STT)**: Tích hợp server Python Whisper chuyên biệt cho tốc độ và độ chính xác cực cao, hỗ trợ real-time cho tiếng Việt và tiếng Anh.
+    *   **Đọc văn bản (TTS)**: AI có thể đọc câu trả lời bằng giọng đọc tự nhiên.
+    *   **Xử lý hình ảnh & OCR**: Người dùng có thể gửi ảnh hoặc dán ảnh trực tiếp từ clipboard để AI phân tích, trích xuất văn bản và giải đáp.
+    *   **Xử lý tài liệu**: Upload file (PDF, Docx) để AI tóm tắt hoặc trích xuất nội dung vào kho RAG.
+*   **Suy luận Trace (Reasoning)**: Hiển thị quá trình "suy nghĩ" của AI (Thought process) trước khi đưa ra câu trả lời cuối cùng, giúp tăng tính minh bạch và độ tin cậy.
 *   **Lịch sử hội thoại**: Lưu trữ và quản lý các đoạn chat cũ, cho phép xem lại bất cứ lúc nào.
 
 ### 3. 📚 Thư Viện Pháp Bảo (Digital Library)
 Kho tàng tri thức số hóa:
 *   **Pháp Thoại (Dharma Talks)**: Trình phát audio/video các bài giảng pháp, hỗ trợ phân loại theo tác giả, chủ đề.
-*   **Thiền Dẫn (Guided Meditations)**: Công cụ hỗ trợ hành thiền với các bài dẫn thiền được tích hợp sẵn.
-*   **Kinh Sách & Tài Liệu**: Trình đọc tài liệu (Reader) tích hợp, hỗ trợ Mục lục tự động, tìm kiếm nội dung trong sác.
+*   **Thiền Dẫn (Guided Meditations)**: Công cụ hỗ trợ hành thiền với các bài dẫn thiền được tích hợp sẵn, hỗ trợ bộ đếm giờ và nhạc nền.
+*   **Kinh Sách & Tài Liệu**: Trình đọc tài liệu (Reader) tích hợp, hỗ trợ Mục lục tự động, tìm kiếm nội dung trong sách.
+*   **Cộng đồng (Social Feed)**: Không gian chia sẻ, thảo luận và tương tác giữa các hành giả trong từng Không gian.
 
-### 4. � Hệ Thống Merit & Marketplace
+### 4.  Hệ Thống Merit & Marketplace
 Hệ thống kinh tế nội tại hỗ trợ vận hành:
 *   **Merit Token**: Đơn vị dùng để sử dụng các tính năng AI cao cấp.
 *   **AI Marketplace**: Nơi người dùng khám phá và "Kích hoạt" (mua hoặc nhận miễn phí) các trợ lý AI chuyên biệt.
-*   **Cúng Dường (Donation)**: Tích hợp cổng thanh toán Stripe và Crypto (Koii Network) để người dùng ủng hộ các Không gian hoặc dự án.
+*   **Cúng Dường (Donation)**: Tích hợp cổng thanh toán Stripe và Crypto (Koii Network). Hệ thống hỗ trợ theo dõi dòng tiền cúng dường chi tiết theo từng Không gian (Space-based tracking).
 
 ---
 
@@ -55,7 +57,7 @@ Hệ thống quản trị mạnh mẽ dành cho Admin và Chủ sở hữu Khôn
 Dành cho người dùng muốn tùy chỉnh sâu hành vi của AI Agent.
 *   **Data Sources (Nguồn Dữ Liệu)**:
     *   **System Prompt**: Chỉ thị cốt lõi định hình tính cách và kiến thức nền tảng của AI.
-    *   **Q&A Pairs**: Dữ liệu Hỏi-Đáp thủ công giúp AI học cách trả lời các câu hỏi cụ thể (Few-shot prompting).
+*   **Q&A Pairs**: Dữ liệu Hỏi-Đáp thủ công giúp AI học cách trả lời các câu hỏi cụ thể (Few-shot prompting). Hỗ trợ nhập liệu "Thought" để rèn luyện tư duy cho AI.
     *   **Documents (RAG)**:
         *   **File Upload**: Tải lên trực tiếp các file (PDF, DOCX, TXT...). Hệ thống tự động tóm tắt (Summarize) để tối ưu context.
         *   **Library Parsing**: Liên kết trực tiếp với sách/kinh từ Thư viện số.
@@ -92,7 +94,8 @@ Hệ thống CMS mạnh mẽ hỗ trợ đa ngôn ngữ (Việt/Anh) và đa ph�
 *   **User Management**:
     *   Xem danh sách, tìm kiếm, lọc theo trạng thái/quyền.
     *   Chỉnh sửa thông tin cá nhân, Merits (xu), và trạng thái hoạt động.
-    *   Reset mật khẩu hoặc tạo người dùng mới thủ công.
+    *   Quản lý mật khẩu: Admin có thể reset hoặc thay đổi mật khẩu trực tiếp cho người dùng.
+    *   Tạo người dùng mới thủ công.
 *   **Role Management (Phân Quyền Chi Tiết)**:
     *   Tạo các nhóm quyền tùy chỉnh (Ví dụ: Editor, Moderator, Support).
     *   **Granular Permissions**: Cấp quyền truy cập chi tiết từng module (Dashboard, Files, AI, Finance, Settings...).
@@ -103,8 +106,9 @@ Hệ thống CMS mạnh mẽ hỗ trợ đa ngôn ngữ (Việt/Anh) và đa ph�
     *   Theo dõi toàn bộ dòng tiền: Nạp Crypto, Stripe, Mua gói (Subscription), Cúng dường (Offering).
     *   Phân loại rõ ràng nguồn tiền và người thực hiện.
 *   **Yêu cầu Rút tiền (Withdrawals)**:
-    *   Quy trình duyệt/từ chối yêu cầu rút tiền từ các Space Owner.
-    *   Theo dõi trạng thái xử lý (Pending -> Approved/Rejected).
+    *   Quy trình xét duyệt rút tiền minh bạch dành cho các Space Owner.
+    *   Hỗ trợ trạng thái xử lý: Chờ duyệt (Pending) -> Đã duyệt (Approved) / Từ chối (Rejected).
+*   **Space Owner Dashboard**: Giao diện tài chính chuyên biệt cho chủ sở hữu không gian để quản lý doanh thu và số dư riêng biệt.
 *   **Cấu hình Gói cước**: Quản lý các gói đăng ký (Pricing Plans) và quyền lợi đi kèm.
 
 ### 6. ⚙️ Hệ Thống & Cài Đặt (System Settings)
@@ -113,6 +117,27 @@ Hệ thống CMS mạnh mẽ hỗ trợ đa ngôn ngữ (Việt/Anh) và đa ph�
     *   Quản lý key riêng cho từng model (Gemini, Vertex, GPT, Grok) để tách biệt chi phí hoặc tăng limit.
     *   Tạo **Personal Access Token** để tích hợp với các ứng dụng bên thứ 3.
 *   **Cấu hình Giao diện**: Tùy chỉnh Logo, tên hiển thị cho các template khác nhau.
+2: 
+3: ---
+4: 
+5: ## 💻 Công nghệ Sử dụng (Tech Stack)
+6: 
+7: ### Frontend
+8: *   **React.js (Vite)** + **TypeScript**
+9: *   **Tailwind CSS** (Styling)
+10: *   **Framer Motion** (Animations)
+11: 
+12: ### Backend
+13: *   **Node.js (Express)**: Server điều phối chính.
+14: *   **Python (FastAPI)**: Server chuyên trách xử lý AI, Speech-to-Text (Whisper).
+15: *   **PostgreSQL**: Cơ sở dữ liệu quan hệ chính.
+16: *   **Supabase**: Quản lý database và xác thực.
+17: *   **Weaviate**: Vector Database phục vụ tìm kiếm ngữ cảnh (RAG).
+18: 
+19: ### AI & APIs
+20: *   **LLMs**: Google Gemini (Flash/Pro), OpenAI GPT-4o, Grok.
+21: *   **Payment**: Stripe API.
+22: *   **Blockchain**: Koii Network (Decentralized AI tasks).
 
 ---
 
